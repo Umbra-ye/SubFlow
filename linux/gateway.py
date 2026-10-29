@@ -1,3 +1,4 @@
+import ssl
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -453,16 +454,24 @@ class NativeSubEngine:
     @staticmethod
     def fetch_upstream(url: str, client_ua: str = ''):
         uas = [
+            'clash.meta',
+            'QuantumultX',
+            'v2rayN/6.23',
+            'ClashMeta',
             'Shadowrocket/1982 CFNetwork/1410.0.3 Darwin/22.6.0',
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-            'curl/7.88.1',
-            'clash.meta'
+            'curl/7.88.1'
         ]
+        if client_ua and client_ua not in uas:
+            uas.insert(0, client_ua)
+
         for ua in uas:
             try:
                 req = urllib.request.Request(url, headers={'User-Agent': ua})
-                with urllib.request.urlopen(req, timeout=5) as resp:
+                with urllib.request.urlopen(req, timeout=10) as resp:
                     data = resp.read().decode('utf-8', errors='ignore')
+                    # 严密过滤任何网页/重定向/Cloudflare盾页面
+                    if '<html' in data[:400].lower() or '<!doctype' in data[:400].lower():
+                        continue
                     if len(data.strip()) > 10:
                         return data, resp.headers.get('Subscription-Userinfo', '')
             except Exception:
@@ -471,10 +480,15 @@ class NativeSubEngine:
 
     @staticmethod
     def parse_vless_share(line: str):
-        if not line.startswith('vless://'):
+        proto = "vless"
+        if line.startswith('vless://'):
+            rest = line[8:]
+        elif line.startswith('anytls://'):
+            proto = "anytls"
+            rest = line[9:]
+        else:
             return None
-        rest = line[8:]
-        name = "VLESS 节点"
+        name = f"{proto.upper()} 节点"
         if '#' in rest:
             rest, name_part = rest.split('#', 1)
             name = urllib.parse.unquote(name_part).strip()
@@ -485,9 +499,10 @@ class NativeSubEngine:
         if '@' not in rest:
             return None
         uuid, host_port = rest.split('@', 1)
+        host_port = host_port.rstrip('/')
         if ':' in host_port:
             host, port_str = host_port.split(':', 1)
-            try: port = int(port_str)
+            try: port = int(port_str.rstrip('/'))
             except ValueError: port = 443
         else:
             host, port = host_port, 443
@@ -500,12 +515,12 @@ class NativeSubEngine:
         fp = query.get('fp', [''])[0]
         proxy = {
             'name': name,
-            'type': 'vless',
+            'type': proto,
             'server': host,
             'port': port,
             'uuid': uuid,
             'udp': True,
-            'tls': (security == 'tls'),
+            'tls': (security == 'tls' or proto == 'anytls'),
             'skip-cert-verify': True
         }
         if sni: proxy['servername'] = sni
@@ -518,31 +533,46 @@ class NativeSubEngine:
         return proxy, line
 
     @staticmethod
+    @staticmethod
     def parse_yaml_proxy(line: str):
         try:
-            name_m = re.search(r'name:\s*[\'"]?([^\'",}]+)[\'"]?', line)
+            name_m = re.search(r'name:\s*["\']?([^"\',}]+)["\']?', line)
             name = name_m.group(1).strip() if name_m else "Node"
             server_m = re.search(r'server:\s*([^\s,}]+)', line)
             server = server_m.group(1).strip() if server_m else ""
             port_m = re.search(r'port:\s*([0-9]+)', line)
             port = int(port_m.group(1)) if port_m else 443
-            uuid_m = re.search(r'uuid:\s*([^\s,}]+)', line)
+            uuid_m = re.search(r'(?:uuid|password):\s*([^\s,}]+)', line)
             uuid = uuid_m.group(1).strip() if uuid_m else ""
             type_m = re.search(r'type:\s*([^\s,}]+)', line)
-            p_type = type_m.group(1).strip() if type_m else "vless"
-            
+            p_type = type_m.group(1).strip() if type_m else "anytls"
+            sni_m = re.search(r'servername:\s*([^\s,}]+)', line) or re.search(r'sni:\s*([^\s,}]+)', line)
+            sni = sni_m.group(1).strip() if sni_m else ""
+            fp_m = re.search(r'client-fingerprint:\s*([^\s,}]+)', line)
+            fp = fp_m.group(1).strip() if fp_m else "chrome"
+
             share_link = ""
-            if p_type == 'vless' and server and uuid:
-                tls = "tls" if ("tls: true" in line or "security: tls" in line) else "none"
-                sni_m = re.search(r'servername:\s*([^\s,}]+)', line) or re.search(r'sni:\s*([^\s,}]+)', line)
-                sni = sni_m.group(1).strip() if sni_m else ""
+            if p_type == 'anytls' and server and uuid:
+                # 1:1 对齐 Windows C# 本地版 SubConverterApp.cs 第 1471 行
+                share_link = f"anytls://{uuid}@{server}:{port}?type=tcp&fp={fp}&security=tls&sni={sni}&alpn=h2,http/1.1&allowInsecure=1&insecure=1&udp=1&tfo=0#{urllib.parse.quote(name)}"
+            elif p_type == 'hysteria2' and server and uuid:
+                share_link = f"hysteria2://{uuid}@{server}:{port}/?sni={sni}#{urllib.parse.quote(name)}"
+            elif p_type == 'trojan' and server and uuid:
+                share_link = f"trojan://{uuid}@{server}:{port}?security=tls&sni={sni}#{urllib.parse.quote(name)}"
+            elif p_type == 'vless' and server and uuid:
                 host_m = re.search(r'Host:\s*([^\s,}]+)', line) or re.search(r'host:\s*([^\s,}]+)', line)
                 host = host_m.group(1).strip() if host_m else sni
-                path_m = re.search(r'path:\s*[\'"]?([^\'",}]+)[\'"]?', line)
+                path_m = re.search(r'path:\s*["\']?([^"\',}]+)["\']?', line)
                 path = path_m.group(1).strip() if path_m else "/"
-                fp_m = re.search(r'client-fingerprint:\s*([^\s,}]+)', line)
-                fp = fp_m.group(1).strip() if fp_m else "chrome"
-                share_link = f"vless://{uuid}@{server}:{port}?type=ws&security={tls}&path={urllib.parse.quote(path)}&host={host}&sni={sni}&fp={fp}#{urllib.parse.quote(name)}"
+                net_m = re.search(r'network:\s*([^\s,}]+)', line)
+                net = net_m.group(1).strip() if net_m else "tcp"
+                tls = "tls" if ("tls: true" in line or "security: tls" in line) else "none"
+                share_link = f"vless://{uuid}@{server}:{port}?type={net}&security={tls}&path={urllib.parse.quote(path)}&host={host}&sni={sni}&fp={fp}#{urllib.parse.quote(name)}"
+            elif p_type == 'ss' and server and uuid:
+                cipher_m = re.search(r'cipher:\s*([^\s,}]+)', line)
+                cipher = cipher_m.group(1).strip() if cipher_m else "aes-256-gcm"
+                auth = base64.b64encode(f"{cipher}:{uuid}".encode('utf-8')).decode('utf-8')
+                share_link = f"ss://{auth}@{server}:{port}#{urllib.parse.quote(name)}"
             return line.strip(), share_link, name
         except Exception:
             return None, "", ""
@@ -593,7 +623,7 @@ class NativeSubEngine:
                 text_lines = [l.strip() for l in raw.splitlines() if l.strip()]
 
             for line in text_lines:
-                if line.startswith('vless://'):
+                if line.startswith('vless://') or line.startswith('anytls://'):
                     res = cls.parse_vless_share(line)
                     if res:
                         p_dict, orig_link = res
@@ -601,7 +631,7 @@ class NativeSubEngine:
                         all_yaml_proxies.append(f"- {p_json}")
                         all_share_links.append(orig_link)
                         all_names.append(p_dict['name'])
-                elif line.startswith('vmess://') or line.startswith('ss://') or line.startswith('trojan://'):
+                elif line.startswith('vmess://') or line.startswith('ss://') or line.startswith('trojan://') or line.startswith('hysteria2://') or line.startswith('hy2://') or line.startswith('tuic://'):
                     all_share_links.append(line)
 
         if not all_yaml_proxies and not all_share_links:
@@ -1623,7 +1653,19 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
             return
 
         params = urllib.parse.parse_qs(query)
-        target_format = params.get("target", ["clash"])[0]
+        target_format = params.get("target", ["clash"])[0].lower()
+
+        # 智能感知客户端生态与目标协议 (Client Auto-Sensing)
+        if target_format == "auto":
+            ua_lower = (self.headers.get("User-Agent") or "").lower()
+            if any(k in ua_lower for k in ["clash", "meta", "mihomo", "stash", "flclash"]):
+                target_format = "clash"
+            elif any(k in ua_lower for k in ["sing-box", "nekobox", "sfa"]):
+                target_format = "singbox"
+            elif any(k in ua_lower for k in ["v2ray", "xray", "shadowrocket", "quantumult"]):
+                target_format = "mixed"
+            else:
+                target_format = "clash"
 
         # 1. 验证 Token (在 cloud 模式下，私有分发需携带 token；若携带 url= 则是万能转换与客户端直连，彻底放行免 403)
         user_id = None
@@ -1720,6 +1762,9 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
                 req.add_header("User-Agent", self.headers["User-Agent"])
             with urllib.request.urlopen(req, timeout=25) as resp:
                 data = resp.read()
+                # 校验核心返回内容是否包含假节点或拦截页
+                if NativeSubEngine.is_invalid_upstream_response(data.decode('utf-8', errors='ignore')):
+                    raise ValueError("C++ core returned dummy node or intercepted payload")
                 # 写入成功容灾快照
                 try:
                     with open(snapshot_file, "wb") as f:

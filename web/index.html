@@ -528,7 +528,15 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 16px;
       padding-bottom: 8px;
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: nowrap;
     }
 
     .brand {
@@ -1715,25 +1723,32 @@
       display: none !important;
     }
 
-    /* 移动端顶栏深度适配 (手机 375px 窄屏完美排版) */
-    @media (max-width: 680px) {
+    /* 移动端与平板顶栏优雅网格自适应 */
+    @media (max-width: 860px) {
       .header {
-        flex-direction: column !important;
-        align-items: flex-start !important;
-        gap: 12px !important;
+        display: grid !important;
+        grid-template-columns: 1fr auto !important;
+        grid-template-areas: 
+          "brand controls"
+          "nav nav" !important;
+        gap: 14px 10px !important;
+        align-items: center !important;
+      }
+      .brand {
+        grid-area: brand;
       }
       .header-controls {
-        width: 100%;
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
+        grid-area: controls;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-end !important;
         gap: 8px !important;
-        justify-content: flex-start;
       }
       .segmented-nav {
-        order: 10;
+        grid-area: nav;
         width: 100%;
-        margin-top: 4px;
+        margin-top: 2px;
+        display: flex;
       }
       .segmented-nav .nav-btn {
         flex: 1;
@@ -1861,8 +1876,15 @@
         </div>
       </div>
 
-      <!-- Right Controls: Settings, Theme Toggle & Segmented Nav -->
-      <div class="header-controls" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+      <!-- Segmented Nav (Refactoring UI / Emil Kowalski): 独立水平居中 -->
+      <nav class="segmented-nav" id="main-segmented-nav">
+        <div class="nav-slider" id="nav-slider"></div>
+        <button class="nav-btn active" id="tab-convert-btn" onclick="switchTab('convert')">⚡ 万能转换</button>
+        <button class="nav-btn" id="tab-history-btn" onclick="switchTab('history')">📋 历史与测活</button>
+      </nav>
+
+      <!-- Right Controls: Settings, Theme Toggle & User Auth -->
+      <div class="header-controls">
         
         <!-- 🔑 用户中心与退出登录 -->
         <div id="header-auth-zone" style="display:flex; align-items:center; gap:8px;">
@@ -1886,13 +1908,6 @@
           <span id="theme-icon">🌙</span>
           <span id="theme-text">夜间模式</span>
         </button>
-
-        <!-- Segmented Nav (Refactoring UI / Emil Kowalski) -->
-        <nav class="segmented-nav">
-          <div class="nav-slider" id="nav-slider"></div>
-          <button class="nav-btn active" id="tab-convert-btn" onclick="switchTab('convert')">⚡ 万能转换</button>
-          <button class="nav-btn" id="tab-history-btn" onclick="switchTab('history')">📋 历史与测活</button>
-        </nav>
       </div>
     </header>
 

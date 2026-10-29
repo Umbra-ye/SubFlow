@@ -301,18 +301,7 @@
           <input type="password" id="admin-pwd-input" class="form-input" placeholder="请输入管理员密码" autocomplete="current-password" required>
         </div>
 
-        <!-- 智能人机核验 -->
-        <div style="margin-bottom: 20px;">
-          <div id="admin-challenge-box" onclick="triggerAdminChallenge()" style="background: rgba(19, 27, 46, 0.8); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 12px 14px; display:flex; align-items:center; justify-content:space-between; cursor:pointer;">
-            <div style="display:flex; align-items:center; gap: 10px;">
-              <span id="challenge-status-icon">🛡️</span>
-              <span id="challenge-status-text" style="font-size: 0.82rem; color: var(--text-secondary);">点击完成人机智能防爆破核验</span>
-            </div>
-            <span style="font-size: 0.7rem; color: var(--text-muted); background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 4px;">Turnstile</span>
-          </div>
-        </div>
-
-        <button type="submit" id="admin-submit-btn" class="btn-primary" style="width: 100%; justify-content: center; padding: 12px;">
+        <button type="submit" id="admin-submit-btn" class="btn-primary" style="width: 100%; justify-content: center; padding: 12px; margin-top: 8px;">
           <span>安全鉴权并进入控制台</span>
         </button>
       </form>
@@ -628,7 +617,6 @@ SubFlow 运维控制中心就绪...
       // 未登录或非 admin 保持门禁锁定
       document.getElementById('admin-gate-screen').style.display = 'flex';
       document.getElementById('admin-main-panel').style.display = 'none';
-      triggerAdminChallenge();
     }
 
     function unlockAdminPanel() {
@@ -639,47 +627,12 @@ SubFlow 运维控制中心就绪...
       showToast('🛡️ 管理员凭据鉴权通过，已进入专属运维中枢！');
     }
 
-    async function triggerAdminChallenge() {
-      const icon = document.getElementById('challenge-status-icon');
-      const text = document.getElementById('challenge-status-text');
-      icon.innerText = '⏳';
-      text.innerText = '正在进行本地环境人机安全验证...';
-      try {
-        const r1 = await fetch('/api/auth/challenge');
-        const d1 = await r1.json();
-        if (d1.ok && d1.challenge_id) {
-          await new Promise(r => setTimeout(r, 350));
-          const r2 = await fetch('/api/auth/verify-challenge', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ challenge_id: d1.challenge_id, client_time: Date.now() })
-          });
-          const d2 = await r2.json();
-          if (d2.ok && d2.ticket) {
-            challengeTicket = d2.ticket;
-            icon.innerText = '✅';
-            text.innerText = '人机智能核验通过 · 允许鉴权';
-            text.style.color = '#10b981';
-            return;
-          }
-        }
-      } catch (e) {}
-      icon.innerText = '⚠️';
-      text.innerText = '验证异常，请重新点击';
-    }
-
     async function submitAdminLogin(e) {
       e.preventDefault();
       const username = document.getElementById('admin-user-input').value.trim();
       const password = document.getElementById('admin-pwd-input').value;
       const alertBox = document.getElementById('gate-alert-box');
       alertBox.style.display = 'none';
-
-      if (!challengeTicket) {
-        alertBox.innerText = '请先点击完成人机防爆破核验！';
-        alertBox.style.display = 'block';
-        return;
-      }
 
       const submitBtn = document.getElementById('admin-submit-btn');
       submitBtn.disabled = true;
@@ -691,8 +644,7 @@ SubFlow 运维控制中心就绪...
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             username,
-            password,
-            ticket: challengeTicket
+            password
           })
         });
         const data = await res.json();
@@ -710,7 +662,6 @@ SubFlow 运维控制中心就绪...
         } else {
           alertBox.innerText = '鉴权失败: ' + (data.error || '密码错误或被安全锁定');
           alertBox.style.display = 'block';
-          triggerAdminChallenge();
         }
       } catch (err) {
         alertBox.innerText = '网络请求异常: ' + err;

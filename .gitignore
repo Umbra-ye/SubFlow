@@ -1,0 +1,52 @@
+# ==============================================================================
+# SubFlow (订阅流) · Git 忽略规则
+# 严格遵守数据安全隔离准则，严禁提交任何用户数据库、Token、域名配置与密钥
+# ==============================================================================
+
+# 私有数据与数据库目录 (物理隔离保护，100% 绝不上传)
+data/
+*.db
+*.db-wal
+*.db-shm
+*.key
+.master.key
+*.snapshot
+server_config.json
+
+# 云端部署凭证与服务器连接配置 (绝对私有)
+deploy_config.json
+
+# 运行时缓存与临时数据
+cache/
+edge_profile/
+*.log
+*.tmp
+*.zip
+*.tar.gz
+archives/
+test_screenshots/
+
+# 临时排障与测试代码 (防止携带测试数据)
+test_*
+wula_*.yaml
+*_raw.yaml
+
+# 大体积依赖外部程序 (按需下载)
+bin/cloudflared.exe
+
+# Python 运行时与缓存
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# 操作系统与编辑器临时文件
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates

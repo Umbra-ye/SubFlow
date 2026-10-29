@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  subflow-core:
+    image: tindy2013/subconverter:latest
+    container_name: subflow-core
+    restart: always
+    environment:
+      - SUB_PORT=25500
+    networks:
+      - subflow-net
+
+  subflow-gateway:
+    build:
+      context: ..
+      dockerfile: linux/Dockerfile
+    container_name: subflow-gateway
+    restart: always
+    ports:
+      - "25588:25588"
+    depends_on:
+      - subflow-core
+    networks:
+      - subflow-net
+
+networks:
+  subflow-net:
+    driver: bridge

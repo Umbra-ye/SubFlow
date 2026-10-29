@@ -1,0 +1,3 @@
+Domestic,https://raw.githubusercontent.com/Aethersailor/Custom_OpenClash_Rules/main/rule/Custom_Direct.list
+Proxy,https://raw.githubusercontent.com/Aethersailor/Custom_OpenClash_Rules/main/rule/Custom_Proxy.list
+Domestic,https://raw.githubusercontent.com/Aethersailor/Custom_OpenClash_Rules/main/rule/Lan.list

@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>SubFlow · 管理员专属运维控制中枢</title>
+  <style>
+    :root {
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei UI", sans-serif;
+      --font-mono: "JetBrains Mono", Consolas, monospace;
+      --bg-base: #050811;
+      --bg-card: rgba(13, 20, 36, 0.75);
+      --bg-card-hover: rgba(20, 31, 56, 0.85);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-glow: rgba(56, 189, 248, 0.25);
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --primary: #2563eb;
+      --primary-hover: #3b82f6;
+      --cyan: #06b6d4;
+      --emerald: #10b981;
+      --amber: #f59e0b;
+      --rose: #f43f5e;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --radius-xl: 28px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(37, 99, 235, 0.12) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(16, 185, 129, 0.10) 0%, transparent 45%),
+        radial-gradient(circle at 50% 50%, rgba(6, 182, 212, 0.06) 0%, transparent 50%);
+      background-attachment: fixed;
+    }
+    a { color: var(--cyan); text-decoration: none; }
+    button { font-family: inherit; cursor: pointer; border: none; outline: none; }
+
+    /* Top Nav */
+    .admin-navbar {
+      height: 64px;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-subtle);
+      background: rgba(5, 8, 17, 0.85);
+      backdrop-filter: blur(20px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .brand-wrap { display: flex; align-items: center; gap: 12px; }
+    .brand-logo {
+      width: 36px; height: 36px;
+      border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, #ef4444, #f59e0b);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 800; font-size: 1.1rem;
+      box-shadow: 0 0 16px rgba(239, 68, 68, 0.35);
+    }
+    .brand-title { font-weight: 700; font-size: 1.05rem; letter-spacing: -0.02em; }
+    .badge-admin {
+      background: rgba(239, 68, 68, 0.15);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+    .nav-actions { display: flex; align-items: center; gap: 10px; }
+    .btn-outline {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      padding: 6px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 0.82rem;
+      transition: all 0.2s;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-outline:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-primary);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #f87171;
+      padding: 6px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 0.82rem;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .btn-danger:hover { background: rgba(239, 68, 68, 0.25); color: #fca5a5; }
+
+    /* Layout */
+    .admin-container {
+      max-width: 1200px;
+      width: 100%;
+      margin: 24px auto;
+      padding: 0 20px 40px;
+      flex: 1;
+    }
+
+    /* Tabs */
+    .tab-bar {
+      display: flex;
+      gap: 8px;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 12px;
+      margin-bottom: 24px;
+      overflow-x: auto;
+    }
+    .tab-btn {
+      background: transparent;
+      color: var(--text-secondary);
+      padding: 8px 16px;
+      border-radius: var(--radius-md);
+      font-size: 0.88rem;
+      font-weight: 600;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .tab-btn:hover { background: rgba(255, 255, 255, 0.05); color: var(--text-primary); }
+    .tab-btn.active {
+      background: rgba(37, 99, 235, 0.15);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+
+    /* Cards */
+    .glass-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(28px) saturate(180%);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4);
+      margin-bottom: 20px;
+    }
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .stat-item {
+      background: rgba(19, 27, 46, 0.6);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+    }
+    .stat-label { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 6px; }
+    .stat-value { font-size: 1.6rem; font-weight: 800; color: var(--text-primary); }
+    .stat-sub { font-size: 0.72rem; color: var(--text-secondary); margin-top: 4px; }
+
+    /* Tables */
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+    }
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem; }
+    th {
+      background: rgba(19, 27, 46, 0.8);
+      padding: 12px 16px;
+      color: var(--text-muted);
+      font-weight: 600;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    td {
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      color: var(--text-secondary);
+    }
+    tr:hover td { background: rgba(255, 255, 255, 0.02); color: var(--text-primary); }
+
+    /* Inputs & Buttons */
+    .form-group { margin-bottom: 16px; }
+    .form-label { display: block; font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600; }
+    .form-input {
+      width: 100%;
+      background: rgba(19, 27, 46, 0.7);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      color: var(--text-primary);
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-input:focus { border-color: var(--cyan); box-shadow: 0 0 12px rgba(6, 182, 212, 0.2); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--cyan));
+      color: #fff;
+      font-weight: 700;
+      padding: 10px 20px;
+      border-radius: var(--radius-sm);
+      font-size: 0.88rem;
+      transition: all 0.2s;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-primary:hover { opacity: 0.95; transform: translateY(-1px); }
+
+    /* Security Login Gate */
+    .admin-gate-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 8, 17, 0.94);
+      backdrop-filter: blur(40px) saturate(200%);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .admin-gate-card {
+      width: 440px;
+      max-width: 92vw;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: var(--radius-xl);
+      padding: 40px 32px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(239, 68, 68, 0.15);
+      position: relative;
+    }
+
+    /* Sonner Toast */
+    .toast-box {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid var(--cyan);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: var(--radius-md);
+      font-size: 0.88rem;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      z-index: 10000;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==========================================================================
+       🛡️ 管理员专属安全访问门禁 (未取得 admin Token 绝对禁止探测控制台)
+       ========================================================================== -->
+  <div class="admin-gate-overlay" id="admin-gate-screen">
+    <div class="admin-gate-card">
+      <div style="text-align:center; margin-bottom: 24px;">
+        <div style="width: 56px; height: 56px; border-radius: 16px; background: linear-gradient(135deg, #ef4444, #f59e0b); margin: 0 auto 14px; display:flex; align-items:center; justify-content:center; color:#fff; font-size: 1.8rem; box-shadow: 0 0 24px rgba(239, 68, 68, 0.4);">
+          🛡️
+        </div>
+        <h2 style="font-size: 1.25rem; font-weight: 800; letter-spacing: -0.02em;">SubFlow 运维控制中心</h2>
+        <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">管理员专属物理隔离通道 · 严禁未授权渗透</p>
+      </div>
+
+      <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 0.75rem; color: #fca5a5; margin-bottom: 20px; display:flex; align-items:center; gap: 8px;">
+        <span>🔒</span>
+        <span>防暴力破解已生效：连续输错 3 次将自动锁定 IP 并记录安全告警。</span>
+      </div>
+
+      <div id="gate-alert-box" style="display:none; background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; border-radius: 8px; padding: 10px 14px; font-size: 0.8rem; color: #fecaca; margin-bottom: 16px;"></div>
+
+      <form id="admin-login-form" onsubmit="submitAdminLogin(event)">
+        <div class="form-group">
+          <label class="form-label">管理员账号</label>
+          <input type="text" id="admin-user-input" class="form-input" value="admin" autocomplete="username" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" style="display:flex; justify-content:space-between;">
+            <span>管理员安全密码</span>
+            <span style="font-size:0.7rem; color:var(--text-muted);">PBKDF2 密文校验</span>
+          </label>
+          <input type="password" id="admin-pwd-input" class="form-input" placeholder="请输入管理员密码" autocomplete="current-password" required>
+        </div>
+
+        <!-- 智能人机核验 -->
+        <div style="margin-bottom: 20px;">
+          <div id="admin-challenge-box" onclick="triggerAdminChallenge()" style="background: rgba(19, 27, 46, 0.8); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 12px 14px; display:flex; align-items:center; justify-content:space-between; cursor:pointer;">
+            <div style="display:flex; align-items:center; gap: 10px;">
+              <span id="challenge-status-icon">🛡️</span>
+              <span id="challenge-status-text" style="font-size: 0.82rem; color: var(--text-secondary);">点击完成人机智能防爆破核验</span>
+            </div>
+            <span style="font-size: 0.7rem; color: var(--text-muted); background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 4px;">Turnstile</span>
+          </div>
+        </div>
+
+        <button type="submit" id="admin-submit-btn" class="btn-primary" style="width: 100%; justify-content: center; padding: 12px;">
+          <span>安全鉴权并进入控制台</span>
+        </button>
+      </form>
+
+      <div style="text-align:center; margin-top: 18px;">
+        <a href="/" style="font-size: 0.78rem; color: var(--text-muted);">← 返回普通用户转换前台</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       🖥️ 管理员专属控制工作台 (登录通过后解锁)
+       ========================================================================== -->
+  <div id="admin-main-panel" style="display:none; flex-direction:column; min-height: 100vh;">
+    <!-- Topbar -->
+    <header class="admin-navbar">
+      <div class="brand-wrap">
+        <div class="brand-logo">S</div>
+        <div>
+          <div style="display:flex; align-items:center; gap: 8px;">
+            <span class="brand-title">SubFlow 运维控制中心</span>
+            <span class="badge-admin">管理员权限</span>
+          </div>
+          <div style="font-size: 0.7rem; color: var(--text-muted);">版本 v2.0 · 物理隔离运维后台</div>
+        </div>
+      </div>
+
+      <div class="nav-actions">
+        <a href="/" class="btn-outline"><span>🌐</span> <span>前往用户前台</span></a>
+        <button class="btn-danger" onclick="logoutAdmin()"><span>退出管理后台</span></button>
+      </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="admin-container">
+      <!-- Tabs -->
+      <div class="tab-bar">
+        <button class="tab-btn active" id="tab-overview" onclick="switchAdminTab('overview')">📊 运行概览与体检</button>
+        <button class="tab-btn" id="tab-users" onclick="switchAdminTab('users')">👥 多租户用户管控</button>
+        <button class="tab-btn" id="tab-domain" onclick="switchAdminTab('domain')">🌐 公网域名与穿透</button>
+        <button class="tab-btn" id="tab-backup" onclick="switchAdminTab('backup')">💾 全量数据容灾备份</button>
+        <button class="tab-btn" id="tab-logs" onclick="switchAdminTab('logs')">⚡ 系统诊断与审计</button>
+        <button class="tab-btn" id="tab-update" onclick="switchAdminTab('update')">🚀 在线升级与 Git</button>
+      </div>
+
+      <!-- Tab 1: Overview -->
+      <div id="view-overview" class="admin-view">
+        <div class="stat-grid">
+          <div class="stat-item">
+            <div class="stat-label">注册租户总数</div>
+            <div class="stat-value" id="stat-user-count">-</div>
+            <div class="stat-sub">多租户独立私有存储</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">托管订阅总数</div>
+            <div class="stat-value" id="stat-sub-count">-</div>
+            <div class="stat-sub">PBKDF2 密文隔离</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">核心进程延迟</div>
+            <div class="stat-value" id="stat-core-latency" style="color:var(--emerald);">-</div>
+            <div class="stat-sub" id="stat-core-status">SubConverter 25500 在线</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">连续运行时间</div>
+            <div class="stat-value" id="stat-uptime">-</div>
+            <div class="stat-sub">Systemd 守护运行中</div>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-title">
+            <span>⚡ 系统健康体检与基准网络</span>
+            <button class="btn-outline" onclick="loadOverviewData()">🔄 刷新诊断状态</button>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:12px; font-size:0.85rem;">
+            <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+              <span style="color:var(--text-muted);">当前探测公网 IP</span>
+              <strong id="diag-public-ip" style="color:var(--text-primary);">-</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+              <span style="color:var(--text-muted);">绑定的公网专属域名</span>
+              <strong id="diag-bound-domain" style="color:#38bdf8;">未绑定 (自适应)</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+              <span style="color:var(--text-muted);">开放公开注册</span>
+              <strong id="diag-allow-reg" style="color:var(--emerald);">允许公开注册</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:8px 0;">
+              <span style="color:var(--text-muted);">数据库存储引擎</span>
+              <strong style="color:var(--emerald);">SQLite 3.x WAL 高并发持久化 (断电0损)</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 2: Tenants -->
+      <div id="view-users" class="admin-view" style="display:none;">
+        <div class="glass-card">
+          <div class="card-title">
+            <span>👥 多租户账户管控列表</span>
+            <button class="btn-outline" onclick="loadUsersData()">🔄 刷新租户列表</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>用户名</th>
+                  <th>角色</th>
+                  <th>状态</th>
+                  <th>订阅数</th>
+                  <th>注册时间</th>
+                  <th>管控操作</th>
+                </tr>
+              </thead>
+              <tbody id="user-table-body">
+                <tr><td colspan="7" style="text-align:center; padding:24px;">加载中...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 3: Domain & Tunnel -->
+      <div id="view-domain" class="admin-view" style="display:none;">
+        <div class="glass-card">
+          <div class="card-title">
+            <span>🌐 公网专属域名绑定与重定向</span>
+          </div>
+          <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:18px;">
+            设置后，系统生成的直链与手机扫码二维码将 100% 优先使用该专属域名，即便通过 IP 访问也能自动重定向。
+          </p>
+          <div class="form-group">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <label class="form-label" style="margin-bottom:0;">公网专属域名 (例如：https://your-domain.com)</label>
+              <button type="button" class="btn-outline" style="font-size:0.75rem; padding:3px 8px;" onclick="fillCurrentOrigin()">⚡ 填入当前访问地址</button>
+            </div>
+            <input type="text" id="cfg-bound-domain" class="form-input" placeholder="留空则动态自适应任何访问地址">
+          </div>
+          <div class="form-group" style="display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" id="cfg-force-redirect" style="width:16px; height:16px; cursor:pointer;">
+            <label for="cfg-force-redirect" style="font-size:0.82rem; color:var(--text-secondary); cursor:pointer;">
+              强制域名重定向 (非此域名访问时自动 301 跃迁)
+            </label>
+          </div>
+          <button class="btn-primary" onclick="saveDomainConfig()">💾 保存域名绑定配置</button>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-title">
+            <span>⚡ Cloudflare 远程穿透隧道</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Cloudflare Tunnel Token (可选，留空使用极速临时穿透)</label>
+            <input type="password" id="cfg-tunnel-token" class="form-input" placeholder="eyJhIjoi...">
+          </div>
+          <button class="btn-outline" onclick="saveTunnelToken()">保存隧道凭证</button>
+        </div>
+      </div>
+
+      <!-- Tab 4: Backup & Recovery -->
+      <div id="view-backup" class="admin-view" style="display:none;">
+        <div class="glass-card" style="border-left: 4px solid var(--emerald);">
+          <div class="card-title">
+            <span>🛡️ 数据安全与版本升级零丢失保证</span>
+          </div>
+          <p style="font-size:0.84rem; color:var(--text-secondary); line-height: 1.6;">
+            SubFlow 采用工业级 <strong>SQLite WAL (Write-Ahead Logging) 引擎</strong> 与 <strong>增量表结构自愈器 (Schema Migration)</strong>。<br>
+            以后的系统升级、功能迭代或服务重启，绝对<strong>不会弄丢数据库或造成损坏</strong>！每次启动系统还会自动在本地建立物理备份快照。
+          </p>
+        </div>
+
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+          <!-- 物理镜像下载 -->
+          <div class="glass-card">
+            <div class="card-title">
+              <span>📥 SQLite 物理数据库镜像</span>
+            </div>
+            <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:16px;">
+              一键下载当前 live 运行中的二进制 <code style="color:#60a5fa;">subflow.db</code> 完整文件，包含全部租户与订阅数据。
+            </p>
+            <button class="btn-primary" onclick="downloadDbBackup()">
+              <span>📥 立即下载 subflow.db 物理快照</span>
+            </button>
+          </div>
+
+          <!-- 结构化 JSON 导出 -->
+          <div class="glass-card">
+            <div class="card-title">
+              <span>📋 结构化 JSON 资产全量导出</span>
+            </div>
+            <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:16px;">
+              导出所有租户与私有订阅的脱敏全量 JSON 备份包，可用于跨主机迁移与灾备审查。
+            </p>
+            <button class="btn-outline" onclick="exportJsonBackup()">
+              <span>📋 导出全量 JSON 资产备份</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 5: Logs -->
+      <div id="view-logs" class="admin-view" style="display:none;">
+        <div class="glass-card">
+          <div class="card-title">
+            <span>⚡ 核心健康诊断与网关日志</span>
+            <button class="btn-outline" onclick="runDiagnostics()">🔬 开始体检诊断</button>
+          </div>
+          <div id="diag-result-box" style="background: rgba(0,0,0,0.4); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 16px; font-family: var(--font-mono); font-size: 0.8rem; color: #a5f3fc; min-height: 180px; white-space: pre-wrap;">
+SubFlow 运维控制中心就绪...
+点击上方【开始体检诊断】获取完整硬件与网关状态。
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 6: Update & Git -->
+      <div id="view-update" class="admin-view" style="display:none;">
+        <div class="glass-card" style="margin-bottom: 24px;">
+          <div class="card-title">
+            <span>🛡️ 系统版本与物理隔离安全状态</span>
+            <span class="badge-admin" style="background: rgba(16, 185, 129, 0.2); color: #34d399;" id="update-badge-status">物理隔离保护中</span>
+          </div>
+          <div class="stat-grid" style="margin-bottom: 16px;">
+            <div class="stat-card">
+              <div class="stat-label">当前运行版本</div>
+              <div class="stat-value" id="sys-version-val">SubFlow v2.2</div>
+              <div class="stat-sub" id="sys-build-val">Build 20261030</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Git 部署模式</div>
+              <div class="stat-value" id="sys-git-mode" style="font-size: 1.2rem; color: #38bdf8;">检测中...</div>
+              <div class="stat-sub" id="sys-git-commit">Commit: -</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">数据与域名保护</div>
+              <div class="stat-value" style="color: #34d399; font-size: 1.2rem;">100% 独立</div>
+              <div class="stat-sub">data/ 目录物理免除覆盖</div>
+            </div>
+          </div>
+          <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: var(--radius-sm); padding: 14px 18px; font-size: 0.85rem; color: #a7f3d0; line-height: 1.6;">
+            <strong>🔒 物理级安全隔离承诺：</strong>
+            在线升级与代码覆盖仅针对程序核心（<code>gateway.py</code> 与 <code>web/</code> 静态资源），
+            您的私有域名配置、多租户数据库（<code>data/subflow.db</code>）以及 Cloudflare 隧道凭据全部存储于独立的 <code>data/</code> 物理隔离区，任何版本更新均<strong>绝不覆盖、绝不丢失</strong>！
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-title">
+            <span>🚀 远程 Git 检查更新与一键热升级</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">远程更新源仓库 (GitHub / Gitee 仓库地址)</label>
+            <input type="text" class="form-input" id="cfg-git-repo" placeholder="https://github.com/your-username/SubFlow.git">
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 6px;">
+              填入您公开或私有的 GitHub 仓库地址，点击【检查更新】可实时对比本地与远程代码版本。
+            </p>
+          </div>
+          <div style="display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;">
+            <button class="btn-primary" id="btn-check-update" onclick="checkSystemUpdate()">
+              <span>🔍 检查远程最新版本</span>
+            </button>
+            <button class="btn-primary" id="btn-do-upgrade" style="background: linear-gradient(135deg, #10b981, #06b6d4);" onclick="confirmSystemUpgrade()">
+              <span>⚡ 一键安全热升级覆盖</span>
+            </button>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">更新执行日志与终端回显</label>
+            <div id="update-log-box" style="background: rgba(0,0,0,0.5); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 16px; font-family: var(--font-mono); font-size: 0.82rem; color: #38bdf8; min-height: 140px; max-height: 280px; overflow-y: auto; white-space: pre-wrap;">
+就绪。点击【检查远程最新版本】开始协同检测...
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Sonner Toast -->
+  <div class="toast-box" id="admin-toast">
+    <span id="admin-toast-text"></span>
+  </div>
+
+  <script>
+    let challengeTicket = null;
+    let currentUser = null;
+
+    function showToast(msg) {
+      const box = document.getElementById('admin-toast');
+      const text = document.getElementById('admin-toast-text');
+      text.innerText = msg;
+      box.style.display = 'flex';
+      clearTimeout(window._tTimer);
+      window._tTimer = setTimeout(() => { box.style.display = 'none'; }, 2600);
+    }
+
+    // 页面初始化：自动检查管理态鉴权
+    async function initAdminAuth() {
+      try {
+        const token = localStorage.getItem('subflow_admin_token') || localStorage.getItem('subflow_token');
+        const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
+        const res = await fetch('/api/auth/me', { headers });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.ok && data.logged_in && data.user && data.user.role === 'admin') {
+            currentUser = data.user;
+            unlockAdminPanel();
+            return;
+          }
+        }
+      } catch (e) {}
+
+      // 未登录或非 admin 保持门禁锁定
+      document.getElementById('admin-gate-screen').style.display = 'flex';
+      document.getElementById('admin-main-panel').style.display = 'none';
+      triggerAdminChallenge();
+    }
+
+    function unlockAdminPanel() {
+      document.getElementById('admin-gate-screen').style.display = 'none';
+      document.getElementById('admin-main-panel').style.display = 'flex';
+      loadOverviewData();
+      loadUsersData();
+      showToast('🛡️ 管理员凭据鉴权通过，已进入专属运维中枢！');
+    }
+
+    async function triggerAdminChallenge() {
+      const icon = document.getElementById('challenge-status-icon');
+      const text = document.getElementById('challenge-status-text');
+      icon.innerText = '⏳';
+      text.innerText = '正在进行本地环境人机安全验证...';
+      try {
+        const r1 = await fetch('/api/auth/challenge');
+        const d1 = await r1.json();
+        if (d1.ok && d1.challenge_id) {
+          await new Promise(r => setTimeout(r, 350));
+          const r2 = await fetch('/api/auth/verify-challenge', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ challenge_id: d1.challenge_id, client_time: Date.now() })
+          });
+          const d2 = await r2.json();
+          if (d2.ok && d2.ticket) {
+            challengeTicket = d2.ticket;
+            icon.innerText = '✅';
+            text.innerText = '人机智能核验通过 · 允许鉴权';
+            text.style.color = '#10b981';
+            return;
+          }
+        }
+      } catch (e) {}
+      icon.innerText = '⚠️';
+      text.innerText = '验证异常，请重新点击';
+    }
+
+    async function submitAdminLogin(e) {
+      e.preventDefault();
+      const username = document.getElementById('admin-user-input').value.trim();
+      const password = document.getElementById('admin-pwd-input').value;
+      const alertBox = document.getElementById('gate-alert-box');
+      alertBox.style.display = 'none';
+
+      if (!challengeTicket) {
+        alertBox.innerText = '请先点击完成人机防爆破核验！';
+        alertBox.style.display = 'block';
+        return;
+      }
+
+      const submitBtn = document.getElementById('admin-submit-btn');
+      submitBtn.disabled = true;
+      submitBtn.innerText = '正在比对 PBKDF2 密文加盐凭据...';
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username,
+            password,
+            ticket: challengeTicket
+          })
+        });
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          if (data.user && data.user.role === 'admin') {
+            const token = data.token || data.session_token || '';
+            localStorage.setItem('subflow_admin_token', token);
+            localStorage.setItem('subflow_token', token);
+            currentUser = data.user;
+            unlockAdminPanel();
+          } else {
+            alertBox.innerText = '权限拒绝：该账户非系统超级管理员！';
+            alertBox.style.display = 'block';
+          }
+        } else {
+          alertBox.innerText = '鉴权失败: ' + (data.error || '密码错误或被安全锁定');
+          alertBox.style.display = 'block';
+          triggerAdminChallenge();
+        }
+      } catch (err) {
+        alertBox.innerText = '网络请求异常: ' + err;
+        alertBox.style.display = 'block';
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerText = '安全鉴权并进入控制台';
+      }
+    }
+
+    function getAuthHeaders() {
+      const token = localStorage.getItem('subflow_admin_token') || localStorage.getItem('subflow_token');
+      return token ? { 'Authorization': 'Bearer ' + token } : {};
+    }
+
+    async function loadOverviewData() {
+      try {
+        const res = await fetch('/api/admin/overview', { headers: getAuthHeaders() });
+        if (res.ok) {
+          const d = await res.json();
+          document.getElementById('stat-user-count').innerText = d.user_count || 0;
+          document.getElementById('stat-sub-count').innerText = d.sub_count || 0;
+          document.getElementById('stat-uptime').innerText = Math.floor(d.uptime / 60) + ' 分钟';
+          document.getElementById('diag-public-ip').innerText = d.public_ip || '127.0.0.1';
+          document.getElementById('diag-bound-domain').innerText = d.bound_domain || '未绑定 (自适应当前访问)';
+          if (d.bound_domain) {
+            document.getElementById('cfg-bound-domain').value = d.bound_domain;
+          }
+          document.getElementById('cfg-force-redirect').checked = !!d.force_redirect;
+        }
+        // 体检 core
+        runDiagnostics();
+      } catch (e) {}
+    }
+
+    async function loadUsersData() {
+      const tbody = document.getElementById('user-table-body');
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:24px;">正在检索多租户数据库...</td></tr>';
+      try {
+        const res = await fetch('/api/admin/users', { headers: getAuthHeaders() });
+        if (res.ok) {
+          const d = await res.json();
+          if (d.ok && d.users) {
+            if (d.users.length === 0) {
+              tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:24px; color:var(--text-muted);">暂无注册租户</td></tr>';
+              return;
+            }
+            tbody.innerHTML = d.users.map(u => `
+              <tr>
+                <td><strong>#${u.id}</strong></td>
+                <td><strong style="color:var(--text-primary);">${u.username}</strong></td>
+                <td><span class="badge-admin" style="background:${u.role==='admin'?'rgba(239,68,68,0.2)':'rgba(59,130,246,0.2)'}; color:${u.role==='admin'?'#f87171':'#60a5fa'};">${u.role}</span></td>
+                <td><span style="color:${u.status==='active'?'#10b981':'#ef4444'}; font-weight:600;">${u.status==='active'?'正常':'已封禁'}</span></td>
+                <td><strong style="color:#38bdf8;">${u.sub_count || 0}</strong> 条</td>
+                <td style="font-size:0.75rem;">${u.created_at || '-'}</td>
+                <td>
+                  <button class="btn-outline" style="padding:3px 8px; font-size:0.72rem;" onclick="toggleUserStatus(${u.id}, '${u.status}')">
+                    ${u.status==='active'?'🚫 封禁':'✅ 解封'}
+                  </button>
+                </td>
+              </tr>
+            `).join('');
+          } else {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:24px; color:#ef4444;">获取失败: ${d.error || '数据异常'}</td></tr>`;
+          }
+        } else {
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:24px; color:#ef4444;">管理员鉴权失效 (${res.status})，请点击右上角退出后重新登录</td></tr>`;
+        }
+      } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#ef4444;">加载租户列表失败: ' + e + '</td></tr>';
+      }
+    }
+
+    async function toggleUserStatus(id, currentStatus) {
+      const newStatus = currentStatus === 'active' ? 'banned' : 'active';
+      if (!confirm(`确定要将租户 #${id} 设为 [${newStatus==='active'?'解封':'封禁'}] 吗？`)) return;
+      try {
+        const res = await fetch('/api/admin/user/status', {
+          method: 'POST',
+          headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: id, status: newStatus })
+        });
+        const d = await res.json();
+        if (d.ok) {
+          showToast('✅ 租户状态变更成功！');
+          loadUsersData();
+        } else {
+          showToast('❌ 变更失败: ' + (d.error || '未知错误'));
+        }
+      } catch (e) {
+        showToast('请求异常: ' + e);
+      }
+    }
+
+    async function runDiagnostics() {
+      const box = document.getElementById('diag-result-box');
+      box.innerText = '正在探测 SubConverter 核心与数据库...';
+      try {
+        const res = await fetch('/api/admin/diagnostics', { headers: getAuthHeaders() });
+        if (res.ok) {
+          const d = await res.json();
+          if (d.ok) {
+            const lat = document.getElementById('stat-core-latency');
+            if (lat) {
+              lat.innerText = d.core_latency_ms + ' ms';
+              lat.style.color = d.core_latency_ms < 50 ? 'var(--emerald)' : 'var(--amber)';
+            }
+            box.innerText = `[SubFlow 核心体检诊断报告]\n` +
+              `✓ 核心进程连通: ${d.core_reachable ? '100% 正常 (SubConverter 在线)' : '❌ 无法连接'}\n` +
+              `✓ 核心往返延迟: ${d.core_latency_ms} 毫秒\n` +
+              `✓ 网关监听端口: ${d.gateway_port}\n` +
+              `✓ 数据库体积: ${(d.database_size_bytes / 1024).toFixed(2)} KB\n` +
+              `✓ 探测公网 IP: ${d.public_ip}\n` +
+              `✓ 域名配置状态: ${d.domain_configured ? '已配置绑定专属域名' : '动态自适应模式'}\n` +
+              `✓ 检查时间: ${new Date().toLocaleString()}`;
+          } else {
+            box.innerText = '体检诊断失败: ' + (d.error || '数据异常');
+          }
+        } else {
+          box.innerText = `诊断鉴权失效 (${res.status})，请重新登录管理后台`;
+        }
+      } catch (e) {
+        box.innerText = '体检请求失败: ' + e;
+      }
+    }
+
+    async function saveDomainConfig() {
+      const domain = document.getElementById('cfg-bound-domain').value.trim();
+      const force = document.getElementById('cfg-force-redirect').checked;
+      try {
+        const res = await fetch('/api/admin/config/domain', {
+          method: 'POST',
+          headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bound_domain: domain, force_redirect: force })
+        });
+        const d = await res.json();
+        if (d.ok) {
+          showToast('✅ 公网专属域名配置保存成功！');
+          loadOverviewData();
+        } else {
+          showToast('❌ 保存失败: ' + d.error);
+        }
+      } catch (e) {
+        showToast('请求异常: ' + e);
+      }
+    }
+
+    function fillCurrentOrigin() {
+      const orig = window.location.origin;
+      if (orig && !orig.startsWith('file://')) {
+        document.getElementById('cfg-bound-domain').value = orig;
+        showToast('已填入当前访问来源：' + orig);
+      }
+    }
+
+    async function saveTunnelToken() {
+      const token = document.getElementById('cfg-tunnel-token').value.trim();
+      try {
+        const res = await fetch('/api/admin/config/domain', {
+          method: 'POST',
+          headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tunnel_token: token })
+        });
+        const d = await res.json();
+        if (d.ok) {
+          showToast('✅ Cloudflare 穿透隧道凭证已保存生效！');
+        } else {
+          showToast('❌ 保存失败: ' + (d.error || '未知错误'));
+        }
+      } catch (e) {
+        showToast('请求异常: ' + e);
+      }
+    }
+
+    function downloadDbBackup() {
+      const token = localStorage.getItem('subflow_admin_token') || localStorage.getItem('subflow_token');
+      window.location.href = `/api/admin/backup/download-db?token=${encodeURIComponent(token)}`;
+    }
+
+    function exportJsonBackup() {
+      const token = localStorage.getItem('subflow_admin_token') || localStorage.getItem('subflow_token');
+      window.location.href = `/api/admin/backup/export-json?token=${encodeURIComponent(token)}`;
+    }
+
+    async function loadSystemVersion() {
+      try {
+        const res = await fetch('/api/admin/system/version', { headers: getAuthHeaders() });
+        if (res.ok) {
+          const d = await res.json();
+          if (d.ok) {
+            document.getElementById('sys-version-val').innerText = 'SubFlow ' + (d.version || 'v2.2');
+            document.getElementById('sys-build-val').innerText = 'Build ' + (d.build || '-');
+            document.getElementById('sys-git-mode').innerText = d.is_git ? 'Git 协同部署' : '独立发布包模式';
+            document.getElementById('sys-git-commit').innerText = '分支: ' + d.git_branch + ' | Commit: ' + d.git_commit;
+            if (d.git_repo && document.getElementById('cfg-git-repo')) {
+              document.getElementById('cfg-git-repo').value = d.git_repo;
+            }
+          }
+        }
+      } catch (e) {}
+    }
+
+    async function checkSystemUpdate() {
+      const btn = document.getElementById('btn-check-update');
+      const box = document.getElementById('update-log-box');
+      const repo = document.getElementById('cfg-git-repo').value.trim();
+      btn.disabled = true;
+      btn.innerText = '正在检查中...';
+      box.innerText = `[${new Date().toLocaleTimeString()}] 开始检查更新... 目标源: ${repo || '默认'}\n`;
+      try {
+        const res = await fetch('/api/admin/system/check-update', {
+          method: 'POST',
+          headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ git_repo: repo })
+        });
+        const d = await res.json();
+        if (res.ok && d.ok) {
+          box.innerText += `[检测结果] ${d.remote_info}\n\n`;
+          if (d.log) box.innerText += d.log + '\n';
+          showToast(d.has_update ? '📢 检测到远程新版本！' : '✅ 当前已是最新版本');
+        } else {
+          box.innerText += `[错误] ${d.error || '检查失败'}\n`;
+          showToast('❌ 检查更新异常');
+        }
+      } catch (e) {
+        box.innerText += `[网络异常] ${e}\n`;
+        showToast('网络请求失败');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span>🔍 检查远程最新版本</span>';
+      }
+    }
+
+    async function confirmSystemUpgrade() {
+      if (!confirm('【安全升级确认】\n\n即将拉取最新版本并平滑重载 SubFlow 服务。\n整个过程约需 2~3 秒，您的专属域名与所有订阅数据 100% 物理隔离保护不受任何影响。\n\n是否立即执行？')) {
+        return;
+      }
+      const btn = document.getElementById('btn-do-upgrade');
+      const box = document.getElementById('update-log-box');
+      const repo = document.getElementById('cfg-git-repo').value.trim();
+      btn.disabled = true;
+      btn.innerText = '正在执行升级覆盖...';
+      box.innerText += `\n[${new Date().toLocaleTimeString()}] 触发安全热升级流程...\n`;
+      try {
+        const res = await fetch('/api/admin/system/upgrade', {
+          method: 'POST',
+          headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ git_repo: repo })
+        });
+        const d = await res.json();
+        if (res.ok && d.ok) {
+          box.innerText += `[成功] ${d.message}\n`;
+          if (d.log) box.innerText += d.log + '\n';
+          showToast('🚀 升级指令已下发，正在平滑重启...');
+          setTimeout(() => {
+            box.innerText += `[重载] 正在刷新控制台页面...\n`;
+            location.reload();
+          }, 3500);
+        } else {
+          box.innerText += `[失败] ${d.error || '升级执行失败'}\n`;
+          showToast('❌ 升级失败: ' + (d.error || '未知错误'));
+          btn.disabled = false;
+          btn.innerHTML = '<span>⚡ 一键安全热升级覆盖</span>';
+        }
+      } catch (e) {
+        box.innerText += `[网络断开/服务已在重启] 正在重新连接服务...\n`;
+        showToast('服务重启中，即将刷新页面...');
+        setTimeout(() => location.reload(), 3000);
+      }
+    }
+
+    function switchAdminTab(name) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.admin-view').forEach(v => v.style.display = 'none');
+      const targetBtn = document.getElementById('tab-' + name);
+      if (targetBtn) targetBtn.classList.add('active');
+      const targetView = document.getElementById('view-' + name);
+      if (targetView) targetView.style.display = 'block';
+      if (name === 'users') loadUsersData();
+      if (name === 'overview') loadOverviewData();
+      if (name === 'logs') runDiagnostics();
+      if (name === 'update') loadSystemVersion();
+    }
+
+    function logoutAdmin() {
+      localStorage.removeItem('subflow_admin_token');
+      localStorage.removeItem('subflow_token');
+      window.location.href = '/admin';
+    }
+
+    // 启动执行
+    initAdminAuth();
+  </script>
+</body>
+</html>

@@ -1136,10 +1136,12 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
             if len(username) < 3 or len(password) < 6:
                 self.send_json({"error": "用户名至少3位，密码至少6位"}, code=400)
                 return
-            ticket = body.get("captcha_ticket", "") or body.get("challenge_ticket", "") or body.get("ticket", "")
-            if not consume_captcha_ticket(ticket, client_ip):
-                self.send_json({"error": "请先点击完成人机身份验证 (防脚本爆破)"}, code=403)
-                return
+            mode = server_config.get("captcha_mode", "off")
+            if mode != "off":
+                ticket = body.get("captcha_ticket", "") or body.get("challenge_ticket", "") or body.get("ticket", "")
+                if not consume_captcha_ticket(ticket, client_ip):
+                    self.send_json({"error": "请先点击完成人机身份验证 (防脚本爆破)"}, code=403)
+                    return
             p_hash, salt = hash_password(password)
             user_token = secrets.token_hex(32)
             try:
@@ -1162,10 +1164,12 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
             if not check_login_attempts(client_ip):
                 self.send_json({"error": "连续登录失败次数过多，该 IP 已被临时锁定 15 分钟"}, code=429)
                 return
-            ticket = body.get("captcha_ticket", "") or body.get("challenge_ticket", "") or body.get("ticket", "")
-            if not consume_captcha_ticket(ticket, client_ip):
-                self.send_json({"error": "请先点击完成人机身份验证 (防脚本爆破)"}, code=403)
-                return
+            mode = server_config.get("captcha_mode", "off")
+            if mode != "off":
+                ticket = body.get("captcha_ticket", "") or body.get("challenge_ticket", "") or body.get("ticket", "")
+                if not consume_captcha_ticket(ticket, client_ip):
+                    self.send_json({"error": "请先点击完成人机身份验证 (防脚本爆破)"}, code=403)
+                    return
             username = body.get("username", "").strip()
             password = body.get("password", "").strip()
             conn = get_db()

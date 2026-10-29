@@ -10,6 +10,7 @@ SubFlow - 纯净开源版 GitHub REST API 自动化推送引擎
 
 import os
 import sys
+import time
 import json
 import base64
 import urllib.request
@@ -36,8 +37,8 @@ EXCLUDE_DIRS = {
 }
 
 EXCLUDE_FILES = {
-    "deploy_config.json", "server_config.json", "subflow.db", "subflow.db-wal", "subflow.db-shm",
-    "wula_raw.yaml", "update_to_cloud.zip"
+    "deploy_config.json", "server_config.json", "gateway_config.json", "subscriptions.json",
+    "subflow.db", "subflow.db-wal", "subflow.db-shm", "wula_raw.yaml", "update_to_cloud.zip"
 }
 
 def log(msg, level="INFO"):
@@ -50,27 +51,35 @@ def log(msg, level="INFO"):
     reset = "\033[0m"
     print(f"{colors.get(level, '')}[{level}]{reset} {msg}")
 
-def github_api_request(url, method="GET", token="", data=None):
+def github_api_request(url, method="GET", token="", data=None, retries=3):
     headers = {
         "Authorization": f"Bearer {token}",
         "Accept": "application/vnd.github.v3+json",
+        "Content-Type": "application/json; charset=utf-8",
         "User-Agent": "SubFlow-GitHub-Deployer/2.0"
     }
-    encoded_data = json.dumps(data).encode("utf-8") if data else None
-    req = urllib.request.Request(url, data=encoded_data, headers=headers, method=method)
-    try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            body = resp.read().decode("utf-8")
-            return resp.status, json.loads(body) if body else {}
-    except urllib.error.HTTPError as ex:
-        err_body = ex.read().decode("utf-8")
+    encoded_data = json.dumps(data, ensure_ascii=False).encode("utf-8") if data else None
+    for attempt in range(retries):
         try:
-            err_json = json.loads(err_body)
-            return ex.code, err_json
-        except:
-            return ex.code, {"error": err_body}
-    except Exception as ex:
-        return 500, {"error": str(ex)}
+            req = urllib.request.Request(url, data=encoded_data, headers=headers, method=method)
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                body = resp.read().decode("utf-8")
+                return resp.status, json.loads(body) if body else {}
+        except urllib.error.HTTPError as ex:
+            if ex.code in [500, 502, 503, 504] and attempt < retries - 1:
+                time.sleep(1.5)
+                continue
+            err_body = ex.read().decode("utf-8")
+            try:
+                err_json = json.loads(err_body)
+                return ex.code, err_json
+            except:
+                return ex.code, {"error": err_body}
+        except Exception as ex:
+            if attempt < retries - 1:
+                time.sleep(1.5)
+                continue
+            return 500, {"error": str(ex)}
 
 def collect_clean_files(root_dir):
     clean_files = []
@@ -84,8 +93,18 @@ def collect_clean_files(root_dir):
             if fn.endswith(".log") or fn.endswith(".tmp") or fn.endswith(".zip") or fn.endswith(".tar.gz"):
                 continue
             
+            # 排除非必要大体积 C++ DLL 与运行时二进制 (便携包已有，Git 源码库不追踪大体积动态库)
+            if fn.startswith("lib") and fn.endswith(".dll"):
+                continue
+            if fn in ["subconverter-core.exe", "subconverter-update.exe", "zlib1.dll"]:
+                continue
+            
             filepath = os.path.join(dirpath, fn)
             relpath = os.path.relpath(filepath, root_dir).replace("\\", "/")
+            
+            # 排除历史中间补丁与临时工具脚本 (保持开源仓库整洁)
+            if relpath.startswith("tools/") and relpath.endswith(".js"):
+                continue
             
             # 单文件大小限制 (GitHub 单文件一般 < 50MB，跳过 cloudflared 等超大临时文件)
             size_mb = os.path.getsize(filepath) / (1024 * 1024)

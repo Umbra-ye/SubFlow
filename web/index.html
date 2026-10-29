@@ -1830,17 +1830,6 @@
             </div>
             <span style="color:#38bdf8; cursor:pointer; font-weight:600;" onclick="switchGateTab('register')">初次使用？点击新建 →</span>
           </div>
-
-          <!-- 仿 Cloudflare Turnstile 智能无感人机核验 -->
-          <div>
-            <div id="gate-challenge-badge" onclick="performGateChallenge()" style="background: rgba(19, 27, 46, 0.85); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 11px 14px; display:flex; align-items:center; justify-content:space-between; cursor:pointer; transition:all 0.2s;">
-              <div style="display:flex; align-items:center; gap: 10px;">
-                <span id="gate-challenge-icon" style="font-size:1.1rem;">🛡️</span>
-                <span id="gate-challenge-text" style="font-size: 0.82rem; color: var(--text-secondary); font-weight:500;">点击完成真人人机核验</span>
-              </div>
-              <span style="font-size: 0.68rem; color: var(--text-muted); background: rgba(255,255,255,0.06); padding: 2px 7px; border-radius: 4px;">Turnstile</span>
-            </div>
-          </div>
         </div>
 
         <button type="submit" id="gate-submit-btn" class="primary-btn" style="width:100%; padding:12px; font-size:0.92rem; font-weight:700; border-radius:12px; justify-content:center; box-shadow:0 8px 24px rgba(37,99,235,0.4); margin-top:14px;">
@@ -4368,12 +4357,6 @@
         return;
       }
 
-      if (!window.gateChallengeTicket) {
-        if (alertBox) { alertBox.innerText = '请先点击完成真人人机核验！'; alertBox.style.display = 'block'; }
-        await performGateChallenge();
-        if (!window.gateChallengeTicket) return;
-      }
-
       const submitBtn = document.getElementById('gate-submit-btn');
       if (submitBtn) submitBtn.disabled = true;
 
@@ -4382,7 +4365,7 @@
           const res = await fetch(apiUrl('/api/auth/login'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password, ticket: window.gateChallengeTicket })
+            body: JSON.stringify({ username, password })
           });
           const data = await res.json();
           if (res.ok && data.ok) {
@@ -4393,7 +4376,6 @@
             showSonnerToast('🎉 欢迎回来！已解锁万能转换中心。');
           } else {
             if (alertBox) { alertBox.innerText = '登录失败: ' + (data.error || '密码错误或被锁定'); alertBox.style.display = 'block'; }
-            await performGateChallenge();
           }
         } else {
           const confirmPwd = document.getElementById('gate-password-confirm').value;
@@ -4405,17 +4387,16 @@
           const res = await fetch(apiUrl('/api/auth/register'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password, ticket: window.gateChallengeTicket })
+            body: JSON.stringify({ username, password })
           });
           const data = await res.json();
           if (res.ok && data.ok) {
             showSonnerToast('✨ 账号创建成功！正在自动登录...');
             // 自动登录
-            await performGateChallenge();
             const rLog = await fetch(apiUrl('/api/auth/login'), {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ username, password, ticket: window.gateChallengeTicket })
+              body: JSON.stringify({ username, password })
             });
             const dLog = await rLog.json();
             if (rLog.ok && dLog.ok) {

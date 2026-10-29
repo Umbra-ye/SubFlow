@@ -109,7 +109,7 @@ def collect_clean_files(root_dir):
             clean_files.append((relpath, filepath))
     return clean_files
 
-def push_to_github(repo_input, token, commit_message="feat: SubFlow v2.2 现代流体订阅中心与全平台网关 (0 泄露纯净版)"):
+def push_to_github(repo_input, token, commit_message="release: SubFlow v2.2 现代流体订阅中心与全平台网关 正式版"):
     # 解析 owner/repo
     clean_repo = repo_input.strip()
     if clean_repo.startswith("https://github.com/"):

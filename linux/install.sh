@@ -66,11 +66,10 @@ tar -xzf "$TMP_TAR" -C "$INSTALL_DIR" --strip-components=1 2>/dev/null || tar -x
 rm -f "$TMP_TAR"
 chmod +x "$INSTALL_DIR/subconverter" 2>/dev/null || true
 
-# 4. 部署 Web 前端与轻量网关
+# 4. 部署 Web 前端与轻量网关 (支持本地与远程单行 Curl 执行)
 echo -e "${BLUE}[4/5] 部署 SubFlow 现代前端与自适应网关...${NC}"
 mkdir -p "$INSTALL_DIR/web"
 
-# 获取脚本所在目录资源 (若本地运行)，否则拉取最新
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [ -d "$SCRIPT_DIR/../web" ]; then
     cp -r "$SCRIPT_DIR/../web"/* "$INSTALL_DIR/web/"
@@ -78,6 +77,24 @@ if [ -d "$SCRIPT_DIR/../web" ]; then
 elif [ -d "$SCRIPT_DIR/web" ]; then
     cp -r "$SCRIPT_DIR/web"/* "$INSTALL_DIR/web/"
     cp "$SCRIPT_DIR/gateway.py" "$INSTALL_DIR/gateway.py"
+else
+    # 远程单行管道 curl 执行时，自动从 GitHub 官方源拉取纯净代码
+    echo -e "${YELLOW}检测到远程一键管道执行，正在从 GitHub 官方仓库同步最新纯净资源...${NC}"
+    REPO_API="https://github.com/yeying130/SubFlow/archive/refs/heads/main.tar.gz"
+    TMP_SRC="/tmp/subflow_src.tar.gz"
+    if curl -sSL -f "$REPO_API" -o "$TMP_SRC" 2>/dev/null || curl -sSL -f "https://ghproxy.net/$REPO_API" -o "$TMP_SRC"; then
+        tar -xzf "$TMP_SRC" -C /tmp/
+        SRC_DIR="/tmp/SubFlow-main"
+        cp "$SRC_DIR/gateway.py" "$INSTALL_DIR/gateway.py"
+        cp -r "$SRC_DIR/web"/* "$INSTALL_DIR/web/"
+        if [ -d "$SRC_DIR/base" ]; then
+            cp -r "$SRC_DIR/base" "$INSTALL_DIR/"
+        fi
+        rm -rf "$TMP_SRC" "$SRC_DIR"
+    else
+        echo -e "${RED}[错误] 无法连接 GitHub 拉取代码，请检查 VPS 国际网络连接！${NC}"
+        exit 1
+    fi
 fi
 
 # 确保网关服务启动脚本存在
@@ -113,16 +130,27 @@ systemctl daemon-reload
 systemctl enable subflow >/dev/null 2>&1
 systemctl restart subflow
 
-# 尝试放行防火墙端口 25588
+# 6. 全自动放行防火墙端口 25588 (UFW / Firewalld / iptables 双栈)
+echo -e "${BLUE}[6/6] 自动放行 25588 端口防火墙...${NC}"
+# 1. ufw (Debian / Ubuntu)
 if command -v ufw >/dev/null 2>&1; then
     ufw allow 25588/tcp >/dev/null 2>&1 || true
-elif command -v firewall-cmd >/dev/null 2>&1; then
+fi
+# 2. firewalld (CentOS / RHEL / Rocky / Fedora)
+if command -v firewall-cmd >/dev/null 2>&1; then
     firewall-cmd --zone=public --add-port=25588/tcp --permanent >/dev/null 2>&1 || true
     firewall-cmd --reload >/dev/null 2>&1 || true
 fi
+# 3. iptables 原生内核规则 (IPv4 & IPv6 双栈放行)
+if command -v iptables >/dev/null 2>&1; then
+    iptables -I INPUT -p tcp --dport 25588 -j ACCEPT >/dev/null 2>&1 || true
+fi
+if command -v ip6tables >/dev/null 2>&1; then
+    ip6tables -I INPUT -p tcp --dport 25588 -j ACCEPT >/dev/null 2>&1 || true
+fi
 
-# 获取公网 IP
-SERVER_IP=$(curl -sSL https://api.ipify.org || curl -sSL https://icanhazip.com || echo "你的VPS公网IP")
+# 获取公网 IP (双源优选)
+SERVER_IP=$(curl -sSL --connect-timeout 3 https://api.ipify.org || curl -sSL --connect-timeout 3 https://icanhazip.com || echo "你的VPS公网IP")
 
 echo -e ""
 echo -e "${GREEN}====================================================${NC}"
@@ -132,6 +160,8 @@ echo -e "  🌐 访问面板: ${CYAN}http://${SERVER_IP}:25588${NC}"
 echo -e "  ⚡ 转换接口: ${CYAN}http://${SERVER_IP}:25588/sub?target=clash&url=...${NC}"
 echo -e "  📁 安装目录: ${YELLOW}/opt/subflow${NC}"
 echo -e "  🔄 服务管理: ${YELLOW}systemctl status subflow${NC} (重启: restart / 停止: stop)"
-echo -e "  🔒 内存占用: 仅约 ${GREEN}15~25 MB${NC}，CPU 几乎 0%"
+echo -e "  🔒 防火墙状态: ${GREEN}25588/tcp 已自动放行 (UFW / Firewalld / iptables)${NC}"
+echo -e "  ⚡ 内存占用: 仅约 ${GREEN}15~25 MB${NC}，CPU 几乎 0%"
 echo -e "${GREEN}====================================================${NC}"
-echo -e "${YELLOW}提示: 若浏览器无法打开，请到 VPS 提供商后台检查安全组，放行 25588 端口！${NC}"
+echo -e "${YELLOW}提示: 机器内部防火墙已全自动放行。若为阿里云/腾讯云/AWS/甲骨文等云主机，请记得在其网页后台“安全组”放行 25588 端口！${NC}"
+

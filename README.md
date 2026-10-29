@@ -104,14 +104,22 @@
 
 支持系统：**Ubuntu / Debian / CentOS / Rocky / Alpine** (支持 x86_64 与 aarch64 架构)。
 
-### 极速一行命令安装：
-```bash
-sudo bash linux/install.sh
-```
+### ⚡ 极速一行全自动化部署命令（免下载、免配置、自开放行端口）：
+只需登录 VPS 终端，复制粘贴并执行：
 
-- 自动配置 `systemd` 开机自启守护（服务名：`subflow.service`）；
-- 超轻量运行：内存占用仅约 **15~25 MB**，年付几美元的小内存机器亦可流畅运行；
-- 部署后打开浏览器访问 `http://你的VPS_IP:25588` 即可进入管理与转换界面。
+```bash
+bash <(curl -sSL https://raw.githubusercontent.com/yeying130/SubFlow/main/linux/install.sh)
+```
+*(国内加速镜像备份：`bash <(curl -sSL https://ghproxy.net/https://raw.githubusercontent.com/yeying130/SubFlow/main/linux/install.sh)`)*
+
+#### 🚀 全自动流程包括：
+1. **自动检测硬件架构**（自动匹配 amd64 / arm64 高性能核心）；
+2. **自动拉取纯净代码**并构建部署至 `/opt/subflow`；
+3. **自动配置 Systemd 服务**守护（开机自启，故障 3 秒自动重拉）；
+4. **全自动放行防火墙端口 25588**（同时兼容 UFW、Firewalld、iptables 与 IPv6 双栈）；
+5. **自动获取公网 IP 并打印可访问面板地址**：终端直接输出 `http://你的IP:25588`。
+
+- **极致低占用**：内存仅占 **15~25 MB**，CPU 几乎 0%，年付几美元的小内存机器也能流畅运行。
 
 ### 常用运维命令：
 ```bash

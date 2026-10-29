@@ -851,7 +851,7 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
                 "is_git": is_git,
                 "git_commit": git_commit or "release",
                 "git_branch": git_branch or "main",
-                "git_repo": server_config.get("git_repo", "https://github.com/"),
+                "git_repo": server_config.get("git_repo", "https://github.com/yeying130/SubFlow.git"),
                 "uptime": int(time.time() - START_TIME)
             })
             return

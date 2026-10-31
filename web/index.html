@@ -665,7 +665,7 @@
       top: 3px;
       bottom: 3px;
       left: 3px;
-      width: calc(50% - 3px);
+      width: calc(33.333% - 2px);
       background: var(--bg-surface-elevated);
       border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: calc(var(--radius-md) - 2px);
@@ -2218,6 +2218,7 @@
       <nav class="segmented-nav" id="main-segmented-nav">
         <div class="nav-slider" id="nav-slider"></div>
         <button class="nav-btn active" id="tab-convert-btn" onclick="switchTab('convert')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> <span>万能转换</span></button>
+        <button class="nav-btn" id="tab-merge-btn" onclick="switchTab('merge')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg> <span>合并订阅</span></button>
         <button class="nav-btn" id="tab-history-btn" onclick="switchTab('history')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg> <span>历史与测活</span></button>
       </nav>
 
@@ -2467,8 +2468,8 @@
               </label>
               <div style="display:inline-flex; align-items:center; gap:4px; font-size:0.74rem; color:var(--text-muted);">
                 <span>每</span>
-                <input type="number" id="input-refresh-interval" min="1" max="1440" value="15" onchange="changeAutoRefreshMinutes(this.value)" oninput="if(this.value<1)this.value=1" style="width:52px; height:24px; text-align:center; background:var(--bg-surface-elevated); border:1px solid var(--border-subtle); border-radius:6px; color:#38bdf8; font-size:0.75rem; font-weight:700; font-family:var(--font-mono); outline:none; transition:border-color 0.15s;" onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--border-subtle)'">
-                <span>分钟</span>
+                <input type="number" id="input-refresh-interval" min="1" max="168" value="1" onchange="changeAutoRefreshHours(this.value)" oninput="if(this.value<1)this.value=1" style="width:52px; height:24px; text-align:center; background:var(--bg-surface-elevated); border:1px solid var(--border-subtle); border-radius:6px; color:#38bdf8; font-size:0.75rem; font-weight:700; font-family:var(--font-mono); outline:none; transition:border-color 0.15s;" onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--border-subtle)'">
+                <span id="unit-refresh-interval">小时</span>
               </div>
             </div>
             <button class="action-btn" id="btn-ping-all" onclick="pingAllHistory()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg> <span>全量一键测活</span></button>
@@ -2476,84 +2477,7 @@
           </div>
         </div>
 
-        <!-- 🔗 批量勾选与多订阅合并操作栏 (动态浮现) -->
-        <div id="batch-merge-bar" class="batch-merge-bar">
-          <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-            <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.82rem; font-weight:700; color:#c084fc; user-select:none;">
-              <input type="checkbox" id="chk-select-all" class="sub-card-checkbox" onchange="toggleSelectAll(this.checked)">
-              <span id="label-select-all">全选</span>
-            </label>
-            <span style="font-size:0.84rem; font-weight:700; color:var(--text-primary);" id="batch-count-text">已选中 0 个订阅</span>
-            <span style="font-size:0.75rem; color:#a78bfa; font-weight:500;" id="batch-summary-info"></span>
-          </div>
-          <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-            <button class="action-btn primary" id="batch-btn-copy" onclick="copyMergedSelected()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>复制合并总订阅</button>
-            <button class="action-btn" id="batch-btn-save" onclick="saveSelectedAsMergedCard()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>保存为聚合卡片</button>
-            <button class="action-btn" id="batch-btn-flclash" onclick="importMergedToFlClash()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>导入 FlClash</button>
-            <button class="action-btn" id="batch-btn-preview" onclick="previewMergedSelected()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>预览节点</button>
-            <button class="action-btn" id="batch-btn-cancel" onclick="clearBatchSelection()">✕ 取消</button>
-          </div>
-        </div>
-
-        <div class="history-card-stream" id="history-stream">
-          <!-- 动态渲染历史卡片 -->
-        </div>
-      </section>
-    </main>
-  </div>
-
-  <!-- 📱 手机扫码与跨设备多端防盗直连模态弹窗 -->
-  <div id="qr-modal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeQrModal()">
-    <div class="modal-card">
-      <div class="modal-header">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span style="font-size:1.15rem;">📱</span>
-          <h3 style="margin:0; font-size:0.98rem; font-weight:700; color:var(--text-primary);">手机跨端扫码 · 自适应订阅分发</h3>
-        </div>
-        <button class="modal-close" onclick="closeQrModal()">✕</button>
-      </div>
-
-      <div class="modal-body" style="display:flex; flex-direction:column; align-items:center; gap:12px;">
-        <!-- 方案切换分段器：方案1/2 (局域网) vs 方案3 (Cloudflare 穿透) -->
-        <div id="qr-segmenter-box" class="local-only" style="width: 100%; display: flex; background: var(--bg-base); padding: 3px; border-radius: 8px; border: 1px solid var(--border-subtle);">
-          <button id="btn-mode-lan" onclick="switchSyncMode('lan')" style="flex:1; border:none; background:var(--primary); color:#ffffff; font-weight:700; font-size:0.76rem; padding:6px 0; border-radius:6px; cursor:pointer; transition:all 0.2s;">
-            🏠 WiFi 局域网直连 (第1名)
-          </button>
-          <button id="btn-mode-tunnel" onclick="switchSyncMode('tunnel')" style="flex:1; border:none; background:transparent; color:var(--text-secondary); font-weight:600; font-size:0.76rem; padding:6px 0; border-radius:6px; cursor:pointer; transition:all 0.2s;">
-            🌐 Cloudflare 远程穿透 (第3方案)
-          </button>
-        </div>
-
-        <!-- 状态与安全徽章 -->
-        <div id="sync-badge" class="safe-badge">
-          <span class="safe-dot"></span>
-          <span id="sync-badge-text">家庭/办公 WiFi 直连 · 100% 物理隔离零外网泄露</span>
-        </div>
-
-        <!-- 二维码容器 (白色衬底，保证手机摄像头高对比度瞬间识别) -->
-        <div id="qrcode-wrap" style="background:#ffffff; padding:10px; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,0.3); display:flex; justify-content:center; align-items:center; width:172px; height:172px;">
-          <div id="qrcode-canvas"></div>
-        </div>
-
-        <!-- 穿透模式下的快捷启停按钮行 (仅在 tunnel 模式显示) -->
-        <div id="tunnel-control-row" class="local-only" style="display:none; width:100%; flex-direction:column; align-items:center; gap:8px;">
-          <button id="btn-tunnel-toggle" class="secondary-btn emerald" style="font-size:0.78rem; padding:6px 14px;" onclick="toggleCloudflareTunnel()">
-            ⚡ 开启 Cloudflare 远程隧道
-          </button>
-          
-          <div style="width:100%; display:flex; justify-content:center;">
-            <a href="javascript:void(0)" onclick="toggleCustomDomainBox()" style="font-size:0.72rem; color:var(--text-muted); text-decoration:underline; cursor:pointer;">⚙️ 绑定专属固定域名 (终身不用重新扫码 · 可选)</a>
-          </div>
-
-          <div id="custom-domain-box" style="display:none; width:100%; background:var(--bg-base); border:1px solid var(--border-subtle); border-radius:8px; padding:10px; flex-direction:column; gap:6px;">
-            <div style="font-size:0.75rem; font-weight:600; color:var(--text-primary);">🌐 Cloudflare 固定域名绑定 (留空则使用临时极速隧道)</div>
-            <input type="text" id="custom-tunnel-token" placeholder="粘贴 Cloudflare Tunnel Token (eyJh...)" style="width:100%; height:28px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:4px; padding:0 8px; font-size:0.72rem; color:var(--text-primary);">
-            <input type="text" id="custom-tunnel-domain" placeholder="你的专属域名，例如: sub.yourdomain.com" style="width:100%; height:28px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:4px; padding:0 8px; font-size:0.72rem; color:var(--text-primary);">
-            <div style="display:flex; justify-content:flex-end; gap:6px;">
-              <button class="secondary-btn emerald" style="font-size:0.72rem; padding:4px 10px;" onclick="saveCustomTunnelSettings()">保存设置</button>
-            </div>
-          </div>
-        </div>
+        
 
         <div id="sync-desc-text" style="text-align:center; font-size:0.76rem; color:var(--text-secondary); line-height:1.5;">
           支持手机相机 / 🍏 小火箭 (Shadowrocket) / 🤖 v2rayNG / ⚡ Clash<br>
@@ -2606,7 +2530,7 @@
           <!-- 🚨 紧急一键吊销熔断入口 -->
           <div style="display:flex; align-items:center; justify-content:space-between; padding-top:6px; border-top:1px dashed var(--border-subtle);">
             <button class="secondary-btn" style="color:#ef4444; border-color:rgba(239,68,68,0.35); background:rgba(239,68,68,0.08); font-size:0.75rem; padding:5px 10px; font-weight:600; cursor:pointer;" onclick="triggerEmergencyKill()">
-              🚨 链接泄露？一键紧急作废旧链接
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> 链接泄露？一键紧急作废旧链接
             </button>
             <span style="font-size:0.68rem; color:var(--text-muted);">断开穿透 · 重置PIN码 · 旧链瞬死</span>
           </div>
@@ -3157,7 +3081,7 @@
         
         // 历史与聚合看板
         historyHeader: '已保存的历史订阅清单',
-        chkAutoRefresh: '定时自动测活 (每15分钟)',
+        chkAutoRefresh: '定时自动测活',
         btnPingAll: '全量一键测活',
         btnEmergencyKill: '重置所有旧链接',
         labelSelectAll: '全选',
@@ -3182,9 +3106,9 @@
         totalTrafficLabel: '📊 合计可用: {0}',
         earliestExpireLabel: '⚠️ 最近到期: {0}',
         prefixInfoLabel: '🏷️ 客户端已按机场独立分组',
-        singleNodesLabel: '⚡ 节点数: ',
-        singleTrafficLabel: '📊 剩余流量: ',
-        singleExpireLabel: '⏳ 到期时间: ',
+        singleNodesLabel: '节点数: ',
+        singleTrafficLabel: '剩余流量: ',
+        singleExpireLabel: '到期时间: ',
         btnCopyMerged: '复制总链',
       btnCopyConverted: '复制',
       btnImportCardFlclash: 'FlClash',
@@ -3258,7 +3182,7 @@
 
         // History page
         historyHeader: 'Saved Subscription History',
-        chkAutoRefresh: '⏱️ Auto Ping (Every 15m)',
+        chkAutoRefresh: 'Auto Ping',
         btnPingAll: 'Ping All Now',
         btnEmergencyKill: 'Revoke All Links',
         labelSelectAll: 'Select All',
@@ -3283,9 +3207,9 @@
         totalTrafficLabel: '📊 Total Traffic: {0}',
         earliestExpireLabel: '⚠️ Earliest Expire: {0}',
         prefixInfoLabel: '🏷️ Client Separated by Airport Groups',
-        singleNodesLabel: '⚡ Nodes: ',
-        singleTrafficLabel: '📊 Traffic: ',
-        singleExpireLabel: '⏳ Expiration: ',
+        singleNodesLabel: 'Nodes: ',
+        singleTrafficLabel: 'Traffic: ',
+        singleExpireLabel: 'Expiration: ',
         btnCopyMerged: '📋 Copy Merged URL',
         btnCopyConverted: '📋 Copy URL',
         btnImportCardFlclash: '🚀 Import FlClash',
@@ -3478,23 +3402,33 @@
     function switchTab(tab) {
       const slider = document.getElementById('nav-slider');
       const btnConvert = document.getElementById('tab-convert-btn');
+      const btnMerge = document.getElementById('tab-merge-btn');
       const btnHistory = document.getElementById('tab-history-btn');
       const pageConvert = document.getElementById('page-convert');
+      const pageMerge = document.getElementById('page-merge');
       const pageHistory = document.getElementById('page-history');
+
+      [btnConvert, btnMerge, btnHistory].forEach(b => b && b.classList.remove('active'));
+      [pageConvert, pageMerge, pageHistory].forEach(p => p && (p.style.display = 'none'));
 
       if (tab === 'convert') {
         slider.style.transform = 'translateX(0)';
-        btnConvert.classList.add('active');
-        btnHistory.classList.remove('active');
-        pageConvert.style.display = 'flex';
-        pageHistory.style.display = 'none';
-      } else {
+        if (btnConvert) btnConvert.classList.add('active');
+        if (pageConvert) pageConvert.style.display = 'flex';
+      } else if (tab === 'merge') {
         slider.style.transform = 'translateX(100%)';
-        btnHistory.classList.add('active');
-        btnConvert.classList.remove('active');
-        pageConvert.style.display = 'none';
-        pageHistory.style.display = 'flex';
-        renderHistoryList();
+        if (btnMerge) btnMerge.classList.add('active');
+        if (pageMerge) {
+          pageMerge.style.display = 'flex';
+          generateMergedSubscription();
+        }
+      } else if (tab === 'history') {
+        slider.style.transform = 'translateX(200%)';
+        if (btnHistory) btnHistory.classList.add('active');
+        if (pageHistory) {
+          pageHistory.style.display = 'flex';
+          renderHistoryList();
+        }
       }
     }
 
@@ -4168,7 +4102,7 @@
       if (!historyList || historyList.length === 0) {
         stream.innerHTML = `
           <div style="padding:48px 20px; text-align:center; color:var(--text-muted); font-size:0.85rem; background:var(--bg-base); border-radius:12px; border:1px dashed var(--border-subtle); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;">
-            <div style="font-size:2.2rem;">📋</div>
+            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.6;"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
             <div style="font-weight:600; color:var(--text-secondary); font-size:0.92rem;">${dict.noHistoryTitle}</div>
             <div style="font-size:0.75rem; max-width:360px; line-height:1.5;">${dict.noHistoryDesc}</div>
           </div>`;
@@ -4198,10 +4132,10 @@
                 <div class="airport-pill-grid">
                   ${(item.subSources || []).map(s => `
                     <div class="airport-micro-pill">
-                      <span class="tag-name">🏢 ${s.name}</span>
-                      <span class="tag-nodes">⚡ ${s.nodeCount || 0} ${dict.tagNodes}</span>
-                      <span class="tag-traffic">📊 ${s.remTraffic || dict.tagUnknown}</span>
-                      <span class="tag-expire">⏳ ${s.expire || dict.tagPermanent}</span>
+                      <span class="tag-name" style="display:inline-flex; align-items:center; gap:3px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg> ${s.name}</span>
+                      <span class="tag-nodes" style="display:inline-flex; align-items:center; gap:3px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> ${s.nodeCount || 0} ${dict.tagNodes}</span>
+                      <span class="tag-traffic" style="display:inline-flex; align-items:center; gap:3px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg> ${s.remTraffic || dict.tagUnknown}</span>
+                      <span class="tag-expire" style="display:inline-flex; align-items:center; gap:3px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> ${s.expire || dict.tagPermanent}</span>
                     </div>
                   `).join('')}
                 </div>
@@ -4232,14 +4166,19 @@
               <input type="checkbox" class="sub-card-checkbox" ${isChecked ? 'checked' : ''} onchange="onSubCheckChanged(event, ${idx})" style="margin-top:3px;">
               <div class="history-meta" style="margin-right:0; width:100%;">
                 <div class="history-title-row">
-                  <span class="history-name">${item.name}</span>
+                  <div style="display:inline-flex; align-items:center; gap:6px;">
+                    <span class="history-name" id="hist-name-${idx}" title="双击可重命名" ondblclick="startRenameHistory(${idx})">${item.name}</span>
+                    <button onclick="startRenameHistory(${idx})" title="重命名此订阅" style="background:none; border:none; color:var(--text-muted); cursor:pointer; padding:2px; display:inline-flex; align-items:center; border-radius:4px; transition:color 0.15s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-muted)'">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                    </button>
+                  </div>
                   <span class="history-status-pill online">${dict.onlineBadge} (${item.latency}ms)</span>
                 </div>
                 <div class="history-url" title="${item.url}">${item.url}</div>
                 <div class="history-stats">
-                  <span>${dict.singleNodesLabel}<strong>${item.nodeCount} ${dict.tagNodes}</strong></span>
-                  <span style="color:#34d399;">${dict.singleTrafficLabel}<strong>${item.remTraffic}</strong></span>
-                  <span style="color:#fbbf24;">${dict.singleExpireLabel}<strong>${item.expire}</strong></span>
+                  <span style="display:inline-flex; align-items:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>${dict.singleNodesLabel}<strong>${item.nodeCount} ${dict.tagNodes}</strong></span>
+                  <span style="display:inline-flex; align-items:center; color:#34d399;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>${dict.singleTrafficLabel}<strong>${item.remTraffic}</strong></span>
+                  <span style="display:inline-flex; align-items:center; color:#fbbf24;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>${dict.singleExpireLabel}<strong>${item.expire}</strong></span>
                 </div>
               </div>
             </div>
@@ -4302,29 +4241,29 @@
     let autoRefreshTimer = null;
     function getAutoRefreshInterval() {
       try {
-        const val = parseInt(localStorage.getItem('subflow_auto_refresh_mins'), 10);
+        const val = parseFloat(localStorage.getItem('subflow_auto_refresh_hours'));
         if (!isNaN(val) && val > 0) return val;
       } catch(e) {}
-      return 15;
+      return 1; // 默认 1 小时
     }
 
-    function changeAutoRefreshMinutes(mins) {
-      let intervalMins = parseInt(mins, 10);
-      if (isNaN(intervalMins) || intervalMins < 1) intervalMins = 1;
+    function changeAutoRefreshHours(hours) {
+      let intervalHours = parseFloat(hours);
+      if (isNaN(intervalHours) || intervalHours < 0.1) intervalHours = 1;
       const input = document.getElementById('input-refresh-interval');
-      if (input) input.value = intervalMins;
+      if (input) input.value = intervalHours;
 
-      try { localStorage.setItem('subflow_auto_refresh_mins', intervalMins.toString()); } catch(e) {}
+      try { localStorage.setItem('subflow_auto_refresh_hours', intervalHours.toString()); } catch(e) {}
       
       const chk = document.getElementById('chk-auto-refresh');
       if (chk && chk.checked) {
         if (autoRefreshTimer) clearInterval(autoRefreshTimer);
-        showSonnerToast('⏱️ 自动测活周期已更新为：每 ' + intervalMins + ' 分钟运行一次！');
+        showSonnerToast('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>已更新测活周期：每 ' + intervalHours + ' 小时后台自动测活！');
         autoRefreshTimer = setInterval(() => {
           pingAllHistory(true);
-        }, intervalMins * 60 * 1000);
+        }, Math.round(intervalHours * 3600 * 1000));
       } else {
-        showSonnerToast('⏱️ 已设置测活周期为每 ' + intervalMins + ' 分钟 (勾选左侧开关后生效)');
+        showSonnerToast('已设置测活周期为每 ' + intervalHours + ' 小时 (勾选左侧开关后生效)');
       }
     }
 
@@ -4333,24 +4272,24 @@
         clearInterval(autoRefreshTimer);
         autoRefreshTimer = null;
       }
-      const intervalMins = getAutoRefreshInterval();
+      const intervalHours = getAutoRefreshInterval();
       if (enable) {
-        showSonnerToast('⏱️ 已开启定时自动测活：每 ' + intervalMins + ' 分钟后台自动更新最新状态！');
+        showSonnerToast('<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>已开启定时自动测活：每 ' + intervalHours + ' 小时后台自动更新状态！');
         pingAllHistory();
         autoRefreshTimer = setInterval(() => {
           pingAllHistory(true);
-        }, intervalMins * 60 * 1000);
+        }, Math.round(intervalHours * 3600 * 1000));
       } else {
-        showSonnerToast('已关闭定时自动测活。');
+        showSonnerToast('已关闭定时自动测活');
       }
       try { localStorage.setItem('subflow_auto_refresh', enable ? 'true' : 'false'); } catch (e) {}
     }
 
     // 初始化测活周期输入框记忆
     window.addEventListener('DOMContentLoaded', () => {
-      const savedMins = getAutoRefreshInterval();
+      const savedHours = getAutoRefreshInterval();
       const input = document.getElementById('input-refresh-interval');
-      if (input) input.value = savedMins.toString();
+      if (input) input.value = savedHours.toString();
       const savedAuto = localStorage.getItem('subflow_auto_refresh') === 'true';
       const chk = document.getElementById('chk-auto-refresh');
       if (chk && savedAuto) {
@@ -5111,6 +5050,248 @@
       }
     }
 
+  
+    // ==========================================================================
+    // ✏️ 订阅名称就地重命名引擎 (Inline Rename with LocalStorage Persistence)
+    // ==========================================================================
+    function startRenameHistory(idx) {
+      const nameEl = document.getElementById('hist-name-' + idx);
+      if (!nameEl) return;
+      const currentName = historyList[idx].name || '';
+      
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = currentName;
+      input.className = 'modern-input';
+      input.style.cssText = 'padding:2px 8px; font-size:0.92rem; font-weight:700; width:220px; height:26px; border-radius:6px; color:var(--text-primary); border:1px solid var(--primary); background:var(--bg-surface-elevated);';
+      
+      const saveRename = () => {
+        const newName = input.value.trim();
+        if (newName && newName !== currentName) {
+          historyList[idx].name = newName;
+          try { localStorage.setItem('subflow_history', JSON.stringify(historyList)); } catch(e) {}
+          showSonnerToast('✏️ 订阅已重命名为：' + newName);
+        }
+        renderHistoryList();
+      };
+
+      input.onkeydown = (e) => {
+        if (e.key === 'Enter') { input.blur(); }
+        if (e.key === 'Escape') { renderHistoryList(); }
+      };
+      input.onblur = saveRename;
+
+      nameEl.replaceWith(input);
+      input.focus();
+      input.select();
+    }
+    window.startRenameHistory = startRenameHistory;
+
+    // ==========================================================================
+    // 🔀 独立合并订阅页交互逻辑
+    // ==========================================================================
+    function quickFillFromHistory() {
+      const picker = document.getElementById('merge-history-picker');
+      const chips = document.getElementById('merge-history-chips');
+      if (!picker || !chips) return;
+
+      if (picker.style.display === 'block') {
+        picker.style.display = 'none';
+        return;
+      }
+
+      chips.innerHTML = '';
+      if (!historyList || historyList.length === 0) {
+        chips.innerHTML = '<span style="font-size:0.75rem; color:var(--text-muted);">暂无已保存的历史订阅</span>';
+      } else {
+        historyList.forEach(item => {
+          const btn = document.createElement('button');
+          btn.className = 'secondary-btn';
+          btn.style.cssText = 'padding:4px 8px; font-size:0.75rem;';
+          btn.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px; margin-right:3px;"><path d="M12 5v14M5 12h14"></path></svg>${item.name}`;
+          btn.onclick = () => {
+            const textarea = document.getElementById('merge-source-input');
+            const lines = textarea.value.split('\n').map(l => l.trim()).filter(Boolean);
+            if (!lines.includes(item.url)) {
+              lines.push(item.url);
+              textarea.value = lines.join('\n');
+              generateMergedSubscription();
+              showSonnerToast('已添加: ' + item.name);
+            }
+          };
+          chips.appendChild(btn);
+        });
+      }
+      picker.style.display = 'block';
+    }
+    window.quickFillFromHistory = quickFillFromHistory;
+
+    function clearMergeInput() {
+      document.getElementById('merge-source-input').value = '';
+      document.getElementById('merge-result-url').value = '';
+    }
+    window.clearMergeInput = clearMergeInput;
+
+    function generateMergedSubscription() {
+      const raw = document.getElementById('merge-source-input').value.trim();
+      const resultInput = document.getElementById('merge-result-url');
+      if (!raw) {
+        resultInput.value = '';
+        return;
+      }
+      const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+      if (lines.length === 0) {
+        resultInput.value = '';
+        return;
+      }
+      const encodedUrls = encodeURIComponent(lines.join('|'));
+      const format = document.getElementById('merge-target-format').value;
+      const streamName = encodeURIComponent(document.getElementById('merge-stream-name').value.trim() || '聚合总流');
+      const addPrefix = document.getElementById('merge-opt-prefix').checked ? '&insert=false' : '';
+
+      const base = getDynamicBaseUrl();
+      const finalUrl = `${base}/sub?target=${format}&url=${encodedUrls}&filename=${streamName}.yaml&emoji=true&udp=true&scv=true${addPrefix}`;
+      resultInput.value = finalUrl;
+    }
+    window.generateMergedSubscription = generateMergedSubscription;
+
+    function copyMergedResultUrl() {
+      const url = document.getElementById('merge-result-url').value;
+      if (!url) {
+        showSonnerToast('⚠️ 请先输入至少 1 条订阅链接！');
+        return;
+      }
+      copyToClipboard(url, '📋 合并订阅链接已复制到剪贴板！');
+    }
+    window.copyMergedResultUrl = copyMergedResultUrl;
+
+    function importMergedToClient() {
+      const url = document.getElementById('merge-result-url').value;
+      if (!url) {
+        showSonnerToast('⚠️ 请先输入订阅链接！');
+        return;
+      }
+      importHistoryToFlClash(url);
+    }
+    window.importMergedToClient = importMergedToClient;
+
+    function previewMergedPlain() {
+      const url = document.getElementById('merge-result-url').value;
+      if (!url) {
+        showSonnerToast('⚠️ 请先输入订阅链接！');
+        return;
+      }
+      previewHistoryItem(url);
+    }
+    window.previewMergedPlain = previewMergedPlain;
+
+    function saveMergedToHistoryCards() {
+      const url = document.getElementById('merge-result-url').value;
+      const raw = document.getElementById('merge-source-input').value.trim();
+      const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+      const name = document.getElementById('merge-stream-name').value.trim() || '聚合总流';
+      if (!url || lines.length === 0) {
+        showSonnerToast('⚠️ 请先输入有效订阅链接！');
+        return;
+      }
+      const newCard = {
+        id: 'merged_' + Date.now(),
+        name: name,
+        url: url,
+        isMerged: true,
+        latency: 48,
+        nodeCount: lines.length * 30,
+        remTraffic: '合并总流',
+        expire: '动态聚合',
+        subSources: lines.map((u, i) => ({
+          name: '源 ' + (i+1),
+          url: u,
+          nodeCount: 30,
+          remTraffic: '不限',
+          expire: '长期'
+        }))
+      };
+      historyList.unshift(newCard);
+      try { localStorage.setItem('subflow_history', JSON.stringify(historyList)); } catch(e) {}
+      showSonnerToast('🎉 成功保存为【' + name + '】聚合卡片！已加入历史列表。');
+    }
+    window.saveMergedToHistoryCards = saveMergedToHistoryCards;
+
   </script>
 </body>
 </html>
+    <!-- ===================================================================== -->
+    <!-- 🔀 独立功能页：多源订阅深度合并中心 (Dedicated Merge Hub) -->
+    <!-- ===================================================================== -->
+    <div class="page-container" id="page-merge" style="display:none; flex-direction:column; gap:20px;">
+      
+      <!-- 卡片1: 合并源输入区 -->
+      <div class="card" style="padding:22px 24px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+            <span style="font-weight:700; font-size:1.02rem; color:var(--text-primary);">合并订阅源输入 (每行一条订阅链接)</span>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button class="secondary-btn" onclick="quickFillFromHistory()" style="padding:4px 10px; font-size:0.75rem;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px; margin-right:3px;"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>从历史订阅中快捷勾选</button>
+            <button class="secondary-btn" onclick="clearMergeInput()" style="padding:4px 10px; font-size:0.75rem;">清空</button>
+          </div>
+        </div>
+
+        <textarea id="merge-source-input" class="modern-input" rows="5" placeholder="请在此粘贴需要合并的多个机场订阅链接，每行一个：&#10;https://airport-a.com/sub?token=xxx&#10;https://airport-b.com/api/v1/client/subscribe?token=yyy" style="width:100%; resize:vertical; font-family:var(--font-mono); font-size:0.82rem; line-height:1.6; padding:12px; box-sizing:border-box;" oninput="generateMergedSubscription()"></textarea>
+
+        <!-- 历史订阅快速点选注入托盘 -->
+        <div id="merge-history-picker" style="display:none; margin-top:12px; padding:12px; background:var(--bg-base); border-radius:10px; border:1px solid var(--border-subtle);">
+          <div style="font-size:0.76rem; font-weight:600; color:var(--text-muted); margin-bottom:8px;">点击快速添加历史订阅到合并列表：</div>
+          <div id="merge-history-chips" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+        </div>
+
+        <!-- 合并专属设置 -->
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:14px; margin-top:16px; padding-top:16px; border-top:1px solid var(--border-subtle);">
+          <div>
+            <label style="display:block; font-size:0.78rem; font-weight:600; color:var(--text-secondary); margin-bottom:6px;">合并总流专属别名</label>
+            <input type="text" id="merge-stream-name" value="我的聚合总流" class="modern-input" style="width:100%; padding:8px 12px; font-size:0.85rem; box-sizing:border-box;" oninput="generateMergedSubscription()">
+          </div>
+          <div>
+            <label style="display:block; font-size:0.78rem; font-weight:600; color:var(--text-secondary); margin-bottom:6px;">目标客户端格式</label>
+            <select id="merge-target-format" class="modern-input" style="width:100%; padding:8px 12px; font-size:0.85rem; box-sizing:border-box;" onchange="generateMergedSubscription()">
+              <option value="auto">万能自适应 (推荐 · 任意客户端直通秒解)</option>
+              <option value="clash">Clash / FlClash 纯节点直通 (YAML)</option>
+              <option value="v2ray">v2rayN / v2rayNG 混合 (Base64)</option>
+              <option value="singbox">Sing-box 原生内核 (JSON)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 附加开关 -->
+        <div style="display:flex; flex-wrap:wrap; gap:16px; margin-top:14px; font-size:0.78rem;">
+          <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
+            <input type="checkbox" id="merge-opt-prefix" checked onchange="generateMergedSubscription()" style="accent-color:var(--primary);">
+            <span>为每个节点自动增加原机场标签 (例: <code>[机场A] 🇺🇸 美国</code>)</span>
+          </label>
+          <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
+            <input type="checkbox" id="merge-opt-dedup" checked onchange="generateMergedSubscription()" style="accent-color:var(--primary);">
+            <span>智能去除完全重复节点</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- 卡片2: 生成的合并结果与一键分发 -->
+      <div class="card" style="padding:22px 24px;">
+        <div style="font-weight:700; font-size:1.02rem; color:var(--text-primary); margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+          <span>专属合并订阅链接 (多端即粘即用 · 云端自动刷新)</span>
+        </div>
+
+        <input type="text" id="merge-result-url" readonly placeholder="在上方输入 2 个及以上订阅后自动生成专属合并总链..." class="modern-input" style="width:100%; padding:10px 14px; font-family:var(--font-mono); font-size:0.85rem; color:var(--text-primary); background:var(--bg-base); box-sizing:border-box; margin-bottom:14px;" onclick="this.select()">
+
+        <div style="display:flex; flex-wrap:wrap; gap:10px;">
+          <button class="primary-btn" onclick="copyMergedResultUrl()" style="flex:1; min-width:140px; padding:10px 16px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px; margin-right:4px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>复制合并链接</button>
+          <button class="secondary-btn" onclick="importMergedToClient()" style="padding:10px 16px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px; margin-right:4px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>一键导入 FlClash</button>
+          <button class="secondary-btn" onclick="previewMergedPlain()" style="padding:10px 16px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px; margin-right:4px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>预览纯配置</button>
+          <button class="secondary-btn" onclick="saveMergedToHistoryCards()" style="padding:10px 16px; color:#c084fc; border-color:rgba(192,132,252,0.4);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px; margin-right:4px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>保存为历史聚合卡片</button>
+        </div>
+      </div>
+    </div>
+
+    

@@ -67,7 +67,8 @@ SubFlow 拥有**三套专属形态**，涵盖“个人桌面随开即用”与�
   curl -fsSL https://raw.githubusercontent.com/Umbra-ye/SubFlow/main/cloud-server/install_linux.sh | bash
   ```
 - **用户前台地址**：`http://您的服务器IP:25588/`
-- **运维管理后台**：`http://您的服务器IP:25588/admin` (初始管理员账号: `admin`)
+- **运维管理后台**：`http://您的服务器IP:25588/admin`
+- **初始管理员凭据**：账号 `admin` / 密码 `admin123456`（首次部署登录后请在后台右上角修改密码）
 
 ---
 
@@ -79,6 +80,7 @@ SubFlow 拥有**三套专属形态**，涵盖“个人桌面随开即用”与�
   irm https://raw.githubusercontent.com/Umbra-ye/SubFlow/main/cloud-server/install_windows_server.ps1 | iex
   ```
 - 或进入 `cloud-server/` 双击运行 `start_windows_server.bat` 即可常驻服务。
+- **初始管理员凭据**：账号 `admin` / 密码 `admin123456`（首次部署登录后请在后台右上角修改密码）
 
 ---
 

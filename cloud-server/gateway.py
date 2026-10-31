@@ -30,7 +30,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
 from country_enricher import has_country_info, enrich_node_name_fast, enrich_subscription_payload, batch_resolve_geoip_fast, COUNTRY_KEYWORDS
 
-__version__ = "2.0.0"
+__version__ = "2.2.1"
 __product__ = "SubFlow Cloud Matrix"
 
 # ==============================================================================

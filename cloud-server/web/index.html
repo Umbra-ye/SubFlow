@@ -2230,7 +2230,7 @@
         <div style="width: 52px; height: 52px; border-radius: 16px; background: linear-gradient(135deg, #2563eb, #10b981); margin: 0 auto 12px; display:flex; align-items:center; justify-content:center; color:#fff; font-size: 1.6rem; font-weight:800; box-shadow: 0 0 24px rgba(37, 99, 235, 0.45);">
           ⚡
         </div>
-        <h1 style="font-size: 1.35rem; font-weight: 800; letter-spacing: -0.02em; color: #ffffff !important; text-shadow: 0 2px 10px rgba(0,0,0,0.5);">SubFlow 订阅流 <span style="font-size:0.75rem; background:linear-gradient(135deg,#2563eb,#10b981); color:#fff; padding:2px 8px; border-radius:12px; font-weight:700; vertical-align:middle; margin-left:4px;">v2.0</span></h1>
+        <h1 style="font-size: 1.35rem; font-weight: 800; letter-spacing: -0.02em; color: #ffffff !important; text-shadow: 0 2px 10px rgba(0,0,0,0.5);">SubFlow 订阅流 <span style="font-size:0.75rem; background:linear-gradient(135deg,#2563eb,#10b981); color:#fff; padding:2px 8px; border-radius:12px; font-weight:700; vertical-align:middle; margin-left:4px;">v2.2.1</span></h1>
         <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 6px;">跨平台流体订阅转换平台 · 请登录后继续</p>
       </div>
 
@@ -2330,7 +2330,7 @@
           </svg>
         </div>
         <div>
-          <div class="brand-title">SubFlow 订阅流 <span style="font-size:0.68rem; background:linear-gradient(135deg,#2563eb,#10b981); color:#fff; padding:2px 7px; border-radius:12px; font-weight:700; vertical-align:middle; margin-left:4px;">v2.0</span></div>
+          <div class="brand-title">SubFlow 订阅流 <span style="font-size:0.68rem; background:linear-gradient(135deg,#2563eb,#10b981); color:#fff; padding:2px 7px; border-radius:12px; font-weight:700; vertical-align:middle; margin-left:4px;">v2.2.1</span></div>
           <div class="brand-status">
             <span class="status-dot"></span>
             <span>订阅解析服务已就绪</span>
@@ -4899,7 +4899,7 @@
       }
     }
 
-    function submitGateAuth(e) {
+    async function submitGateAuth(e) {
       if (e) e.preventDefault();
       const username = document.getElementById('gate-username').value.trim();
       const password = document.getElementById('gate-password').value;

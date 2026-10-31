@@ -34,5 +34,14 @@ EOF'
 sudo systemctl daemon-reload
 sudo systemctl enable subflow
 sudo systemctl restart subflow
-echo "=== SubFlow 云端服务器已成功启动！端口: 25588 ==="
-echo "运维后台地址: http://您的服务器IP:25588/admin"
+
+echo ""
+echo "=========================================================="
+echo "🎉 SubFlow 云端多用户网关已成功启动！运行端口: 25588"
+echo "🌐 用户前台: http://<你的服务器IP>:25588/"
+echo "⚙️  管理后台: http://<你的服务器IP>:25588/admin"
+echo ""
+echo "👤 初始管理员账号: admin"
+echo "🔑 初始管理员密码: admin123456"
+echo "⚠️  安全提醒: 登录后请立即在后台右上角修改管理员密码！"
+echo "=========================================================="

@@ -263,6 +263,47 @@
       gap: 10px;
       z-index: 10000;
     }
+  
+    /* 日间高对比度自适应流体玻璃主题 */
+    [data-theme="light"] {
+      --bg-base: #f8fafc;
+      --bg-surface: #ffffff;
+      --bg-surface-elevated: #f1f5f9;
+      --text-primary: #0f172a;
+      --text-secondary: #334155;
+      --text-muted: #64748b;
+      --border-subtle: rgba(0, 0, 0, 0.1);
+      --border-strong: rgba(0, 0, 0, 0.18);
+    }
+    [data-theme="light"] body {
+      background: #f8fafc !important;
+      color: #0f172a !important;
+    }
+    [data-theme="light"] .header {
+      background: rgba(255, 255, 255, 0.88) !important;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+    }
+    [data-theme="light"] .card, 
+    [data-theme="light"] .stat-card,
+    [data-theme="light"] .admin-card {
+      background: #ffffff !important;
+      border-color: #e2e8f0 !important;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04) !important;
+    }
+    [data-theme="light"] .table th {
+      background: #f1f5f9 !important;
+      color: #475569 !important;
+    }
+    [data-theme="light"] .table td {
+      border-color: #f1f5f9 !important;
+      color: #1e293b !important;
+    }
+    [data-theme="light"] .btn-outline {
+      background: #ffffff !important;
+      border-color: #cbd5e1 !important;
+      color: #334155 !important;
+    }
+
   </style>
 </head>
 <body>
@@ -330,7 +371,8 @@
       </div>
 
       <div class="nav-actions">
-        <button class="btn-outline" onclick="openAdminSecurityModal()" style="margin-right: 8px;"><span>🔐</span> <span>修改管理账密</span></button>
+        <button class="btn-outline" id="admin-theme-btn" onclick="toggleAdminTheme()" style="margin-right:8px; display:inline-flex; align-items:center; gap:5px;"><span id="admin-theme-icon">☀️</span> <span id="admin-theme-text">日间模式</span></button>
+        <button class="btn-outline" onclick="openAdminSecurityModal()" style="margin-right: 8px;"><span>🔐</span> <span>修改管理员密码</span></button>
         <a href="/" class="btn-outline"><span>🌐</span> <span>前往用户前台</span></a>
         <button class="btn-danger" onclick="logoutAdmin()"><span>退出管理后台</span></button>
       </div>
@@ -376,7 +418,7 @@
         <div class="glass-card">
           <div class="card-title">
             <span>🔐 管理员账号与访问安全</span>
-            <button class="btn-primary" onclick="openAdminSecurityModal()">修改管理账密</button>
+            <button class="btn-primary" onclick="openAdminSecurityModal()">修改管理员密码</button>
           </div>
           <div style="display:flex; flex-direction:column; gap:12px; font-size:0.85rem;">
             <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
@@ -1114,7 +1156,153 @@ SubFlow 运维控制中心就绪...
         btn.innerText = '确认保存修改';
       }
     }
-    </script>
+    
+    // =========================================================================
+    // ☀️ / 🌙 后台日间夜间模式无缝切换 (与前台实时同步)
+    // =========================================================================
+    function initAdminTheme() {
+      const saved = localStorage.getItem('subflow_theme') || 'dark';
+      setAdminTheme(saved);
+    }
+
+    function toggleAdminTheme() {
+      const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+      const nextTheme = isLight ? 'dark' : 'light';
+      setAdminTheme(nextTheme);
+    }
+
+    function setAdminTheme(theme) {
+      const isDark = theme !== 'light';
+      const icon = document.getElementById('admin-theme-icon');
+      const text = document.getElementById('admin-theme-text');
+      if (!isDark) {
+        document.documentElement.setAttribute('data-theme', 'light');
+        if (icon) icon.innerText = '🌙';
+        if (text) text.innerText = '夜间模式';
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+        if (icon) icon.innerText = '☀️';
+        if (text) text.innerText = '日间模式';
+      }
+      try { localStorage.setItem('subflow_theme', theme); } catch(e) {}
+    }
+    document.addEventListener('DOMContentLoaded', initAdminTheme);
+
+    // =========================================================================
+    // 🎟️ 邀请码后台异步管理引擎
+    // =========================================================================
+    async function loadInvitations() {
+      try {
+        const res = await fetch(adminApiUrl('/api/admin/invitations/list'));
+        const data = await res.json();
+        if (data.ok) {
+          const chk = document.getElementById('admin-require-invite');
+          if (chk) chk.checked = data.require_invite_code;
+          renderInviteTable(data.invitations || []);
+        }
+      } catch (e) {
+        console.error('加载邀请码失败:', e);
+      }
+    }
+
+    function renderInviteTable(invs) {
+      const tbody = document.getElementById('admin-invite-tbody');
+      if (!tbody) return;
+      if (invs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:24px; color:var(--text-muted);">暂无已签发的邀请码，点击上方“+ 签发新邀请码”即可生成！</td></tr>';
+        return;
+      }
+      tbody.innerHTML = invs.map(item => {
+        const isDepleted = item.used_count >= item.max_uses;
+        const statusBadge = isDepleted 
+          ? `<span style="background:rgba(239,68,68,0.15); color:#ef4444; padding:2px 8px; border-radius:4px; font-weight:700;">已耗尽 (${item.used_count}/${item.max_uses})</span>`
+          : `<span style="background:rgba(16,185,129,0.15); color:#10b981; padding:2px 8px; border-radius:4px; font-weight:700;">可用 (${item.used_count}/${item.max_uses})</span>`;
+        return `
+          <tr style="border-bottom:1px solid var(--border-subtle);">
+            <td style="padding:10px 12px; font-family:monospace; font-size:0.9rem; font-weight:700; color:var(--primary);">${item.code}</td>
+            <td style="padding:10px 12px;">${statusBadge}</td>
+            <td style="padding:10px 12px; color:var(--text-muted);">${item.note || '亲友受邀凭证'}</td>
+            <td style="padding:10px 12px; font-size:0.75rem; color:var(--text-muted);">${item.created_at}</td>
+            <td style="padding:10px 12px; text-align:right;">
+              <button class="btn-outline" style="padding:2px 8px; font-size:0.72rem; margin-right:6px;" onclick="copyInviteCode('${item.code}')">复制</button>
+              <button class="btn-outline" style="padding:2px 8px; font-size:0.72rem; color:#ef4444; border-color:rgba(239,68,68,0.3);" onclick="deleteInviteCode(${item.id})">作废</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function toggleRequireInvite(enabled) {
+      try {
+        const res = await fetch(adminApiUrl('/api/admin/invitations/toggle-mode'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ require_invite: enabled })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          showAdminToast(enabled ? '🎟️ 已开启强制邀请制：新用户必须凭有效邀请码才能注册！' : '🌐 已开放公开注册：任何人均可直接注册账号');
+        }
+      } catch (e) {
+        showAdminToast('切换失败: ' + e);
+      }
+    }
+
+    async function openCreateInviteModal() {
+      const note = prompt('请输入邀请码备注 (例如: 赠送给张三 / 亲友测试):', '亲友专属凭证');
+      if (note === null) return;
+      const maxUsesStr = prompt('允许该邀请码最大使用次数 (默认 1 次):', '1');
+      if (maxUsesStr === null) return;
+      const maxUses = parseInt(maxUsesStr, 10) || 1;
+
+      try {
+        const res = await fetch(adminApiUrl('/api/admin/invitations/create'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ note, max_uses: maxUses })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          showAdminToast('🎉 成功签发邀请码: ' + data.code);
+          loadInvitations();
+        } else {
+          alert(data.error || '签发失败');
+        }
+      } catch (e) {
+        alert('网络请求异常: ' + e);
+      }
+    }
+
+    function copyInviteCode(code) {
+      navigator.clipboard.writeText(code).then(() => {
+        showAdminToast('📋 邀请码 ' + code + ' 已复制到剪贴板！');
+      });
+    }
+
+    async function deleteInviteCode(id) {
+      if (!confirm('确定要作废并彻底删除此邀请码吗？')) return;
+      try {
+        const res = await fetch(adminApiUrl('/api/admin/invitations/delete'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          showAdminToast('🗑️ 邀请码已成功作废删除！');
+          loadInvitations();
+        }
+      } catch (e) {
+        alert('删除失败: ' + e);
+      }
+    }
+
+    // 页面加载时自动加载邀请码列表
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(loadInvitations, 600);
+    });
+
+  </script>
 </body>
 
 </html>

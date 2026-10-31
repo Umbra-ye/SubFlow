@@ -203,22 +203,23 @@
     .login-gate-card {
       width: 420px;
       max-width: 92vw;
-      height: auto;
-      min-height: unset;
-      padding: 36px 32px;
-      background: rgba(13, 20, 36, 0.85);
+      height: 520px !important;
+      min-height: 520px !important;
+      max-height: 520px !important;
+      box-sizing: border-box !important;
+      padding: 34px 32px !important;
+      background: rgba(13, 20, 36, 0.88);
       backdrop-filter: blur(48px) saturate(220%);
       border: 1px solid rgba(255, 255, 255, 0.16);
       border-radius: 28px;
-      padding: 36px 32px;
       box-shadow: 
         0 30px 80px rgba(0, 0, 0, 0.85),
         0 0 50px rgba(37, 99, 235, 0.18),
         inset 0 1px 0 rgba(255, 255, 255, 0.28),
         inset 0 0 20px rgba(255, 255, 255, 0.02);
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: space-between !important;
       position: relative;
       z-index: 10;
       animation: gateCardPop 0.35s cubic-bezier(0.16, 1, 0.3, 1);
@@ -620,19 +621,12 @@
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-md);
       padding: 3px;
-      display: flex;
-      gap: 4px;
-    }
-
-    .segmented-nav {
-      position: relative;
-      background: var(--bg-surface);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-md);
-      padding: 3px;
       display: inline-flex !important;
       align-items: center !important;
-      gap: 4px;
+      width: 360px !important;
+      max-width: 100% !important;
+      box-sizing: border-box !important;
+      gap: 0 !important;
       flex-shrink: 0 !important;
     }
 
@@ -644,16 +638,20 @@
       font-family: inherit;
       font-size: 0.84rem;
       font-weight: 600;
-      padding: 6px 14px !important;
+      flex: 1 !important;
+      width: 33.333% !important;
+      padding: 7px 0 !important;
       border-radius: calc(var(--radius-md) - 2px);
       cursor: pointer;
       transition: color var(--duration-fast) var(--ease-out);
-      z-index: 1;
+      z-index: 2;
       white-space: nowrap !important;
       flex-shrink: 0 !important;
       display: inline-flex !important;
       align-items: center !important;
       justify-content: center !important;
+      gap: 6px !important;
+      box-sizing: border-box !important;
     }
 
     .nav-btn.active {
@@ -2120,12 +2118,13 @@
       </div>
 
       <!-- 选项卡切换: 登录 / 注册 -->
-      <div class="gate-tab-group" style="display:flex; background:rgba(255,255,255,0.04); border:1px solid var(--border-subtle); border-radius:12px; padding:4px; margin-bottom:18px;">
-        <button type="button" class="gate-tab-btn active" id="tab-gate-login" onclick="switchGateTab('login')" style="flex:1; padding:8px; border-radius:8px; font-size:0.85rem; font-weight:700; background:var(--primary); color:#fff; transition:all 0.2s;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="m21 2-2 2m-1.5 1.5L12 11l4 4 3.5-3.5a2.12 2.12 0 0 0 0-3L21 2Z"></path><path d="m9 15-5 5H2v-2l5-5"></path></svg> <span>账号登录</span>
+      <div class="gate-tab-group" style="display:flex; position:relative; background:rgba(0,0,0,0.32); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:3px; margin-bottom:18px; width:100%; box-sizing:border-box;">
+        <div id="gate-tab-slider" style="position:absolute; top:3px; bottom:3px; left:3px; width:calc(50% - 3px); background:var(--primary); border-radius:9px; box-shadow:0 2px 10px rgba(37,99,235,0.45); transition:transform 0.25s cubic-bezier(0.16,1,0.3,1); z-index:1;"></div>
+        <button type="button" class="gate-tab-btn active" id="tab-gate-login" onclick="switchGateTab('login')" style="flex:1; position:relative; z-index:2; padding:9px 0; border:none !important; outline:none !important; background:transparent !important; color:#ffffff; font-size:0.86rem; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; transition:color 0.2s;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="m21 2-2 2m-1.5 1.5L12 11l4 4 3.5-3.5a2.12 2.12 0 0 0 0-3L21 2Z"></path><path d="m9 15-5 5H2v-2l5-5"></path></svg> <span>账号登录</span>
         </button>
-        <button type="button" class="gate-tab-btn" id="tab-gate-register" onclick="switchGateTab('register')" style="flex:1; padding:8px; border-radius:8px; font-size:0.85rem; font-weight:600; background:transparent; color:var(--text-secondary); transition:all 0.2s;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg> <span>注册账号</span>
+        <button type="button" class="gate-tab-btn" id="tab-gate-register" onclick="switchGateTab('register')" style="flex:1; position:relative; z-index:2; padding:9px 0; border:none !important; outline:none !important; background:transparent !important; color:var(--text-muted); font-size:0.86rem; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; transition:color 0.2s;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="19" y1="8" x2="19" y2="14"></line><line x1="22" y1="11" x2="16" y2="11"></line></svg> <span>注册账号</span>
         </button>
       </div>
 
@@ -2161,7 +2160,17 @@
           </div>
 
           <!-- 注册时确认密码 vs 登录时提示占位槽 (保持两选项卡完全等高，绝无跳动) -->
-          <div class="form-group" id="gate-confirm-group" style="display:none;">
+          <div class="form-group" id="gate-confirm-group" style="display:none;"
+        <div class="auth-input-group" id="gate-invite-group" style="display:none;">
+          <label class="auth-label" style="font-size:0.78rem; font-weight:600; color:var(--text-secondary);">
+            <span>注册邀请码 (受邀注册必填)</span>
+          </label>
+          <div class="auth-input-wrap">
+            <input type="text" id="gate-invite-code" class="auth-input" placeholder="输入管理员签发的邀请码 (例: SUB-XXXX)" autocomplete="off">
+            <span style="position:absolute; right:12px; color:var(--text-muted); font-size:0.85rem;">🎟️</span>
+          </div>
+        </div>
+>
             <label style="display:block; font-size:0.8rem; color:var(--text-secondary); margin-bottom:6px; font-weight:600;">确认密码</label>
             <div style="position:relative; display:flex; align-items:center;">
               <input type="password" id="gate-password-confirm" class="modern-input" placeholder="请再次输入密码" autocomplete="new-password" style="width:100%; padding:10px 42px 10px 14px; border-radius:10px; background:rgba(19,27,46,0.7); border:1px solid var(--border-subtle); color:#fff; font-size:0.9rem; outline:none;">
@@ -3045,6 +3054,7 @@
         themeDark: '夜间模式',
         themeLight: '日间模式',
         tabConvert: '万能转换',
+        tabMerge: '合并订阅',
         tabHistory: '历史与测活',
         sourceHeader: '订阅源输入 (自动感知 Clash / v2rayN / VLess / 单节点)',
         pasteClipboard: '粘贴剪贴板',
@@ -3146,6 +3156,7 @@
         themeDark: 'Dark Mode',
         themeLight: 'Light Mode',
         tabConvert: 'Convert Hub',
+        tabMerge: 'Merge Subs',
         tabHistory: 'History & Hub',
         sourceHeader: 'Subscription Source (Auto-Detect Clash / v2rayN / VLess / Nodes)',
         pasteClipboard: 'Paste Clipboard',
@@ -3289,9 +3300,11 @@
       setText('theme-text', isDark ? dict.themeDark : dict.themeLight);
 
       const tC = document.getElementById('tab-convert-btn');
-      if (tC) { const sp = tC.querySelector('span'); if (sp) sp.innerText = dict.tabConvert.replace(/^[^\s]+\s*/, ''); }
+      if (tC) { const sp = tC.querySelector('span'); if (sp) sp.innerText = dict.tabConvert; }
       const tH = document.getElementById('tab-history-btn');
-      if (tH) { const sp = tH.querySelector('span'); if (sp) sp.innerText = dict.tabHistory.replace(/^[^\s]+\s*/, ''); }
+      if (tH) { const sp = tH.querySelector('span'); if (sp) sp.innerText = dict.tabHistory; }
+      const tM = document.getElementById('tab-merge-btn');
+      if (tM) { const sp = tM.querySelector('span'); if (sp) sp.innerText = dict.tabMerge || '合并订阅'; }
       setText('label-source-header', dict.sourceHeader);
       setText('btn-paste-clipboard', dict.pasteClipboard);
       setText('btn-clear-source', dict.clearSource);
@@ -4688,6 +4701,7 @@
       gateAuthMode = tab;
       const btnLogin = document.getElementById('tab-gate-login');
       const btnReg = document.getElementById('tab-gate-register');
+      const slider = document.getElementById('gate-tab-slider');
       const confirmGroup = document.getElementById('gate-confirm-group');
       const submitBtn = document.getElementById('gate-submit-btn');
       const alertBox = document.getElementById('gate-alert-box');
@@ -4695,15 +4709,19 @@
 
       const tipGroup = document.getElementById('gate-login-tip-group');
       if (tab === 'login') {
-        if (btnLogin) { btnLogin.style.background = 'var(--primary)'; btnLogin.style.color = '#fff'; }
-        if (btnReg) { btnReg.style.background = 'transparent'; btnReg.style.color = 'var(--text-secondary)'; }
+        if (slider) slider.style.transform = 'translateX(0)';
+        if (btnLogin) { btnLogin.style.color = '#ffffff'; btnLogin.style.fontWeight = '700'; }
+        if (btnReg) { btnReg.style.color = 'var(--text-muted)'; btnReg.style.fontWeight = '500'; }
         if (confirmGroup) confirmGroup.style.display = 'none';
+        const invGroup = document.getElementById('gate-invite-group'); if (invGroup) invGroup.style.display = 'none';
         if (tipGroup) tipGroup.style.display = 'flex';
         if (submitBtn) submitBtn.querySelector('span').innerText = '立即登录';
       } else {
-        if (btnReg) { btnReg.style.background = 'var(--primary)'; btnReg.style.color = '#fff'; }
-        if (btnLogin) { btnLogin.style.background = 'transparent'; btnLogin.style.color = 'var(--text-secondary)'; }
+        if (slider) slider.style.transform = 'translateX(100%)';
+        if (btnReg) { btnReg.style.color = '#ffffff'; btnReg.style.fontWeight = '700'; }
+        if (btnLogin) { btnLogin.style.color = 'var(--text-muted)'; btnLogin.style.fontWeight = '500'; }
         if (confirmGroup) confirmGroup.style.display = 'block';
+        const invGroup = document.getElementById('gate-invite-group'); if (invGroup) invGroup.style.display = 'block';
         if (tipGroup) tipGroup.style.display = 'none';
         if (submitBtn) submitBtn.querySelector('span').innerText = '立即注册并创建用户账号 →';
       }
@@ -4793,7 +4811,7 @@
           const res = await fetch(apiUrl('/api/auth/register'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
+            body: JSON.stringify({ username, password, invite_code: (document.getElementById('gate-invite-code') ? document.getElementById('gate-invite-code').value.trim() : '') })
           });
           const data = await res.json();
           if (res.ok && data.ok) {

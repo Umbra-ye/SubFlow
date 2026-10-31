@@ -13,6 +13,7 @@ import os
 import sys
 import json
 import time
+import datetime
 import uuid
 import socket
 import sqlite3
@@ -30,7 +31,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
 from country_enricher import has_country_info, enrich_node_name_fast, enrich_subscription_payload, batch_resolve_geoip_fast, COUNTRY_KEYWORDS
 
-__version__ = "2.2.1"
+__version__ = "2.3.1"
 __product__ = "SubFlow Cloud Matrix"
 OFFICIAL_GIT_REPO = "https://github.com/Umbra-ye/SubFlow.git"
 
@@ -346,6 +347,18 @@ sessions = {}  # session_token -> {"user_id": int, "username": str, "role": str,
 login_failures = {}  # ip -> {"count": int, "locked_until": int}
 rate_limit_map = {}  # ip -> [timestamps]
 
+
+def persist_session_to_db(token, user_id, username, role, exp):
+    try:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("INSERT OR REPLACE INTO user_sessions (token, user_id, username, role, expires_at, created_at) VALUES (?, ?, ?, ?, ?, ?);",
+                  (token, user_id, username, role, int(exp), int(time.time())))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"[WARN] Failed to persist session: {e}")
+
 def clean_expired_sessions():
     now = time.time()
     for tok in list(sessions.keys()):
@@ -495,6 +508,9 @@ class NativeSubEngine:
             return True
         if '127.0.0.1:1' in data or '127.0.0.1:8888' in data:
             return True
+        # 严格防御空节点伪装: 若 YAML 中 proxies 列表为空 (如 proxies: [])，说明当前 UA 不受该机场支持或已被降级为空节点
+        if re.search(r'proxies:\s*\[\s*\]', data):
+            return True
         try:
             b64_str = data.strip()
             missing = len(b64_str) % 4
@@ -520,8 +536,10 @@ class NativeSubEngine:
             'Surge/4.0.0',
             'curl/7.88.1'
         ]
-        if client_ua and client_ua not in uas:
-            uas.insert(0, client_ua)
+        # 优先使用现代内核 UA，防止老旧客户端 UA (如原生 Clash/ClashX) 触发上游机场返回 proxies: []
+        if client_ua and any(kw in client_ua.lower() for kw in ['meta', 'mihomo', 'sing-box']):
+            if client_ua not in uas:
+                uas.insert(0, client_ua)
 
         for ua in uas:
             try:
@@ -644,6 +662,15 @@ class NativeSubEngine:
         all_share_links = []
         all_names = []
         combined_userinfo = ''
+        # 拆解管道符 | 聚合多源订阅
+        expanded_urls = []
+        for u in source_urls:
+            if not u: continue
+            for sub_u in str(u).split('|'):
+                sub_u = sub_u.strip()
+                if sub_u:
+                    expanded_urls.append(sub_u)
+        source_urls = expanded_urls
 
         for u in source_urls:
             u = u.strip()
@@ -851,6 +878,10 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
     # ==========================================================================
     # 7. GET 请求处理
     # ==========================================================================
+    def do_HEAD(self):
+        """支持 FlClash / Clash 客户端的 HEAD 探测请求，彻底终结 501 Not Implemented"""
+        self.do_GET()
+
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
@@ -900,6 +931,17 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
                 self.serve_file(static_file, mime)
                 return
 
+        
+        # 公开站点配置状态接口 (前台动态探测是否开启邀请制与公开注册)
+        if path == "/api/auth/site-config":
+            require_invite = server_config.get("require_invite_code", True)
+            self.send_json({
+                "ok": True,
+                "require_invite": require_invite,
+                "allow_public_register": server_config.get("allow_public_register", True)
+            })
+            return
+
         # 2. 核心订阅分发与容灾兜底 (/sub)
         if path == "/sub":
             self.handle_sub_request(query, client_ip)
@@ -915,6 +957,21 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
                 "uptime_seconds": int(time.time() - START_TIME)
             })
             return
+        # 3.1 物理删除全局废弃订阅的缓存文件 (/api/purge-cache)
+        if path == "/api/purge-cache":
+            params = urllib.parse.parse_qs(query)
+            url_to_purge = params.get("url", [""])[0].strip()
+            if url_to_purge:
+                u_hash = hashlib.md5(url_to_purge.encode('utf-8')).hexdigest()
+                for fn in os.listdir(CACHE_DIR):
+                    if u_hash in fn:
+                        try:
+                            os.remove(os.path.join(CACHE_DIR, fn))
+                        except Exception:
+                            pass
+            self.send_json({"ok": True})
+            return
+
 
         # 管理员专属: 获取系统版本与 Git 协同状态 (/api/admin/system/version)
         if path == "/api/admin/system/version":
@@ -936,7 +993,7 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
             self.send_json({
                 "ok": True,
                 "version": __version__,
-                "build": "20261030",
+                "build": "20261101",
                 "is_git": is_git,
                 "git_commit": git_commit or "release",
                 "git_branch": git_branch or "main",
@@ -1055,7 +1112,7 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
         # 7. 管理员专属 API: 仪表盘概览与用户列表 (/api/admin/overview & /api/admin/users)
         
         # 7.1 管理员专属 API: 邀请码管理列表 (/api/admin/invitations)
-        if path == "/api/admin/invitations":
+        if path in ["/api/admin/invitations", "/api/admin/invitations/list"]:
             user = self.get_current_user()
             if not user or user["role"] != "admin":
                 self.send_json({"error": "Forbidden"}, code=403)
@@ -1395,6 +1452,8 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
                 "role": user_row["role"],
                 "exp": time.time() + 86400 * 7  # 7 天有效
             }
+            try: persist_session_to_db(session_token, user['id'], user['username'], user.get('role', 'user'), exp_time)
+            except: pass
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Set-Cookie", f"subflow_session={session_token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800")
@@ -1548,6 +1607,64 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
                 conn.commit()
                 conn.close()
             self.send_json({"ok": True, "message": "订阅已安全加密保存至您的私有库", "id": sub_id, "alias": alias})
+            return
+
+        
+        # 7.8 管理员注册邀请制模式切换 (/api/admin/invite/mode & /api/admin/invitations/toggle-mode)
+        if path in ["/api/admin/invite/mode", "/api/admin/invitations/toggle-mode"]:
+            user = self.get_current_user()
+            if not user or user["role"] != "admin":
+                self.send_json({"error": "Forbidden: Admin required"}, code=403)
+                return
+            req_invite = bool(body.get("require_invite", True))
+            server_config["require_invite_code"] = req_invite
+            save_server_config(server_config)
+            self.send_json({"ok": True, "require_invite": req_invite, "message": "全局注册邀请制状态更新成功"})
+            return
+
+        # 7.9 管理员签发新邀请码 (/api/admin/invite/create & /api/admin/invitations/create)
+        if path in ["/api/admin/invite/create", "/api/admin/invitations/create"]:
+            user = self.get_current_user()
+            if not user or user["role"] != "admin":
+                self.send_json({"error": "Forbidden: Admin required"}, code=403)
+                return
+            inv_type = str(body.get("invite_type", "count")).strip()
+            max_uses = int(body.get("max_uses", 1))
+            note = str(body.get("note", "")).strip() or "管理员签发邀请码"
+            valid_hours = float(body.get("valid_hours", 24))
+            
+            code = "sub_" + secrets.token_hex(8).upper()
+            expires_at = int(time.time() + valid_hours * 3600) if inv_type == "time" else 0
+            created_at = time.strftime("%Y-%m-%d %H:%M:%S")
+
+            with db_lock:
+                conn = get_db()
+                c = conn.cursor()
+                c.execute("""
+                INSERT INTO invitations (code, invite_type, max_uses, used_count, expires_at, created_at, created_by, note)
+                VALUES (?, ?, ?, 0, ?, ?, 'admin', ?);
+                """, (code, inv_type, max_uses, expires_at, created_at, note))
+                inv_id = c.lastrowid
+                conn.commit()
+                conn.close()
+
+            self.send_json({"ok": True, "id": inv_id, "code": code, "message": f"成功签发邀请码: {code}"})
+            return
+
+        # 7.10 管理员作废删除邀请码 (/api/admin/invite/delete & /api/admin/invitations/delete)
+        if path in ["/api/admin/invite/delete", "/api/admin/invitations/delete"]:
+            user = self.get_current_user()
+            if not user or user["role"] != "admin":
+                self.send_json({"error": "Forbidden: Admin required"}, code=403)
+                return
+            inv_id = int(body.get("id", 0))
+            with db_lock:
+                conn = get_db()
+                c = conn.cursor()
+                c.execute("DELETE FROM invitations WHERE id = ?;", (inv_id,))
+                conn.commit()
+                conn.close()
+            self.send_json({"ok": True, "message": "邀请码已作废删除"})
             return
 
         # 8. 管理员网络与域名设置 (/api/admin/network & /api/admin/config/domain)

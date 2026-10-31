@@ -333,10 +333,10 @@
     [data-theme="light"] .card,
     [data-theme="light"] .admin-card,
     [data-theme="light"] .stat-item,
-    [data-theme="light"] .glass-card, .stat-item, .stat-card {
+    [data-theme="light"] .glass-card, [data-theme="light"] .stat-item, [data-theme="light"] .stat-card {
       background: #ffffff !important;
-      border: 1px solid #e2e8f0 !important;
-      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04) !important;
+      border: 1px solid #cbd5e1 !important;
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06) !important;
     }
 
     [data-theme="light"] .stat-label {
@@ -473,7 +473,261 @@
       padding: 20px;
     }
 
-  </style>
+  
+    /* 统一规范的 SaaS 微质感数据卡片 */
+    .stat-card {
+      background: rgba(13, 20, 36, 0.72) !important;
+      backdrop-filter: blur(24px) saturate(190%) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+      border-radius: var(--radius-lg) !important;
+      padding: 18px 22px !important;
+      min-height: 108px !important;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: space-between !important;
+      box-sizing: border-box !important;
+      transition: all 0.2s ease !important;
+    }
+    .stat-label {
+      font-size: 0.76rem !important;
+      color: #94a3b8 !important;
+      font-weight: 600 !important;
+      margin-bottom: 6px !important;
+      line-height: 1.3 !important;
+    }
+    .stat-value {
+      font-size: 1.45rem !important;
+      font-weight: 700 !important;
+      color: #f8fafc !important;
+      line-height: 1.25 !important;
+      margin: 4px 0 !important;
+      display: flex !important;
+      align-items: center !important;
+    }
+    .stat-sub {
+      font-size: 0.74rem !important;
+      color: #64748b !important;
+      line-height: 1.4 !important;
+    }
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+      -webkit-appearance: none !important;
+      margin: 0 !important;
+    }
+    input[type="number"] {
+      -moz-appearance: textfield !important;
+    }
+
+    /* 📱 通用移动视口 (390px) 响应式与横向平滑流式 Tab 栏 */
+    .tab-bar {
+      display: flex !important;
+      gap: 8px !important;
+      margin-bottom: 24px !important;
+      overflow-x: auto !important;
+      flex-wrap: nowrap !important;
+      scrollbar-width: none !important;
+      -webkit-overflow-scrolling: touch !important;
+      padding-bottom: 4px !important;
+    }
+    .tab-bar::-webkit-scrollbar {
+      display: none !important;
+    }
+    .tab-btn {
+      white-space: nowrap !important;
+      flex-shrink: 0 !important;
+      min-height: 42px !important;
+    }
+    
+    /* 🛡️ 高阶微晶磨砂模态弹窗遮罩（彻底杜绝底图文字透底穿帮） */
+    #admin-security-modal, .modal-backdrop, .modal-mask {
+      background: rgba(6, 10, 20, 0.88) !important;
+      backdrop-filter: blur(28px) saturate(190%) !important;
+      -webkit-backdrop-filter: blur(28px) saturate(190%) !important;
+      z-index: 2000 !important;
+    }
+    #admin-security-modal .glass-card {
+      background: #0b1120 !important;
+      border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    }
+    [data-theme="light"] #admin-security-modal .glass-card {
+      background: #ffffff !important;
+      border: 1px solid rgba(15, 23, 42, 0.15) !important;
+    }
+    }
+    .modal-box, .glass-card {
+      word-break: break-word !important;
+      overflow-wrap: anywhere !important;
+    }
+    table td {
+      word-break: break-all !important;
+    }
+
+    /* 📱 后台 390px 视口全量边界保护（严禁任何子元素推破 100vw） */
+    html, body {
+      max-width: 100vw !important;
+      overflow-x: hidden !important;
+    }
+    .admin-container {
+      max-width: 100% !important;
+      overflow-x: hidden !important;
+      box-sizing: border-box !important;
+    }
+    .tab-bar {
+      width: 100% !important;
+      max-width: 100% !important;
+      overflow-x: auto !important;
+      box-sizing: border-box !important;
+    }
+    @media (max-width: 520px) {
+      .stat-grid {
+        grid-template-columns: 1fr !important;
+      }
+      .admin-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 12px !important;
+      }
+      .table-wrap {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+      }
+    }
+
+    /* 📱 移动端 390px 导航操作区自适应网格收拢（彻底消灭 459px 溢出） */
+    @media (max-width: 600px) {
+      .admin-header {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 12px !important;
+        padding: 12px 14px !important;
+      }
+      .nav-actions {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 6px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+      }
+      .nav-actions button, .nav-actions a {
+        width: 100% !important;
+        font-size: 0.72rem !important;
+        padding: 6px 4px !important;
+        justify-content: center !important;
+        text-align: center !important;
+        box-sizing: border-box !important;
+      }
+      .tab-bar {
+        margin: 0 -14px 18px -14px !important;
+        padding: 0 14px 6px 14px !important;
+        width: calc(100% + 28px) !important;
+      }
+    }
+
+    /* 强制全端极高对比度规范 (WCAG AAA 级保证) */
+    [data-theme="light"] .stat-card {
+      background: #ffffff !important;
+      border: 1px solid #cbd5e1 !important;
+    }
+    [data-theme="light"] .stat-label {
+      color: #334155 !important; /* Slate 700, 对比度 > 9:1 */
+      font-weight: 700 !important;
+      font-size: 0.82rem !important;
+    }
+    [data-theme="light"] .stat-value {
+      color: #0f172a !important; /* Slate 900, 对比度 > 15:1 */
+      font-weight: 800 !important;
+    }
+    [data-theme="light"] .stat-sub {
+      color: #64748b !important; /* Slate 500, 对比度 > 4.8:1 */
+      font-size: 0.76rem !important;
+    }
+
+    /* 深色模式下为明亮白字与高对比底色 */
+    [data-theme="dark"] .stat-card, html:not([data-theme="light"]) .stat-card {
+      background: #0f172a !important;
+      border: 1px solid #334155 !important;
+    }
+    [data-theme="dark"] .stat-label, html:not([data-theme="light"]) .stat-label {
+      color: #cbd5e1 !important; /* Slate 300, 对比度 > 10:1 */
+      font-weight: 700 !important;
+    }
+    [data-theme="dark"] .stat-value, html:not([data-theme="light"]) .stat-value {
+      color: #f8fafc !important; /* Slate 50, 对比度 > 16:1 */
+    }
+    [data-theme="dark"] .stat-sub, html:not([data-theme="light"]) .stat-sub {
+      color: #94a3b8 !important; /* Slate 400, 对比度 > 6:1 */
+    }
+
+
+    /* === SDET 级白天模式极高对比度强制规范 === */
+    html[data-theme="light"] .stat-card,
+    [data-theme="light"] .stat-card,
+    body[data-theme="light"] .stat-card {
+      background: #ffffff !important;
+      background-color: #ffffff !important;
+      border: 1px solid #cbd5e1 !important;
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05) !important;
+    }
+    html[data-theme="light"] .stat-card .stat-label,
+    [data-theme="light"] .stat-card .stat-label,
+    html[data-theme="light"] .stat-label,
+    [data-theme="light"] .stat-label {
+      color: #334155 !important;
+      font-weight: 700 !important;
+      font-size: 0.82rem !important;
+    }
+    html[data-theme="light"] .stat-card .stat-value,
+    [data-theme="light"] .stat-card .stat-value,
+    html[data-theme="light"] .stat-value,
+    [data-theme="light"] .stat-value {
+      color: #0f172a !important;
+      font-weight: 800 !important;
+    }
+    html[data-theme="light"] .stat-card .stat-sub,
+    [data-theme="light"] .stat-card .stat-sub,
+    html[data-theme="light"] .stat-sub,
+    [data-theme="light"] .stat-sub {
+      color: #64748b !important;
+      font-weight: 500 !important;
+      font-size: 0.76rem !important;
+    }
+
+
+  /* 修复夜间模式下管理后台表单输入框刺眼纯白白块 */
+  .modern-input, input[type="text"], input[type="number"], input[type="password"], select {
+    background: rgba(15, 23, 42, 0.75) !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    color: #f1f5f9 !important;
+    border-radius: 8px !important;
+    padding: 8px 12px !important;
+    font-size: 0.85rem !important;
+    outline: none !important;
+    transition: all 0.2s ease !important;
+  }
+  .modern-input:focus, input:focus, select:focus {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25) !important;
+  }
+  select option {
+    background: #0f172a !important;
+    color: #f1f5f9 !important;
+  }
+  [data-theme="light"] .modern-input, 
+  [data-theme="light"] input[type="text"], 
+  [data-theme="light"] input[type="number"], 
+  [data-theme="light"] input[type="password"], 
+  [data-theme="light"] select {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #0f172a !important;
+  }
+  [data-theme="light"] select option {
+    background: #ffffff !important;
+    color: #0f172a !important;
+  }
+
+</style>
 </head>
 <body>
 
@@ -531,7 +785,7 @@
             <span class="brand-title">SubFlow 运维控制中心</span>
             <span class="badge-admin">管理员权限</span>
           </div>
-          <div style="font-size: 0.7rem; color: var(--text-muted);">版本 v2.2.1 · 私有安全运维后台</div>
+          <div style="font-size: 0.7rem; color: var(--text-muted);">版本 v2.3.1 · 私有安全运维后台</div>
         </div>
       </div>
 
@@ -661,7 +915,95 @@
         </div>
       </div>
 
-      <!-- Tab 3: Domain & Tunnel -->
+            <!-- Tab: Invitations (注册邀请码管理与访问准入) -->
+      <div id="view-invitations" class="admin-view" style="display:none;">
+        <!-- 统计与模式切换栏 -->
+        <div class="stat-grid" style="margin-bottom: 20px;">
+          <div class="stat-card">
+            <div class="stat-label">已发行邀请码总量</div>
+            <div class="stat-value" id="stat-inv-total">0</div>
+            <div class="stat-sub">系统内生成的所有有效与历史码</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">当前有效可用</div>
+            <div class="stat-value" id="stat-inv-active" style="color: #34d399;">0</div>
+            <div class="stat-sub">处于有效期且未耗尽的邀请码</div>
+          </div>
+          <div class="stat-card" style="display: flex; flex-direction: column; justify-content: space-between; border: 1px solid var(--border-subtle);">
+            <div>
+              <div class="stat-label" style="display: flex; justify-content: space-between; align-items: center;">
+                <span>全局注册准入门禁</span>
+                <span class="badge-admin" id="badge-invite-mode" style="background: rgba(148,163,184,0.15); color: #94a3b8;">自由公开注册中</span>
+              </div>
+              <div class="stat-sub" style="margin-top: 4px;">开启后前台注册强制验证有效邀请码</div>
+            </div>
+            <button class="btn-primary" id="btn-toggle-invite-mode" onclick="toggleInviteMode()" style="margin-top: 10px; width: 100%; padding: 8px 12px; font-size: 0.82rem; font-weight: 600;">开启注册邀请制</button>
+          </div>
+        </div>
+
+        <!-- 快速签发邀请码 -->
+        <div class="glass-card" style="margin-bottom: 20px;">
+          <div class="card-title">
+            <span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg><span>快速签发新邀请码</span></span>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; align-items: flex-end;">
+            <div>
+              <label style="font-size: 0.78rem; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 6px;">码类型</label>
+              <select id="new-inv-type" class="modern-input" style="width: 100%; height: 38px;">
+                <option value="count">计次码 (按使用人数耗尽)</option>
+                <option value="time">限时码 (指定时间段内有效)</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size: 0.78rem; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 6px;">最大允许注册次数</label>
+              <input type="number" id="new-inv-uses" class="modern-input" value="1" min="1" max="999" style="width: 100%; height: 38px;">
+            </div>
+            <div>
+              <label style="font-size: 0.78rem; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 6px;">有效时长 (仅限时码生效)</label>
+              <input type="number" id="new-inv-hours" class="modern-input" value="24" min="1" max="87600" style="width: 100%; height: 38px;" placeholder="小时数，如 24">
+            </div>
+            <div>
+              <label style="font-size: 0.78rem; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 6px;">用途备注 (选填)</label>
+              <input type="text" id="new-inv-note" class="modern-input" placeholder="例如：给测试好友 / 某活动群" style="width: 100%; height: 38px;">
+            </div>
+            <div>
+              <button class="btn-primary" onclick="createInviteCode()" style="width: 100%; height: 38px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                <span>立即签发</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 邀请码列表卡片 -->
+        <div class="glass-card">
+          <div class="card-title">
+            <span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><rect width="20" height="14" x="2" y="5" rx="2"></rect><line x1="2" x2="22" y1="10" y2="10"></line></svg><span>已签发邀请码池</span></span>
+            <button class="btn-outline" onclick="loadAdminInvitations()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M3 21v-5h5"></path></svg><span>刷新数据</span></button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>邀请码 (点击复制)</th>
+                  <th>类型</th>
+                  <th>使用进度</th>
+                  <th>有效期截止</th>
+                  <th>用途备注</th>
+                  <th>当前状态</th>
+                  <th>管理操作</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-invitations">
+                <tr><td colspan="8" style="text-align:center; padding:24px;">加载中...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+<!-- Tab 3: Domain & Tunnel -->
       <div id="view-domain" class="admin-view" style="display:none;">
         <div class="glass-card">
           <div class="card-title">
@@ -691,7 +1033,7 @@
             <span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>Cloudflare 远程穿透隧道</span>
           </div>
           <div class="form-group">
-            <label class="form-label">Cloudflare Tunnel Token (可选，留空使用极速临时穿透)</label>
+            <label class="form-label">Cloudflare Tunnel Token (可选，用于安全托管隧道)</label>
             <input type="password" id="cfg-tunnel-token" class="form-input" placeholder="eyJhIjoi...">
           </div>
           <button class="btn-outline" onclick="saveTunnelToken()">保存隧道凭证</button>
@@ -800,17 +1142,17 @@ SubFlow 运维控制中心就绪...
           <div class="stat-grid" style="margin-bottom: 16px;">
             <div class="stat-card">
               <div class="stat-label">当前运行版本</div>
-              <div class="stat-value" id="sys-version-val">SubFlow v2.2.1</div>
-              <div class="stat-sub" id="sys-build-val">Build 20261030</div>
+              <div class="stat-value" id="sys-version-val">SubFlow v2.3.1</div>
+              <div class="stat-sub" id="sys-build-val">Build 20261101</div>
             </div>
             <div class="stat-card">
               <div class="stat-label">Git 部署模式</div>
-              <div class="stat-value" id="sys-git-mode" style="font-size: 1.2rem; color: #38bdf8;">检测中...</div>
+              <div class="stat-value" id="sys-git-mode" style="color: #38bdf8;">检测中...</div>
               <div class="stat-sub" id="sys-git-commit">Commit: -</div>
             </div>
             <div class="stat-card">
               <div class="stat-label">数据与域名保护</div>
-              <div class="stat-value" style="color: #34d399; font-size: 1.2rem;">100% 独立</div>
+              <div class="stat-value" style="color: #34d399;">100% 独立隔离</div>
               <div class="stat-sub">data/ 目录物理免除覆盖</div>
             </div>
           </div>
@@ -860,6 +1202,7 @@ SubFlow 运维控制中心就绪...
     <span id="admin-toast-text"></span>
   </div>
 
+  <script src="toast.js"></script>
   <script>
     let challengeTicket = null;
     let currentUser = null;
@@ -867,7 +1210,7 @@ SubFlow 运维控制中心就绪...
     function showToast(msg) {
       const box = document.getElementById('admin-toast');
       const text = document.getElementById('admin-toast-text');
-      text.innerText = msg;
+      text.innerHTML = msg;
       box.style.display = 'flex';
       clearTimeout(window._tTimer);
       window._tTimer = setTimeout(() => { box.style.display = 'none'; }, 2600);
@@ -899,7 +1242,7 @@ SubFlow 运维控制中心就绪...
       document.getElementById('admin-main-panel').style.display = 'flex';
       loadOverviewData();
       loadUsersData();
-      showToast('<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>管理员凭据鉴权通过，已进入专属运维中枢！');
+      toast.success('管理员凭据鉴权通过，已进入专属运维中枢！');
     }
 
     async function submitAdminLogin(e) {
@@ -1021,10 +1364,10 @@ SubFlow 运维控制中心就绪...
         });
         const d = await res.json();
         if (d.ok) {
-          showToast('✅ 用户状态变更成功！');
+          showToast('用户状态变更成功！');
           loadUsersData();
         } else {
-          showToast('❌ 变更失败: ' + (d.error || '未知错误'));
+          showToast('变更失败: ' + (d.error || '未知错误'));
         }
       } catch (e) {
         showToast('请求异常: ' + e);
@@ -1074,10 +1417,10 @@ SubFlow 运维控制中心就绪...
         });
         const d = await res.json();
         if (d.ok) {
-          showToast('✅ 公网专属域名配置保存成功！');
+          showToast('公网专属域名配置保存成功！');
           loadOverviewData();
         } else {
-          showToast('❌ 保存失败: ' + d.error);
+          showToast('保存失败: ' + d.error);
         }
       } catch (e) {
         showToast('请求异常: ' + e);
@@ -1102,9 +1445,9 @@ SubFlow 运维控制中心就绪...
         });
         const d = await res.json();
         if (d.ok) {
-          showToast('✅ Cloudflare 穿透隧道凭证已保存生效！');
+          showToast('Cloudflare 穿透隧道凭证已保存生效！');
         } else {
-          showToast('❌ 保存失败: ' + (d.error || '未知错误'));
+          showToast('保存失败: ' + (d.error || '未知错误'));
         }
       } catch (e) {
         showToast('请求异常: ' + e);
@@ -1159,7 +1502,7 @@ SubFlow 运维控制中心就绪...
           showToast(d.has_update ? '📢 检测到远程新版本！' : '✅ 当前已是最新版本');
         } else {
           box.innerText += `[错误] ${d.error || '检查失败'}\n`;
-          showToast('❌ 检查更新异常');
+          showToast('检查更新异常');
         }
       } catch (e) {
         box.innerText += `[网络异常] ${e}\n`;
@@ -1190,14 +1533,14 @@ SubFlow 运维控制中心就绪...
         if (res.ok && d.ok) {
           box.innerText += `[成功] ${d.message}\n`;
           if (d.log) box.innerText += d.log + '\n';
-          showToast('<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"></path><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"></path><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"></path><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"></path></svg>升级指令已下发，正在平滑重启...');
+          toast.info('升级指令已下发，正在平滑重启...');
           setTimeout(() => {
             box.innerText += `[重载] 正在刷新控制台页面...\n`;
             location.reload();
           }, 3500);
         } else {
           box.innerText += `[失败] ${d.error || '升级执行失败'}\n`;
-          showToast('❌ 升级失败: ' + (d.error || '未知错误'));
+          showToast('升级失败: ' + (d.error || '未知错误'));
           btn.disabled = false;
           btn.innerHTML = '<span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>一键安全热升级覆盖</span>';
         }
@@ -1242,7 +1585,9 @@ SubFlow 运维控制中心就绪...
           }
           if (toggleBtn) {
             toggleBtn.innerText = isReq ? '切换为自由公开注册' : '开启注册邀请制';
-            toggleBtn.style.background = isReq ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'linear-gradient(135deg, #10b981, #059669)';
+            toggleBtn.style.background = isReq ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'linear-gradient(135deg, #10b981, #059669)';
+  toggleBtn.style.color = '#ffffff';
+  toggleBtn.style.boxShadow = isReq ? '0 4px 12px rgba(245, 158, 11, 0.25)' : '0 4px 12px rgba(16, 185, 129, 0.25)';
           }
 
           let activeCount = 0;
@@ -1257,14 +1602,14 @@ SubFlow 运维控制中心就绪...
           tbody.innerHTML = list.map(item => {
             const isTime = item.invite_type === 'time';
             let isValid = true;
-            let statusText = '<span style="color:#34d399; font-weight:600;">🟢 有效可用</span>';
+            let statusText = '<span style="display:inline-flex; align-items:center; gap:5px; color:#10b981; font-weight:600;"><svg width="8" height="8" viewBox="0 0 24 24" fill="#10b981"><circle cx="12" cy="12" r="12"/></svg>有效可用</span>';
 
             if (isTime && item.expires_at > 0 && item.expires_at < nowTs) {
               isValid = false;
-              statusText = '<span style="color:#ef4444; font-weight:600;">🔴 已过有效期</span>';
+              statusText = '<span style="display:inline-flex; align-items:center; gap:5px; color:#ef4444; font-weight:600;"><svg width="8" height="8" viewBox="0 0 24 24" fill="#ef4444"><circle cx="12" cy="12" r="12"/></svg>已过有效期</span>';
             } else if (!isTime && item.used_count >= item.max_uses) {
               isValid = false;
-              statusText = '<span style="color:#94a3b8; font-weight:600;">⚪ 已用完耗尽</span>';
+              statusText = '<span style="display:inline-flex; align-items:center; gap:5px; color:#94a3b8; font-weight:600;"><svg width="8" height="8" viewBox="0 0 24 24" fill="#94a3b8"><circle cx="12" cy="12" r="12"/></svg>已用完耗尽</span>';
             }
 
             if (isValid) activeCount++;
@@ -1279,7 +1624,7 @@ SubFlow 运维控制中心就绪...
               <tr>
                 <td><strong>#${item.id}</strong></td>
                 <td><code style="color:#38bdf8; font-weight:700; background:rgba(56,189,248,0.1); padding:2px 6px; border-radius:4px; font-family:var(--font-mono); cursor:pointer;" onclick="copyText('${item.code}', '已复制邀请码')">${item.code}</code></td>
-                <td>${isTime ? '<span style="color:#c084fc;">⏱️ 限时码</span>' : '<span style="color:#60a5fa;">🔢 计次码</span>'}</td>
+                <td>${isTime ? '<span style="background:rgba(168,85,247,0.12); color:#a855f7; padding:2px 8px; border-radius:4px; font-weight:600; font-size:0.75rem;">限时码</span>' : '<span style="background:rgba(59,130,246,0.12); color:#3b82f6; padding:2px 8px; border-radius:4px; font-weight:600; font-size:0.75rem;">计次码</span>'}</td>
                 <td><strong>${item.used_count}</strong> / ${item.max_uses}</td>
                 <td style="font-size:0.75rem; color:var(--text-secondary);">${expireDesc}</td>
                 <td>${item.note || '<span style="color:var(--text-muted);">-</span>'}</td>
@@ -1294,7 +1639,12 @@ SubFlow 运维控制中心就绪...
 
           document.getElementById('stat-inv-active').innerText = activeCount;
         } else {
-          tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:24px; color:#ef4444;">加载失败: ${data.error || '未授权'}</td></tr>`;
+          if (res.status === 403 || data.error === 'Forbidden') {
+  tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:24px; color:#f59e0b; font-weight:600;">🔒 管理员登录凭证已过期或尚未验证，<a href="javascript:void(0)" onclick="openAdminAuthModal()" style="color:#38bdf8; text-decoration:underline;">点击重新验证密码</a></td></tr>';
+  openAdminAuthModal();
+} else {
+  tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:24px; color:#ef4444;">加载失败: ${data.error || '未授权'}</td></tr>`;
+}
         }
       } catch (e) {
         tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:24px; color:#ef4444;">网络请求异常: ${e}</td></tr>`;
@@ -1318,7 +1668,7 @@ SubFlow 运维控制中心就绪...
           showToast(newMode ? '✅ 已开启全局邀请制！前台将强制输入邀请码。' : '✅ 已切换为开放注册！前台已自动隐藏邀请码项。');
           loadAdminInvitations();
         } else {
-          showToast('❌ 切换失败: ' + (d.error || '未知错误'));
+          showToast('切换失败: ' + (d.error || '未知错误'));
         }
       } catch(e) {
         showToast('请求异常: ' + e);
@@ -1345,11 +1695,11 @@ SubFlow 运维控制中心就绪...
         });
         const d = await res.json();
         if (d.ok) {
-          showToast('🎉 邀请码生成成功: ' + d.code);
+          showToast('邀请码生成成功: ' + d.code);
           document.getElementById('new-inv-note').value = '';
           loadAdminInvitations();
         } else {
-          showToast('❌ 生成失败: ' + (d.error || '未知错误'));
+          showToast('生成失败: ' + (d.error || '未知错误'));
         }
       } catch(e) {
         showToast('请求异常: ' + e);
@@ -1367,10 +1717,10 @@ SubFlow 运维控制中心就绪...
         });
         const d = await res.json();
         if (d.ok) {
-          showToast('🗑️ 邀请码已作废删除！');
+          showToast('邀请码已作废删除！');
           loadAdminInvitations();
         } else {
-          showToast('❌ 删除失败: ' + d.error);
+          showToast('删除失败: ' + d.error);
         }
       } catch(e) {
         showToast('请求异常: ' + e);
@@ -1609,175 +1959,14 @@ SubFlow 运维控制中心就绪...
     }
     
     // =========================================================================
-    // ☀️ / 🌙 后台日间夜间模式无缝切换 (与前台实时同步)
     // =========================================================================
-    function initAdminTheme() {
-      const saved = localStorage.getItem('subflow_theme') || 'dark';
-      setAdminTheme(saved);
-    }
-
-    function toggleAdminTheme() {
-      const isLight = document.documentElement.getAttribute('data-theme') === 'light';
-      const nextTheme = isLight ? 'dark' : 'light';
-      setAdminTheme(nextTheme);
-    }
-
-    function setAdminTheme(theme) {
-      const isDark = theme !== 'light';
-      const icon = document.getElementById('admin-theme-icon');
-      const text = document.getElementById('admin-theme-text');
-      if (!isDark) {
-        document.documentElement.setAttribute('data-theme', 'light');
-        if (icon) icon.innerText = '🌙';
-        if (text) text.innerText = '夜间模式';
-      } else {
-        document.documentElement.removeAttribute('data-theme');
-        if (icon) icon.innerText = '☀️';
-        if (text) text.innerText = '日间模式';
-      }
-      try { localStorage.setItem('subflow_theme', theme); } catch(e) {}
-    }
-    document.addEventListener('DOMContentLoaded', initAdminTheme);
-
-    // =========================================================================
-    // <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M7 7h.01"></path><path d="M17 7h.01"></path><path d="M7 17h.01"></path><path d="M17 17h.01"></path></svg>邀请码后台异步管理引擎
-    // =========================================================================
-    async function loadInvitations() {
-      try {
-        const res = await fetch(adminApiUrl('/api/admin/invitations/list'));
-        
-        if (res.status === 403 || res.status === 401) {
-          box.innerText += "[鉴权失效] 您的管理员登录态已过期或已被服务器重载，请点击右上角重新登录后再试。\n";
-          btn.disabled = false;
-          btn.innerText = '🔍 检查远程最新版本';
-          document.getElementById('admin-gate-screen').style.display = 'flex';
-          return;
-        }
-
-        if (res.status === 403 || res.status === 401) {
-          box.innerText += "[鉴权失效] 您的管理员登录态已过期，请重新登录管理后台。\n";
-          btn.disabled = false;
-          btn.innerText = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>一键安全热升级覆盖';
-          document.getElementById('admin-gate-screen').style.display = 'flex';
-          return;
-        }
-const data = await res.json();
-        if (data.ok) {
-          const chk = document.getElementById('admin-require-invite');
-          if (chk) chk.checked = data.require_invite_code;
-          renderInviteTable(data.invitations || []);
-        }
-      } catch (e) {
-        console.error('加载邀请码失败:', e);
-      }
-    }
-
-    function renderInviteTable(invs) {
-      const tbody = document.getElementById('admin-invite-tbody');
-      if (!tbody) return;
-      if (invs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:24px; color:var(--text-muted);">暂无已签发的邀请码，点击上方“+ 签发新邀请码”即可生成！</td></tr>';
-        return;
-      }
-      tbody.innerHTML = invs.map(item => {
-        const isDepleted = item.used_count >= item.max_uses;
-        const statusBadge = isDepleted 
-          ? `<span style="background:rgba(239,68,68,0.15); color:#ef4444; padding:2px 8px; border-radius:4px; font-weight:700;">已耗尽 (${item.used_count}/${item.max_uses})</span>`
-          : `<span style="background:rgba(16,185,129,0.15); color:#10b981; padding:2px 8px; border-radius:4px; font-weight:700;">可用 (${item.used_count}/${item.max_uses})</span>`;
-        return `
-          <tr style="border-bottom:1px solid var(--border-subtle);">
-            <td style="padding:10px 12px; font-family:monospace; font-size:0.9rem; font-weight:700; color:var(--primary);">${item.code}</td>
-            <td style="padding:10px 12px;">${statusBadge}</td>
-            <td style="padding:10px 12px; color:var(--text-muted);">${item.note || '专属注册邀请码'}</td>
-            <td style="padding:10px 12px; font-size:0.75rem; color:var(--text-muted);">${item.created_at}</td>
-            <td style="padding:10px 12px; text-align:right;">
-              <button class="btn-outline" style="padding:2px 8px; font-size:0.72rem; margin-right:6px;" onclick="copyInviteCode('${item.code}')">复制</button>
-              <button class="btn-outline" style="padding:2px 8px; font-size:0.72rem; color:#ef4444; border-color:rgba(239,68,68,0.3);" onclick="deleteInviteCode(${item.id})">作废</button>
-            </td>
-          </tr>
-        `;
-      }).join('');
-    }
-
-    async function toggleRequireInvite(enabled) {
-      try {
-        const res = await fetch(adminApiUrl('/api/admin/invitations/toggle-mode'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ require_invite: enabled })
-        });
-        const data = await res.json();
-        if (data.ok) {
-          showAdminToast(enabled ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M7 7h.01"></path><path d="M17 7h.01"></path><path d="M7 17h.01"></path><path d="M17 17h.01"></path></svg>已开启强制邀请制：新用户必须凭有效邀请码才能注册！' : '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>已开放公开注册：任何人均可直接注册账号');
-        }
-      } catch (e) {
-        showAdminToast('切换失败: ' + e);
-      }
-    }
-
-    async function openCreateInviteModal() {
-      const note = prompt('请输入邀请码备注 (例如: 赠送给张三 / 亲友测试):', '亲友专属凭证');
-      if (note === null) return;
-      const maxUsesStr = prompt('允许该邀请码最大使用次数 (默认 1 次):', '1');
-      if (maxUsesStr === null) return;
-      const maxUses = parseInt(maxUsesStr, 10) || 1;
-
-      try {
-        const res = await fetch(adminApiUrl('/api/admin/invitations/create'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ note, max_uses: maxUses })
-        });
-        const data = await res.json();
-        if (data.ok) {
-          showAdminToast('🎉 成功签发邀请码: ' + data.code);
-          loadInvitations();
-        } else {
-          alert(data.error || '签发失败');
-        }
-      } catch (e) {
-        alert('网络请求异常: ' + e);
-      }
-    }
-
-    function copyInviteCode(code) {
-      navigator.clipboard.writeText(code).then(() => {
-        showAdminToast('<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>邀请码 ' + code + ' 已复制到剪贴板！');
-      });
-    }
-
-    async function deleteInviteCode(id) {
-      if (!confirm('确定要作废并彻底删除此邀请码吗？')) return;
-      try {
-        const res = await fetch(adminApiUrl('/api/admin/invitations/delete'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id })
-        });
-        const data = await res.json();
-        if (data.ok) {
-          showAdminToast('🗑️ 邀请码已成功作废删除！');
-          loadInvitations();
-        }
-      } catch (e) {
-        alert('删除失败: ' + e);
-      }
-    }
-
-    // 页面加载时自动加载邀请码列表
-    window.addEventListener('DOMContentLoaded', () => {
-      setTimeout(loadInvitations, 600);
-    });
-
-  
-    // =========================================================================
-    // 纯矢量 SVG 日间 / 夜间切换引擎 (0 Emoji)
+    // 纯矢量 SVG 日间 / 夜间切换引擎 (0 Emoji & 严密同步)
     // =========================================================================
     const SVG_SUN = `<svg class="theme-svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>`;
     const SVG_MOON = `<svg class="theme-svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#93c5fd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>`;
 
     function initAdminTheme() {
-      const saved = localStorage.getItem('subflow_theme') || 'dark';
+      const saved = localStorage.getItem('subflow_theme') || 'light';
       setAdminTheme(saved);
     }
 
@@ -1787,7 +1976,7 @@ const data = await res.json();
     }
 
     function setAdminTheme(theme) {
-      const isDark = theme !== 'light';
+      const isDark = theme === 'dark';
       const icon = document.getElementById('admin-theme-icon');
       const text = document.getElementById('admin-theme-text');
       if (!isDark) {
@@ -1801,153 +1990,15 @@ const data = await res.json();
       }
       try { localStorage.setItem('subflow_theme', theme); } catch(e) {}
     }
-    document.addEventListener('DOMContentLoaded', initAdminTheme);
 
-    // =========================================================================
-    // 邀请码与定时邀请码高级管理
-    // =========================================================================
-    async function loadInvitations() {
-      try {
-        const res = await fetch(adminApiUrl('/api/admin/invitations/list'));
-        const data = await res.json();
-        if (data.ok) {
-          const chk = document.getElementById('admin-require-invite');
-          if (chk) chk.checked = data.require_invite_code;
-          const lbl = document.getElementById('require-invite-label');
-          if (lbl) lbl.innerText = data.require_invite_code ? '已强制开启注册邀请制' : '已关闭邀请制 (开放自由注册)';
-          renderInviteTable(data.invitations || []);
-        }
-      } catch (e) {
-        console.error('加载邀请码失败:', e);
+    document.addEventListener('DOMContentLoaded', () => {
+      initAdminTheme();
+      // 初始化如果进入了邀请码 tab 则加载
+      const invView = document.getElementById('view-invitations');
+      if (invView && invView.style.display !== 'none') {
+        loadAdminInvitations();
       }
-    }
-
-    function renderInviteTable(invs) {
-      const tbody = document.getElementById('admin-invite-tbody');
-      const countEl = document.getElementById('invite-total-count');
-      if (countEl) countEl.innerText = invs.length;
-      if (!tbody) return;
-      if (invs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:32px; color:var(--text-muted);">暂无邀请码，点击上方按钮即可一键签发！</td></tr>';
-        return;
-      }
-
-      tbody.innerHTML = invs.map(item => {
-        const isTime = item.invite_type === 'time';
-        const typeBadge = isTime 
-          ? '<span style="background:rgba(139,92,246,0.15); color:#a78bfa; padding:2px 8px; border-radius:4px; font-weight:700;">定时限时码</span>'
-          : '<span style="background:rgba(56,189,248,0.15); color:#38bdf8; padding:2px 8px; border-radius:4px; font-weight:700;">普通计次码</span>';
-        
-        let statusBadge = '';
-        if (isTime) {
-          if (item.is_expired) {
-            statusBadge = '<span style="background:rgba(239,68,68,0.15); color:#ef4444; padding:2px 8px; border-radius:4px; font-weight:700;">已过规定时间失效</span>';
-          } else {
-            const leftHours = Math.max(0, Math.round((item.expires_at - Date.now()/1000) / 3600));
-            statusBadge = `<span style="background:rgba(16,185,129,0.15); color:#10b981; padding:2px 8px; border-radius:4px; font-weight:700;">有效 (剩余约 ${leftHours} 小时)</span>`;
-          }
-        } else {
-          const isDepleted = item.used_count >= item.max_uses;
-          statusBadge = isDepleted
-            ? `<span style="background:rgba(239,68,68,0.15); color:#ef4444; padding:2px 8px; border-radius:4px; font-weight:700;">次数已用尽 (${item.used_count}/${item.max_uses})</span>`
-            : `<span style="background:rgba(16,185,129,0.15); color:#10b981; padding:2px 8px; border-radius:4px; font-weight:700;">可用 (${item.used_count}/${item.max_uses})</span>`;
-        }
-
-        return `
-          <tr style="border-bottom:1px solid var(--border-subtle);">
-            <td style="padding:12px; font-family:monospace; font-size:0.95rem; font-weight:700; color:var(--primary);">${item.code}</td>
-            <td style="padding:12px;">${typeBadge}</td>
-            <td style="padding:12px;">${statusBadge}</td>
-            <td style="padding:12px; color:var(--text-muted);">${item.note || '专属注册邀请码'}</td>
-            <td style="padding:12px; font-size:0.75rem; color:var(--text-muted);">${item.created_at}</td>
-            <td style="padding:12px; text-align:right;">
-              <button class="btn-outline" style="padding:3px 10px; font-size:0.75rem; margin-right:6px;" onclick="copyInviteCode('${item.code}')">复制</button>
-              <button class="btn-outline" style="padding:3px 10px; font-size:0.75rem; color:#ef4444; border-color:rgba(239,68,68,0.3);" onclick="deleteInviteCode(${item.id})">作废</button>
-            </td>
-          </tr>
-        `;
-      }).join('');
-    }
-
-    async function toggleRequireInvite(enabled) {
-      try {
-        const res = await fetch(adminApiUrl('/api/admin/invitations/toggle-mode'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ require_invite: enabled })
-        });
-        const data = await res.json();
-        if (data.ok) {
-          const lbl = document.getElementById('require-invite-label');
-          if (lbl) lbl.innerText = enabled ? '已强制开启注册邀请制' : '已关闭邀请制 (开放自由注册)';
-          showAdminToast(enabled ? '已开启邀请制：客户注册时必须填写有效邀请码！' : '已关闭邀请制：允许用户自由公开注册');
-        }
-      } catch (e) {
-        showAdminToast('切换失败: ' + e);
-      }
-    }
-
-    async function openCreateInviteModal(type) {
-      const isTime = type === 'time';
-      const note = prompt('请输入邀请码备注 (例如: 赠送给某某 / 规定时间活动):', isTime ? '限时有效注册码' : '单次有效邀请码');
-      if (note === null) return;
-
-      let validHours = 24;
-      let maxUses = 1;
-
-      if (isTime) {
-        const hoursStr = prompt('【定时邀请码】请设定有效时间 (单位: 小时，在此规定时间内均可注册，超时自动失效):', '24');
-        if (hoursStr === null) return;
-        validHours = parseFloat(hoursStr) || 24;
-      } else {
-        const usesStr = prompt('【普通计次码】请设定最大允许注册使用次数 (默认 1 次):', '1');
-        if (usesStr === null) return;
-        maxUses = parseInt(usesStr, 10) || 1;
-      }
-
-      try {
-        const res = await fetch(adminApiUrl('/api/admin/invitations/create'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ invite_type: type, note, max_uses: maxUses, valid_hours: validHours })
-        });
-        const data = await res.json();
-        if (data.ok) {
-          showAdminToast('🎉 成功签发' + (isTime ? '【定时限时邀请码】' : '【普通计次邀请码】') + ': ' + data.code);
-          loadInvitations();
-        } else {
-          alert(data.error || '签发失败');
-        }
-      } catch (e) {
-        alert('网络请求异常: ' + e);
-      }
-    }
-
-    function copyInviteCode(code) {
-      navigator.clipboard.writeText(code).then(() => {
-        showAdminToast('<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>邀请码 ' + code + ' 已复制到剪贴板！');
-      });
-    }
-
-    async function deleteInviteCode(id) {
-      if (!confirm('确定要彻底作废并删除此邀请码吗？')) return;
-      try {
-        const res = await fetch(adminApiUrl('/api/admin/invitations/delete'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id })
-        });
-        const data = await res.json();
-        if (data.ok) {
-          showAdminToast('已成功作废该邀请码！');
-          loadInvitations();
-        }
-      } catch (e) {
-        alert('删除失败: ' + e);
-      }
-    }
-
+    });
   </script>
 </body>
-
 </html>

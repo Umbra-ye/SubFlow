@@ -282,9 +282,6 @@ def init_database():
         """)
 
         conn.commit()
-            print("[Init] Default administrator created: admin / admin123456")
-
-        conn.commit()
         conn.close()
 
 init_database()

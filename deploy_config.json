@@ -1,7 +1,0 @@
-{
-  "ssh_host": "ssh.instabox.sh",
-  "ssh_port": 2222,
-  "ssh_user": "ibssh_xqgmngnfzujhwnkrtmr5utdw6m",
-  "remote_path": "/opt/subflow",
-  "service_name": "subflow.service"
-}

@@ -1,0 +1,1554 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>SubFlow · 管理员专属运维控制中枢</title>
+  <style>
+    :root {
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei UI", sans-serif;
+      --font-mono: "JetBrains Mono", Consolas, monospace;
+      --bg-base: #050811;
+      --bg-card: rgba(13, 20, 36, 0.75);
+      --bg-card-hover: rgba(20, 31, 56, 0.85);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-glow: rgba(56, 189, 248, 0.25);
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --primary: #2563eb;
+      --primary-hover: #3b82f6;
+      --cyan: #06b6d4;
+      --emerald: #10b981;
+      --amber: #f59e0b;
+      --rose: #f43f5e;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --radius-xl: 28px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(37, 99, 235, 0.12) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(16, 185, 129, 0.10) 0%, transparent 45%),
+        radial-gradient(circle at 50% 50%, rgba(6, 182, 212, 0.06) 0%, transparent 50%);
+      background-attachment: fixed;
+    }
+    a { color: var(--cyan); text-decoration: none; }
+    button { font-family: inherit; cursor: pointer; border: none; outline: none; }
+
+    /* Top Nav */
+    .admin-navbar {
+      height: 64px;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-subtle);
+      background: rgba(5, 8, 17, 0.85);
+      backdrop-filter: blur(20px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .brand-wrap { display: flex; align-items: center; gap: 12px; }
+    .brand-logo {
+      width: 36px; height: 36px;
+      border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, #ef4444, #f59e0b);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 800; font-size: 1.1rem;
+      box-shadow: 0 0 16px rgba(239, 68, 68, 0.35);
+    }
+    .brand-title { font-weight: 700; font-size: 1.05rem; letter-spacing: -0.02em; }
+    .badge-admin {
+      background: rgba(239, 68, 68, 0.15);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+    .nav-actions { display: flex; align-items: center; gap: 10px; }
+    .btn-outline {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      padding: 6px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 0.82rem;
+      transition: all 0.2s;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-outline:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-primary);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #f87171;
+      padding: 6px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 0.82rem;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .btn-danger:hover { background: rgba(239, 68, 68, 0.25); color: #fca5a5; }
+
+    /* Layout */
+    .admin-container {
+      max-width: 1200px;
+      width: 100%;
+      margin: 24px auto;
+      padding: 0 20px 40px;
+      flex: 1;
+    }
+
+    /* Tabs */
+    .tab-bar {
+      display: flex;
+      gap: 8px;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 12px;
+      margin-bottom: 24px;
+      overflow-x: auto;
+    }
+    .tab-btn {
+      background: transparent;
+      color: var(--text-secondary);
+      padding: 8px 16px;
+      border-radius: var(--radius-md);
+      font-size: 0.88rem;
+      font-weight: 600;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .tab-btn:hover { background: rgba(255, 255, 255, 0.05); color: var(--text-primary); }
+    .tab-btn.active {
+      background: rgba(37, 99, 235, 0.15);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+
+    /* Cards */
+    .glass-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(28px) saturate(180%);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4);
+      margin-bottom: 20px;
+    }
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .stat-item {
+      background: rgba(19, 27, 46, 0.6);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+    }
+    .stat-label { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 6px; }
+    .stat-value { font-size: 1.6rem; font-weight: 800; color: var(--text-primary); }
+    .stat-sub { font-size: 0.72rem; color: var(--text-secondary); margin-top: 4px; }
+
+    /* Tables */
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+    }
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem; }
+    th {
+      background: rgba(19, 27, 46, 0.8);
+      padding: 12px 16px;
+      color: var(--text-muted);
+      font-weight: 600;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    td {
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      color: var(--text-secondary);
+    }
+    tr:hover td { background: rgba(255, 255, 255, 0.02); color: var(--text-primary); }
+
+    /* Inputs & Buttons */
+    .form-group { margin-bottom: 16px; }
+    .form-label { display: block; font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600; }
+    .form-input {
+      width: 100%;
+      background: rgba(19, 27, 46, 0.7);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      color: var(--text-primary);
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-input:focus { border-color: var(--cyan); box-shadow: 0 0 12px rgba(6, 182, 212, 0.2); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--cyan));
+      color: #fff;
+      font-weight: 700;
+      padding: 10px 20px;
+      border-radius: var(--radius-sm);
+      font-size: 0.88rem;
+      transition: all 0.2s;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-primary:hover { opacity: 0.95; transform: translateY(-1px); }
+
+    /* Security Login Gate */
+    .admin-gate-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 8, 17, 0.94);
+      backdrop-filter: blur(40px) saturate(200%);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .admin-gate-card {
+      width: 440px;
+      max-width: 92vw;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: var(--radius-xl);
+      padding: 40px 32px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(239, 68, 68, 0.15);
+      position: relative;
+    }
+
+    /* Sonner Toast */
+    .toast-box {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid var(--cyan);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: var(--radius-md);
+      font-size: 0.88rem;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      z-index: 10000;
+    }
+  
+    /* 日间高对比度自适应流体玻璃主题 */
+    [data-theme="light"] {
+      --bg-base: #f8fafc;
+      --bg-surface: #ffffff;
+      --bg-surface-elevated: #f1f5f9;
+      --text-primary: #0f172a;
+      --text-secondary: #334155;
+      --text-muted: #64748b;
+      --border-subtle: rgba(0, 0, 0, 0.1);
+      --border-strong: rgba(0, 0, 0, 0.18);
+    }
+    [data-theme="light"] body {
+      background: #f8fafc !important;
+      color: #0f172a !important;
+    }
+    [data-theme="light"] .header {
+      background: rgba(255, 255, 255, 0.88) !important;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+    }
+    [data-theme="light"] .card, 
+    [data-theme="light"] .stat-card,
+    [data-theme="light"] .admin-card {
+      background: #ffffff !important;
+      border-color: #e2e8f0 !important;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04) !important;
+    }
+    [data-theme="light"] .table th {
+      background: #f1f5f9 !important;
+      color: #475569 !important;
+    }
+    [data-theme="light"] .table td {
+      border-color: #f1f5f9 !important;
+      color: #1e293b !important;
+    }
+    [data-theme="light"] .btn-outline {
+      background: #ffffff !important;
+      border-color: #cbd5e1 !important;
+      color: #334155 !important;
+    }
+
+  
+    /* 🛡️ 管理员门禁输入框高对比度高亮，防黑底黑字 */
+    .admin-gate-card .form-input {
+      color: #ffffff !important;
+      background: rgba(15, 23, 42, 0.9) !important;
+      border: 1px solid rgba(255, 255, 255, 0.16) !important;
+      font-size: 0.95rem !important;
+    }
+    .admin-gate-card .form-input:focus {
+      border-color: #38bdf8 !important;
+      box-shadow: 0 0 14px rgba(56, 189, 248, 0.3) !important;
+    }
+    .admin-gate-card .form-input::placeholder {
+      color: #94a3b8 !important;
+    }
+    [data-theme="light"] .form-input {
+      background: #ffffff !important;
+      border-color: #cbd5e1 !important;
+      color: #0f172a !important;
+    }
+    [data-theme="light"] .admin-gate-card {
+      background: #ffffff !important;
+      border-color: #e2e8f0 !important;
+      box-shadow: 0 20px 50px rgba(15, 23, 42, 0.1) !important;
+    }
+    [data-theme="light"] .admin-gate-card .form-input {
+      background: #f8fafc !important;
+      border-color: #cbd5e1 !important;
+      color: #0f172a !important;
+    }
+    [data-theme="light"] .admin-gate-card h2 {
+      color: #0f172a !important;
+    }
+    [data-theme="light"] .admin-gate-card .form-label {
+      color: #334155 !important;
+    }
+
+  
+    /* 🛡️ 管理员门禁输入框强对比度 (杜绝黑底黑字) */
+    .admin-gate-card {
+      background: #0f172a !important;
+      border: 1px solid rgba(255, 255, 255, 0.15) !important;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6) !important;
+    }
+    .admin-gate-card h2 {
+      color: #ffffff !important;
+    }
+    .admin-gate-card .form-label {
+      color: #cbd5e1 !important;
+      font-weight: 600 !important;
+    }
+    .admin-gate-card .form-input {
+      background: rgba(30, 41, 59, 0.85) !important;
+      border: 1px solid rgba(255, 255, 255, 0.2) !important;
+      color: #ffffff !important;
+      font-size: 0.95rem !important;
+      padding: 11px 14px !important;
+      caret-color: #38bdf8 !important;
+    }
+    .admin-gate-card .form-input:focus {
+      border-color: #38bdf8 !important;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.35) !important;
+      background: rgba(30, 41, 59, 1) !important;
+    }
+    .admin-gate-card .form-input::placeholder {
+      color: #64748b !important;
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- ==========================================================================
+       🛡️ 管理员专属安全访问门禁 (未取得 admin Token 绝对禁止探测控制台)
+       ========================================================================== -->
+  <div class="admin-gate-overlay" id="admin-gate-screen">
+    <div class="admin-gate-card">
+      <div style="text-align:center; margin-bottom: 24px;">
+        <div style="width: 56px; height: 56px; border-radius: 16px; background: linear-gradient(135deg, #ef4444, #f59e0b); margin: 0 auto 14px; display:flex; align-items:center; justify-content:center; color:#fff; font-size: 1.8rem; box-shadow: 0 0 24px rgba(239, 68, 68, 0.4);">
+          🛡️
+        </div>
+        <h2 style="font-size: 1.25rem; font-weight: 800; letter-spacing: -0.02em;">SubFlow 运维控制中心</h2>
+        <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">管理员专属安全通道 · 严禁未授权访问</p>
+      </div>
+
+      
+
+      <div id="gate-alert-box" style="display:none; background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; border-radius: 8px; padding: 10px 14px; font-size: 0.8rem; color: #fecaca; margin-bottom: 16px;"></div>
+
+      <form id="admin-login-form" onsubmit="submitAdminLogin(event)">
+        <div class="form-group">
+          <label class="form-label">管理员账号</label>
+          <input type="text" id="admin-user-input" class="form-input" placeholder="请输入管理员账号" autocomplete="username" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" style="display:flex; justify-content:space-between;">
+            <span>管理员安全密码</span>
+            
+          </label>
+          <input type="password" id="admin-pwd-input" class="form-input" placeholder="请输入管理员密码" autocomplete="current-password" required>
+        </div>
+
+        <button type="submit" id="admin-submit-btn" class="btn-primary" style="width: 100%; justify-content: center; padding: 12px; margin-top: 8px;">
+          <span>安全鉴权并进入控制台</span>
+        </button>
+      </form>
+
+      <div style="text-align:center; margin-top: 18px;">
+        <a href="/" style="font-size: 0.78rem; color: var(--text-muted);">← 返回普通用户转换前台</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       🖥️ 管理员专属控制工作台 (登录通过后解锁)
+       ========================================================================== -->
+  <div id="admin-main-panel" style="display:none; flex-direction:column; min-height: 100vh;">
+    <!-- Topbar -->
+    <header class="admin-navbar">
+      <div class="brand-wrap">
+        <div class="brand-logo">S</div>
+        <div>
+          <div style="display:flex; align-items:center; gap: 8px;">
+            <span class="brand-title">SubFlow 运维控制中心</span>
+            <span class="badge-admin">管理员权限</span>
+          </div>
+          <div style="font-size: 0.7rem; color: var(--text-muted);">版本 v2.0 · 私有安全运维后台</div>
+        </div>
+      </div>
+
+      <div class="nav-actions">
+        <button class="btn-outline" id="admin-theme-btn" onclick="toggleAdminTheme()" style="margin-right:8px; display:inline-flex; align-items:center; gap:6px;">
+          <span id="admin-theme-icon"><svg class="theme-svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg></span>
+          <span id="admin-theme-text">日间模式</span>
+        </button>
+        <button class="btn-outline" onclick="openAdminSecurityModal()" style="margin-right: 8px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> <span>修改管理员密码</span></button>
+        <a href="/" class="btn-outline"><span>🌐</span> <span>前往用户前台</span></a>
+        <button class="btn-danger" onclick="logoutAdmin()"><span>退出管理后台</span></button>
+      </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="admin-container">
+      <!-- Tabs -->
+      <div class="tab-bar">
+        <button class="tab-btn active" id="tab-overview" onclick="switchAdminTab('overview')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><path d="m12 14 4-4"></path><path d="M3.34 19a10 10 0 1 1 17.32 0"></path></svg><span>运行概览与体检</span></button>
+        <button class="tab-btn" id="tab-users" onclick="switchAdminTab('users')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg><span>用户账号管理</span></button>
+        <button class="tab-btn" id="tab-domain" onclick="switchAdminTab('domain')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg><span>公网域名与穿透</span></button>
+        <button class="tab-btn" id="tab-backup" onclick="switchAdminTab('backup')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg><span>数据备份与恢复</span></button>
+        <button class="tab-btn" id="tab-logs" onclick="switchAdminTab('logs')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg><span>系统日志与诊断</span></button>
+        <button class="tab-btn" id="tab-update" onclick="switchAdminTab('update')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"></path><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"></path><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"></path><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"></path></svg><span>系统升级</span></button>
+      </div>
+
+      <!-- Tab 1: Overview -->
+      <div id="view-overview" class="admin-view">
+        <div class="stat-grid">
+          <div class="stat-item">
+            <div class="stat-label">注册用户总数</div>
+            <div class="stat-value" id="stat-user-count">-</div>
+            <div class="stat-sub">独立私有安全存储</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">托管订阅总数</div>
+            <div class="stat-value" id="stat-sub-count">-</div>
+            <div class="stat-sub">已安全加密</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">核心进程延迟</div>
+            <div class="stat-value" id="stat-core-latency" style="color:var(--emerald);">-</div>
+            <div class="stat-sub" id="stat-core-status">SubConverter 25500 在线</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">连续运行时间</div>
+            <div class="stat-value" id="stat-uptime">-</div>
+            <div class="stat-sub">Systemd 守护运行中</div>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-title">
+            <span>🔐 管理员账号与访问安全</span>
+            <button class="btn-primary" onclick="openAdminSecurityModal()">修改管理员密码</button>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:12px; font-size:0.85rem;">
+            <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+              <span style="color:var(--text-muted);">当前登录账号</span>
+              <strong id="card-admin-user" style="color:var(--text-primary); font-family: var(--font-mono);">admin</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+              <span style="color:var(--text-muted);">系统角色权限</span>
+              <span style="color:#10b981; font-weight: 600;">超级系统管理员 (Root Admin)</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:8px 0;">
+              <span style="color:var(--text-muted);">安全凭据维护</span>
+              <span style="color:var(--text-dim);">支持随时更换管理员登录用户名与访问密码</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-title">
+            <span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><path d="m12 14 4-4"></path><path d="M3.34 19a10 10 0 1 1 17.32 0"></path></svg><span>系统健康体检与网络配置</span></span>
+            <button class="btn-outline" onclick="loadOverviewData()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M3 21v-5h5"></path></svg><span>刷新体检</span></button>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:12px; font-size:0.85rem;">
+            <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+              <span style="color:var(--text-muted);">当前探测公网 IP</span>
+              <strong id="diag-public-ip" style="color:var(--text-primary);">-</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+              <span style="color:var(--text-muted);">绑定的公网专属域名</span>
+              <strong id="diag-bound-domain" style="color:#38bdf8;">未绑定 (自适应)</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+              <span style="color:var(--text-muted);">开放公开注册</span>
+              <strong id="diag-allow-reg" style="color:var(--emerald);">允许公开注册</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:8px 0;">
+              <span style="color:var(--text-muted);">数据库存储引擎</span>
+              <strong style="color:var(--emerald);">SQLite WAL 模式 (断电0损)</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 2: Tenants -->
+      <div id="view-users" class="admin-view" style="display:none;">
+        <div class="glass-card">
+          <div class="card-title">
+            <span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg><span>用户账户管理列表</span></span>
+            <button class="btn-outline" onclick="loadUsersData()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M3 21v-5h5"></path></svg><span>刷新列表</span></button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>用户名</th>
+                  <th>角色</th>
+                  <th>状态</th>
+                  <th>订阅数</th>
+                  <th>注册时间</th>
+                  <th>管控操作</th>
+                </tr>
+              </thead>
+              <tbody id="user-table-body">
+                <tr><td colspan="7" style="text-align:center; padding:24px;">加载中...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 3: Domain & Tunnel -->
+      <div id="view-domain" class="admin-view" style="display:none;">
+        <div class="glass-card">
+          <div class="card-title">
+            <span>🌐 公网专属域名绑定与重定向</span>
+          </div>
+          <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:18px;">
+            设置后，系统生成的直链与手机扫码二维码将 100% 优先使用该专属域名，即便通过 IP 访问也能自动重定向。
+          </p>
+          <div class="form-group">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <label class="form-label" style="margin-bottom:0;">公网专属域名 (例如：https://your-domain.com)</label>
+              <button type="button" class="btn-outline" style="font-size:0.75rem; padding:3px 8px;" onclick="fillCurrentOrigin()">⚡ 填入当前访问地址</button>
+            </div>
+            <input type="text" id="cfg-bound-domain" class="form-input" placeholder="留空则动态自适应任何访问地址">
+          </div>
+          <div class="form-group" style="display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" id="cfg-force-redirect" style="width:16px; height:16px; cursor:pointer;">
+            <label for="cfg-force-redirect" style="font-size:0.82rem; color:var(--text-secondary); cursor:pointer;">
+              强制域名重定向 (非此域名访问时自动 301 跃迁)
+            </label>
+          </div>
+          <button class="btn-primary" onclick="saveDomainConfig()">💾 保存域名绑定配置</button>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-title">
+            <span>⚡ Cloudflare 远程穿透隧道</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Cloudflare Tunnel Token (可选，留空使用极速临时穿透)</label>
+            <input type="password" id="cfg-tunnel-token" class="form-input" placeholder="eyJhIjoi...">
+          </div>
+          <button class="btn-outline" onclick="saveTunnelToken()">保存隧道凭证</button>
+        </div>
+      </div>
+
+      <!-- Tab 4: Backup & Recovery -->
+      <div id="view-backup" class="admin-view" style="display:none;">
+        <div class="glass-card" style="border-left: 4px solid var(--emerald);">
+          <div class="card-title">
+            <span>🛡️ 数据安全与版本升级零丢失保证</span>
+          </div>
+          <p style="font-size:0.84rem; color:var(--text-secondary); line-height: 1.6;">
+            SubFlow 采用工业级 <strong>SQLite WAL (Write-Ahead Logging) 引擎</strong> 与 <strong>增量表结构自愈器 (Schema Migration)</strong>。<br>
+            以后的系统升级、功能迭代或服务重启，绝对<strong>不会弄丢数据库或造成损坏</strong>！每次启动系统还会自动在本地建立物理备份快照。
+          </p>
+        </div>
+
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+          <!-- 物理镜像下载 -->
+          <div class="glass-card">
+            <div class="card-title">
+              <span>📥 SQLite 物理数据库镜像</span>
+            </div>
+            <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:16px;">
+              一键下载当前 live 运行中的二进制 <code style="color:#60a5fa;">subflow.db</code> 完整文件，包含全部用户与订阅数据。
+            </p>
+            <button class="btn-primary" onclick="downloadDbBackup()">
+              <span>📥 立即下载 subflow.db 物理快照</span>
+            </button>
+          </div>
+
+          <!-- 结构化 JSON 导出 -->
+          <div class="glass-card">
+            <div class="card-title">
+              <span>📋 结构化 JSON 资产全量导出</span>
+            </div>
+            <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:16px;">
+              导出所有用户与私有订阅的脱敏全量 JSON 备份包，可用于跨主机迁移与灾备审查。
+            </p>
+            <button class="btn-outline" onclick="exportJsonBackup()">
+              <span>📋 导出全量 JSON 资产备份</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 5: Logs -->
+      <div id="view-logs" class="admin-view" style="display:none;">
+        <div class="glass-card">
+          <div class="card-title">
+            <span>⚡ 核心健康诊断与网关日志</span>
+            <button class="btn-outline" onclick="runDiagnostics()">🔬 开始体检诊断</button>
+          </div>
+          <div id="diag-result-box" style="background: rgba(0,0,0,0.4); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 16px; font-family: var(--font-mono); font-size: 0.8rem; color: #a5f3fc; min-height: 180px; white-space: pre-wrap;">
+SubFlow 运维控制中心就绪...
+点击上方【开始体检诊断】获取完整硬件与网关状态。
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 6: Update & Git -->
+      <div id="view-update" class="admin-view" style="display:none;">
+        <div class="glass-card" style="margin-bottom: 24px;">
+          <div class="card-title">
+            <span>🛡️ 系统版本与安全状态</span>
+            <span class="badge-admin" style="background: rgba(16, 185, 129, 0.2); color: #34d399;" id="update-badge-status">物理隔离保护中</span>
+          </div>
+          <div class="stat-grid" style="margin-bottom: 16px;">
+            <div class="stat-card">
+              <div class="stat-label">当前运行版本</div>
+              <div class="stat-value" id="sys-version-val">SubFlow v2.2</div>
+              <div class="stat-sub" id="sys-build-val">Build 20261030</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Git 部署模式</div>
+              <div class="stat-value" id="sys-git-mode" style="font-size: 1.2rem; color: #38bdf8;">检测中...</div>
+              <div class="stat-sub" id="sys-git-commit">Commit: -</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">数据与域名保护</div>
+              <div class="stat-value" style="color: #34d399; font-size: 1.2rem;">100% 独立</div>
+              <div class="stat-sub">data/ 目录物理免除覆盖</div>
+            </div>
+          </div>
+          <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: var(--radius-sm); padding: 14px 18px; font-size: 0.85rem; color: #a7f3d0; line-height: 1.6;">
+            <strong>🔒 物理级安全隔离承诺：</strong>
+            在线升级与代码覆盖仅针对程序核心（<code>gateway.py</code> 与 <code>web/</code> 静态资源），
+            您的私有域名配置、用户数据库（<code>data/subflow.db</code>）以及 Cloudflare 隧道凭据全部存储于独立的 <code>data/</code> 物理隔离区，任何版本更新均<strong>绝不覆盖、绝不丢失</strong>！
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-title">
+            <span>🚀 远程 Git 检查更新与一键热升级</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">远程更新源仓库 (GitHub / Gitee 仓库地址)</label>
+            <input type="text" class="form-input" id="cfg-git-repo" placeholder="https://github.com/your-username/SubFlow.git">
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 6px;">
+              填入您公开或私有的 GitHub 仓库地址，点击【检查更新】可实时对比本地与远程代码版本。
+            </p>
+          </div>
+          <div style="display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;">
+            <button class="btn-primary" id="btn-check-update" onclick="checkSystemUpdate()">
+              <span>🔍 检查远程最新版本</span>
+            </button>
+            <button class="btn-primary" id="btn-do-upgrade" style="background: linear-gradient(135deg, #10b981, #06b6d4);" onclick="confirmSystemUpgrade()">
+              <span>⚡ 一键安全热升级覆盖</span>
+            </button>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">更新执行日志与终端回显</label>
+            <div id="update-log-box" style="background: rgba(0,0,0,0.5); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 16px; font-family: var(--font-mono); font-size: 0.82rem; color: #38bdf8; min-height: 140px; max-height: 280px; overflow-y: auto; white-space: pre-wrap;">
+就绪。点击【检查远程最新版本】开始协同检测...
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Sonner Toast -->
+  <div class="toast-box" id="admin-toast">
+    <span id="admin-toast-text"></span>
+  </div>
+
+  <script>
+    let challengeTicket = null;
+    let currentUser = null;
+
+    function showToast(msg) {
+      const box = document.getElementById('admin-toast');
+      const text = document.getElementById('admin-toast-text');
+      text.innerText = msg;
+      box.style.display = 'flex';
+      clearTimeout(window._tTimer);
+      window._tTimer = setTimeout(() => { box.style.display = 'none'; }, 2600);
+    }
+
+    // 页面初始化：自动检查管理态鉴权
+    async function initAdminAuth() {
+      try {
+        const token = localStorage.getItem('subflow_admin_token') || localStorage.getItem('subflow_token');
+        const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
+        const res = await fetch('/api/auth/me', { headers });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.ok && data.logged_in && data.user && data.user.role === 'admin') {
+            currentUser = data.user;
+            unlockAdminPanel();
+            return;
+          }
+        }
+      } catch (e) {}
+
+      // 未登录或非 admin 保持门禁锁定
+      document.getElementById('admin-gate-screen').style.display = 'flex';
+      document.getElementById('admin-main-panel').style.display = 'none';
+    }
+
+    function unlockAdminPanel() {
+      document.getElementById('admin-gate-screen').style.display = 'none';
+      document.getElementById('admin-main-panel').style.display = 'flex';
+      loadOverviewData();
+      loadUsersData();
+      showToast('🛡️ 管理员凭据鉴权通过，已进入专属运维中枢！');
+    }
+
+    async function submitAdminLogin(e) {
+      e.preventDefault();
+      const username = document.getElementById('admin-user-input').value.trim();
+      const password = document.getElementById('admin-pwd-input').value;
+      const alertBox = document.getElementById('gate-alert-box');
+      alertBox.style.display = 'none';
+
+      const submitBtn = document.getElementById('admin-submit-btn');
+      submitBtn.disabled = true;
+      submitBtn.innerText = '正在比对 PBKDF2 密文加盐凭据...';
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username,
+            password
+          })
+        });
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          if (data.user && data.user.role === 'admin') {
+            const token = data.token || data.session_token || '';
+            localStorage.setItem('subflow_admin_token', token);
+            localStorage.setItem('subflow_token', token);
+            currentUser = data.user;
+            unlockAdminPanel();
+          } else {
+            alertBox.innerText = '权限拒绝：该账户非系统超级管理员！';
+            alertBox.style.display = 'block';
+          }
+        } else {
+          alertBox.innerText = '鉴权失败: ' + (data.error || '密码错误或被安全锁定');
+          alertBox.style.display = 'block';
+        }
+      } catch (err) {
+        alertBox.innerText = '网络请求异常: ' + err;
+        alertBox.style.display = 'block';
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerText = '安全鉴权并进入控制台';
+      }
+    }
+
+    function getAuthHeaders() {
+      const token = localStorage.getItem('subflow_admin_token') || localStorage.getItem('subflow_token');
+      return token ? { 'Authorization': 'Bearer ' + token } : {};
+    }
+
+    async function loadOverviewData() {
+      try {
+        const res = await fetch('/api/admin/overview', { headers: getAuthHeaders() });
+        if (res.ok) {
+          const d = await res.json();
+          document.getElementById('stat-user-count').innerText = d.user_count || 0;
+          document.getElementById('stat-sub-count').innerText = d.sub_count || 0;
+          document.getElementById('stat-uptime').innerText = Math.floor(d.uptime / 60) + ' 分钟';
+          document.getElementById('diag-public-ip').innerText = d.public_ip || '127.0.0.1';
+          document.getElementById('diag-bound-domain').innerText = d.bound_domain || '未绑定 (自适应当前访问)';
+          if (d.bound_domain) {
+            document.getElementById('cfg-bound-domain').value = d.bound_domain;
+          }
+          document.getElementById('cfg-force-redirect').checked = !!d.force_redirect;
+        }
+        // 体检 core
+        runDiagnostics();
+      } catch (e) {}
+    }
+
+    async function loadUsersData() {
+      const tbody = document.getElementById('user-table-body');
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:24px;">正在检索用户数据库...</td></tr>';
+      try {
+        const res = await fetch('/api/admin/users', { headers: getAuthHeaders() });
+        if (res.ok) {
+          const d = await res.json();
+          if (d.ok && d.users) {
+            if (d.users.length === 0) {
+              tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:24px; color:var(--text-muted);">暂无注册用户</td></tr>';
+              return;
+            }
+            tbody.innerHTML = d.users.map(u => `
+              <tr>
+                <td><strong>#${u.id}</strong></td>
+                <td><strong style="color:var(--text-primary);">${u.username}</strong></td>
+                <td><span class="badge-admin" style="background:${u.role==='admin'?'rgba(239,68,68,0.2)':'rgba(59,130,246,0.2)'}; color:${u.role==='admin'?'#f87171':'#60a5fa'};">${u.role}</span></td>
+                <td><span style="color:${u.status==='active'?'#10b981':'#ef4444'}; font-weight:600;">${u.status==='active'?'正常':'已封禁'}</span></td>
+                <td><strong style="color:#38bdf8;">${u.sub_count || 0}</strong> 条</td>
+                <td style="font-size:0.75rem;">${u.created_at || '-'}</td>
+                <td>
+                  <button class="btn-outline" style="padding:3px 8px; font-size:0.72rem;" onclick="toggleUserStatus(${u.id}, '${u.status}')">
+                    ${u.status==='active'?'🚫 封禁':'✅ 解封'}
+                  </button>
+                </td>
+              </tr>
+            `).join('');
+          } else {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:24px; color:#ef4444;">获取失败: ${d.error || '数据异常'}</td></tr>`;
+          }
+        } else {
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:24px; color:#ef4444;">管理员鉴权失效 (${res.status})，请点击右上角退出后重新登录</td></tr>`;
+        }
+      } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#ef4444;">加载用户列表失败: ' + e + '</td></tr>';
+      }
+    }
+
+    async function toggleUserStatus(id, currentStatus) {
+      const newStatus = currentStatus === 'active' ? 'banned' : 'active';
+      if (!confirm(`确定要将用户 #${id} 设为 [${newStatus==='active'?'解封':'封禁'}] 吗？`)) return;
+      try {
+        const res = await fetch('/api/admin/user/status', {
+          method: 'POST',
+          headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: id, status: newStatus })
+        });
+        const d = await res.json();
+        if (d.ok) {
+          showToast('✅ 用户状态变更成功！');
+          loadUsersData();
+        } else {
+          showToast('❌ 变更失败: ' + (d.error || '未知错误'));
+        }
+      } catch (e) {
+        showToast('请求异常: ' + e);
+      }
+    }
+
+    async function runDiagnostics() {
+      const box = document.getElementById('diag-result-box');
+      box.innerText = '正在探测 SubConverter 核心与数据库...';
+      try {
+        const res = await fetch('/api/admin/diagnostics', { headers: getAuthHeaders() });
+        if (res.ok) {
+          const d = await res.json();
+          if (d.ok) {
+            const lat = document.getElementById('stat-core-latency');
+            if (lat) {
+              lat.innerText = d.core_latency_ms + ' ms';
+              lat.style.color = d.core_latency_ms < 50 ? 'var(--emerald)' : 'var(--amber)';
+            }
+            box.innerText = `[SubFlow 核心体检诊断报告]\n` +
+              `✓ 核心进程连通: ${d.core_reachable ? '100% 正常 (SubConverter 在线)' : '❌ 无法连接'}\n` +
+              `✓ 核心往返延迟: ${d.core_latency_ms} 毫秒\n` +
+              `✓ 网关监听端口: ${d.gateway_port}\n` +
+              `✓ 数据库体积: ${(d.database_size_bytes / 1024).toFixed(2)} KB\n` +
+              `✓ 探测公网 IP: ${d.public_ip}\n` +
+              `✓ 域名配置状态: ${d.domain_configured ? '已配置绑定专属域名' : '动态自适应模式'}\n` +
+              `✓ 检查时间: ${new Date().toLocaleString()}`;
+          } else {
+            box.innerText = '体检诊断失败: ' + (d.error || '数据异常');
+          }
+        } else {
+          box.innerText = `诊断鉴权失效 (${res.status})，请重新登录管理后台`;
+        }
+      } catch (e) {
+        box.innerText = '体检请求失败: ' + e;
+      }
+    }
+
+    async function saveDomainConfig() {
+      const domain = document.getElementById('cfg-bound-domain').value.trim();
+      const force = document.getElementById('cfg-force-redirect').checked;
+      try {
+        const res = await fetch('/api/admin/config/domain', {
+          method: 'POST',
+          headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bound_domain: domain, force_redirect: force })
+        });
+        const d = await res.json();
+        if (d.ok) {
+          showToast('✅ 公网专属域名配置保存成功！');
+          loadOverviewData();
+        } else {
+          showToast('❌ 保存失败: ' + d.error);
+        }
+      } catch (e) {
+        showToast('请求异常: ' + e);
+      }
+    }
+
+    function fillCurrentOrigin() {
+      const orig = window.location.origin;
+      if (orig && !orig.startsWith('file://')) {
+        document.getElementById('cfg-bound-domain').value = orig;
+        showToast('已填入当前访问来源：' + orig);
+      }
+    }
+
+    async function saveTunnelToken() {
+      const token = document.getElementById('cfg-tunnel-token').value.trim();
+      try {
+        const res = await fetch('/api/admin/config/domain', {
+          method: 'POST',
+          headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tunnel_token: token })
+        });
+        const d = await res.json();
+        if (d.ok) {
+          showToast('✅ Cloudflare 穿透隧道凭证已保存生效！');
+        } else {
+          showToast('❌ 保存失败: ' + (d.error || '未知错误'));
+        }
+      } catch (e) {
+        showToast('请求异常: ' + e);
+      }
+    }
+
+    function downloadDbBackup() {
+      const token = localStorage.getItem('subflow_admin_token') || localStorage.getItem('subflow_token');
+      window.location.href = `/api/admin/backup/download-db?token=${encodeURIComponent(token)}`;
+    }
+
+    function exportJsonBackup() {
+      const token = localStorage.getItem('subflow_admin_token') || localStorage.getItem('subflow_token');
+      window.location.href = `/api/admin/backup/export-json?token=${encodeURIComponent(token)}`;
+    }
+
+    async function loadSystemVersion() {
+      try {
+        const res = await fetch('/api/admin/system/version', { headers: getAuthHeaders() });
+        if (res.ok) {
+          const d = await res.json();
+          if (d.ok) {
+            document.getElementById('sys-version-val').innerText = 'SubFlow ' + (d.version || 'v2.2');
+            document.getElementById('sys-build-val').innerText = 'Build ' + (d.build || '-');
+            document.getElementById('sys-git-mode').innerText = d.is_git ? 'Git 协同部署' : '独立发布包模式';
+            document.getElementById('sys-git-commit').innerText = '分支: ' + d.git_branch + ' | Commit: ' + d.git_commit;
+            if (d.git_repo && document.getElementById('cfg-git-repo')) {
+              document.getElementById('cfg-git-repo').value = d.git_repo;
+            }
+          }
+        }
+      } catch (e) {}
+    }
+
+    async function checkSystemUpdate() {
+      const btn = document.getElementById('btn-check-update');
+      const box = document.getElementById('update-log-box');
+      const repo = document.getElementById('cfg-git-repo').value.trim();
+      btn.disabled = true;
+      btn.innerText = '正在检查中...';
+      box.innerText = `[${new Date().toLocaleTimeString()}] 开始检查更新... 目标源: ${repo || '默认'}\n`;
+      try {
+        const res = await fetch('/api/admin/system/check-update', {
+          method: 'POST',
+          headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ git_repo: repo })
+        });
+        const d = await res.json();
+        if (res.ok && d.ok) {
+          box.innerText += `[检测结果] ${d.remote_info}\n\n`;
+          if (d.log) box.innerText += d.log + '\n';
+          showToast(d.has_update ? '📢 检测到远程新版本！' : '✅ 当前已是最新版本');
+        } else {
+          box.innerText += `[错误] ${d.error || '检查失败'}\n`;
+          showToast('❌ 检查更新异常');
+        }
+      } catch (e) {
+        box.innerText += `[网络异常] ${e}\n`;
+        showToast('网络请求失败');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span>🔍 检查远程最新版本</span>';
+      }
+    }
+
+    async function confirmSystemUpgrade() {
+      if (!confirm('【安全升级确认】\n\n即将拉取最新版本并平滑重载 SubFlow 服务。\n整个过程约需 2~3 秒，您的专属域名与所有订阅数据 100% 物理隔离保护不受任何影响。\n\n是否立即执行？')) {
+        return;
+      }
+      const btn = document.getElementById('btn-do-upgrade');
+      const box = document.getElementById('update-log-box');
+      const repo = document.getElementById('cfg-git-repo').value.trim();
+      btn.disabled = true;
+      btn.innerText = '正在执行升级覆盖...';
+      box.innerText += `\n[${new Date().toLocaleTimeString()}] 触发安全热升级流程...\n`;
+      try {
+        const res = await fetch('/api/admin/system/upgrade', {
+          method: 'POST',
+          headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ git_repo: repo })
+        });
+        const d = await res.json();
+        if (res.ok && d.ok) {
+          box.innerText += `[成功] ${d.message}\n`;
+          if (d.log) box.innerText += d.log + '\n';
+          showToast('🚀 升级指令已下发，正在平滑重启...');
+          setTimeout(() => {
+            box.innerText += `[重载] 正在刷新控制台页面...\n`;
+            location.reload();
+          }, 3500);
+        } else {
+          box.innerText += `[失败] ${d.error || '升级执行失败'}\n`;
+          showToast('❌ 升级失败: ' + (d.error || '未知错误'));
+          btn.disabled = false;
+          btn.innerHTML = '<span>⚡ 一键安全热升级覆盖</span>';
+        }
+      } catch (e) {
+        box.innerText += `[网络断开/服务已在重启] 正在重新连接服务...\n`;
+        showToast('服务重启中，即将刷新页面...');
+        setTimeout(() => location.reload(), 3000);
+      }
+    }
+
+    function switchAdminTab(name) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.admin-view').forEach(v => v.style.display = 'none');
+      const targetBtn = document.getElementById('tab-' + name);
+      if (targetBtn) targetBtn.classList.add('active');
+      const targetView = document.getElementById('view-' + name);
+      if (targetView) targetView.style.display = 'block';
+      if (name === 'users') loadUsersData();
+      if (name === 'overview') loadOverviewData();
+      if (name === 'logs') runDiagnostics();
+      if (name === 'update') loadSystemVersion();
+    }
+
+    function logoutAdmin() {
+      localStorage.removeItem('subflow_admin_token');
+      localStorage.removeItem('subflow_token');
+      window.location.href = '/admin';
+    }
+
+    // 启动执行
+    initAdminAuth();
+  </script>
+
+    <!-- 管理员安全凭据设置弹窗 -->
+    <div id="admin-security-modal" class="modal-backdrop" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.65); backdrop-filter: blur(8px); z-index: 9999; align-items: center; justify-content: center;">
+      <div class="glass-card" style="width: 100%; max-width: 440px; padding: 24px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 1.4rem;">🔐</span>
+            <h3 style="margin: 0; font-size: 1.15rem; color: #fff;">修改管理员账号与密码</h3>
+          </div>
+          <button style="background: none; border: none; color: var(--text-muted); font-size: 1.4rem; cursor: pointer;" onclick="closeAdminSecurityModal()">&times;</button>
+        </div>
+        
+        <div style="margin-bottom: 14px;">
+          <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px;">当前登录账号</label>
+          <input type="text" id="admin-cur-name-input" class="modern-input" disabled style="width: 100%; padding: 10px 12px; border-radius: 8px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--text-muted); cursor: not-allowed;">
+        </div>
+
+        <div style="margin-bottom: 14px;">
+          <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px;">新管理员账号 <span style="color:var(--text-dim); font-size: 0.75rem;">(留空则保持原账号不变)</span></label>
+          <input type="text" id="admin-new-user-input" class="modern-input" placeholder="输入新的管理员账号名 (至少 3 位)" style="width: 100%; padding: 10px 12px; border-radius: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: #fff;">
+        </div>
+
+        <div style="margin-bottom: 14px;">
+          <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px;">新登录密码 <span style="color:var(--text-dim); font-size: 0.75rem;">(留空则保持原密码不变)</span></label>
+          <input type="password" id="admin-new-pwd-input" class="modern-input" placeholder="输入新密码 (至少 6 位)" style="width: 100%; padding: 10px 12px; border-radius: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: #fff;">
+        </div>
+
+        <div style="margin-bottom: 18px;">
+          <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px;">再次确认新密码</label>
+          <input type="password" id="admin-confirm-pwd-input" class="modern-input" placeholder="再次输入新密码确认" style="width: 100%; padding: 10px 12px; border-radius: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: #fff;">
+        </div>
+
+        <div id="admin-sec-alert" style="display: none; padding: 10px 14px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 16px;"></div>
+
+        <div style="display: flex; gap: 12px; justify-content: flex-end;">
+          <button class="btn-outline" onclick="closeAdminSecurityModal()">取消</button>
+          <button class="btn-primary" id="btn-save-admin-sec" onclick="submitAdminCredentials()">确认保存修改</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+    function openAdminSecurityModal() {
+      const modal = document.getElementById('admin-security-modal');
+      if (modal) {
+        modal.style.display = 'flex';
+        const cur = localStorage.getItem('subflow_admin_username') || 'admin';
+        document.getElementById('admin-cur-name-input').value = cur;
+        document.getElementById('admin-new-user-input').value = '';
+        document.getElementById('admin-new-pwd-input').value = '';
+        document.getElementById('admin-confirm-pwd-input').value = '';
+        const alertBox = document.getElementById('admin-sec-alert');
+        if (alertBox) alertBox.style.display = 'none';
+      }
+    }
+
+    function closeAdminSecurityModal() {
+      const modal = document.getElementById('admin-security-modal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    async function submitAdminCredentials() {
+      const newUser = document.getElementById('admin-new-user-input').value.trim();
+      const newPwd = document.getElementById('admin-new-pwd-input').value;
+      const confirmPwd = document.getElementById('admin-confirm-pwd-input').value;
+      const alertBox = document.getElementById('admin-sec-alert');
+      const btn = document.getElementById('btn-save-admin-sec');
+
+      if (!newUser && !newPwd) {
+        alertBox.style.display = 'block';
+        alertBox.style.background = 'rgba(239, 68, 68, 0.2)';
+        alertBox.style.color = '#ef4444';
+        alertBox.innerText = '新账号名与新密码不能同时为空';
+        return;
+      }
+
+      if (newPwd && newPwd !== confirmPwd) {
+        alertBox.style.display = 'block';
+        alertBox.style.background = 'rgba(239, 68, 68, 0.2)';
+        alertBox.style.color = '#ef4444';
+        alertBox.innerText = '两次输入的新密码不一致，请重新检查';
+        return;
+      }
+
+      if (newPwd && newPwd.length < 6) {
+        alertBox.style.display = 'block';
+        alertBox.style.background = 'rgba(239, 68, 68, 0.2)';
+        alertBox.style.color = '#ef4444';
+        alertBox.innerText = '新密码长度至少需要 6 位';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerText = '保存中...';
+
+      try {
+        const res = await fetch('/api/admin/change-credentials', {
+          method: 'POST',
+          headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ new_username: newUser, new_password: newPwd })
+        });
+        const d = await res.json();
+        if (res.ok && d.ok) {
+          alertBox.style.display = 'block';
+          alertBox.style.background = 'rgba(16, 185, 129, 0.2)';
+          alertBox.style.color = '#10b981';
+          alertBox.innerText = d.message || '管理员账号密码修改成功！';
+          if (d.token) {
+            localStorage.setItem('subflow_admin_token', d.token);
+          }
+          if (d.username) {
+            localStorage.setItem('subflow_admin_username', d.username);
+            const cardUser = document.getElementById('card-admin-user');
+            if (cardUser) cardUser.innerText = d.username;
+          }
+          setTimeout(() => {
+            closeAdminSecurityModal();
+            btn.disabled = false;
+            btn.innerText = '确认保存修改';
+          }, 1200);
+        } else {
+          alertBox.style.display = 'block';
+          alertBox.style.background = 'rgba(239, 68, 68, 0.2)';
+          alertBox.style.color = '#ef4444';
+          alertBox.innerText = d.error || '修改失败，请重试';
+          btn.disabled = false;
+          btn.innerText = '确认保存修改';
+        }
+      } catch (e) {
+        alertBox.style.display = 'block';
+        alertBox.style.background = 'rgba(239, 68, 68, 0.2)';
+        alertBox.style.color = '#ef4444';
+        alertBox.innerText = '网络请求异常: ' + e.message;
+        btn.disabled = false;
+        btn.innerText = '确认保存修改';
+      }
+    }
+    
+    // =========================================================================
+    // ☀️ / 🌙 后台日间夜间模式无缝切换 (与前台实时同步)
+    // =========================================================================
+    function initAdminTheme() {
+      const saved = localStorage.getItem('subflow_theme') || 'dark';
+      setAdminTheme(saved);
+    }
+
+    function toggleAdminTheme() {
+      const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+      const nextTheme = isLight ? 'dark' : 'light';
+      setAdminTheme(nextTheme);
+    }
+
+    function setAdminTheme(theme) {
+      const isDark = theme !== 'light';
+      const icon = document.getElementById('admin-theme-icon');
+      const text = document.getElementById('admin-theme-text');
+      if (!isDark) {
+        document.documentElement.setAttribute('data-theme', 'light');
+        if (icon) icon.innerText = '🌙';
+        if (text) text.innerText = '夜间模式';
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+        if (icon) icon.innerText = '☀️';
+        if (text) text.innerText = '日间模式';
+      }
+      try { localStorage.setItem('subflow_theme', theme); } catch(e) {}
+    }
+    document.addEventListener('DOMContentLoaded', initAdminTheme);
+
+    // =========================================================================
+    // 🎟️ 邀请码后台异步管理引擎
+    // =========================================================================
+    async function loadInvitations() {
+      try {
+        const res = await fetch(adminApiUrl('/api/admin/invitations/list'));
+        const data = await res.json();
+        if (data.ok) {
+          const chk = document.getElementById('admin-require-invite');
+          if (chk) chk.checked = data.require_invite_code;
+          renderInviteTable(data.invitations || []);
+        }
+      } catch (e) {
+        console.error('加载邀请码失败:', e);
+      }
+    }
+
+    function renderInviteTable(invs) {
+      const tbody = document.getElementById('admin-invite-tbody');
+      if (!tbody) return;
+      if (invs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:24px; color:var(--text-muted);">暂无已签发的邀请码，点击上方“+ 签发新邀请码”即可生成！</td></tr>';
+        return;
+      }
+      tbody.innerHTML = invs.map(item => {
+        const isDepleted = item.used_count >= item.max_uses;
+        const statusBadge = isDepleted 
+          ? `<span style="background:rgba(239,68,68,0.15); color:#ef4444; padding:2px 8px; border-radius:4px; font-weight:700;">已耗尽 (${item.used_count}/${item.max_uses})</span>`
+          : `<span style="background:rgba(16,185,129,0.15); color:#10b981; padding:2px 8px; border-radius:4px; font-weight:700;">可用 (${item.used_count}/${item.max_uses})</span>`;
+        return `
+          <tr style="border-bottom:1px solid var(--border-subtle);">
+            <td style="padding:10px 12px; font-family:monospace; font-size:0.9rem; font-weight:700; color:var(--primary);">${item.code}</td>
+            <td style="padding:10px 12px;">${statusBadge}</td>
+            <td style="padding:10px 12px; color:var(--text-muted);">${item.note || '专属注册邀请码'}</td>
+            <td style="padding:10px 12px; font-size:0.75rem; color:var(--text-muted);">${item.created_at}</td>
+            <td style="padding:10px 12px; text-align:right;">
+              <button class="btn-outline" style="padding:2px 8px; font-size:0.72rem; margin-right:6px;" onclick="copyInviteCode('${item.code}')">复制</button>
+              <button class="btn-outline" style="padding:2px 8px; font-size:0.72rem; color:#ef4444; border-color:rgba(239,68,68,0.3);" onclick="deleteInviteCode(${item.id})">作废</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function toggleRequireInvite(enabled) {
+      try {
+        const res = await fetch(adminApiUrl('/api/admin/invitations/toggle-mode'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ require_invite: enabled })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          showAdminToast(enabled ? '🎟️ 已开启强制邀请制：新用户必须凭有效邀请码才能注册！' : '🌐 已开放公开注册：任何人均可直接注册账号');
+        }
+      } catch (e) {
+        showAdminToast('切换失败: ' + e);
+      }
+    }
+
+    async function openCreateInviteModal() {
+      const note = prompt('请输入邀请码备注 (例如: 赠送给张三 / 亲友测试):', '亲友专属凭证');
+      if (note === null) return;
+      const maxUsesStr = prompt('允许该邀请码最大使用次数 (默认 1 次):', '1');
+      if (maxUsesStr === null) return;
+      const maxUses = parseInt(maxUsesStr, 10) || 1;
+
+      try {
+        const res = await fetch(adminApiUrl('/api/admin/invitations/create'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ note, max_uses: maxUses })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          showAdminToast('🎉 成功签发邀请码: ' + data.code);
+          loadInvitations();
+        } else {
+          alert(data.error || '签发失败');
+        }
+      } catch (e) {
+        alert('网络请求异常: ' + e);
+      }
+    }
+
+    function copyInviteCode(code) {
+      navigator.clipboard.writeText(code).then(() => {
+        showAdminToast('📋 邀请码 ' + code + ' 已复制到剪贴板！');
+      });
+    }
+
+    async function deleteInviteCode(id) {
+      if (!confirm('确定要作废并彻底删除此邀请码吗？')) return;
+      try {
+        const res = await fetch(adminApiUrl('/api/admin/invitations/delete'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          showAdminToast('🗑️ 邀请码已成功作废删除！');
+          loadInvitations();
+        }
+      } catch (e) {
+        alert('删除失败: ' + e);
+      }
+    }
+
+    // 页面加载时自动加载邀请码列表
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(loadInvitations, 600);
+    });
+
+  
+    // =========================================================================
+    // 纯矢量 SVG 日间 / 夜间切换引擎 (0 Emoji)
+    // =========================================================================
+    const SVG_SUN = `<svg class="theme-svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>`;
+    const SVG_MOON = `<svg class="theme-svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#93c5fd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>`;
+
+    function initAdminTheme() {
+      const saved = localStorage.getItem('subflow_theme') || 'dark';
+      setAdminTheme(saved);
+    }
+
+    function toggleAdminTheme() {
+      const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+      setAdminTheme(isLight ? 'dark' : 'light');
+    }
+
+    function setAdminTheme(theme) {
+      const isDark = theme !== 'light';
+      const icon = document.getElementById('admin-theme-icon');
+      const text = document.getElementById('admin-theme-text');
+      if (!isDark) {
+        document.documentElement.setAttribute('data-theme', 'light');
+        if (icon) icon.innerHTML = SVG_MOON;
+        if (text) text.innerText = '夜间模式';
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+        if (icon) icon.innerHTML = SVG_SUN;
+        if (text) text.innerText = '日间模式';
+      }
+      try { localStorage.setItem('subflow_theme', theme); } catch(e) {}
+    }
+    document.addEventListener('DOMContentLoaded', initAdminTheme);
+
+    // =========================================================================
+    // 邀请码与定时邀请码高级管理
+    // =========================================================================
+    async function loadInvitations() {
+      try {
+        const res = await fetch(adminApiUrl('/api/admin/invitations/list'));
+        const data = await res.json();
+        if (data.ok) {
+          const chk = document.getElementById('admin-require-invite');
+          if (chk) chk.checked = data.require_invite_code;
+          const lbl = document.getElementById('require-invite-label');
+          if (lbl) lbl.innerText = data.require_invite_code ? '已强制开启注册邀请制' : '已关闭邀请制 (开放自由注册)';
+          renderInviteTable(data.invitations || []);
+        }
+      } catch (e) {
+        console.error('加载邀请码失败:', e);
+      }
+    }
+
+    function renderInviteTable(invs) {
+      const tbody = document.getElementById('admin-invite-tbody');
+      const countEl = document.getElementById('invite-total-count');
+      if (countEl) countEl.innerText = invs.length;
+      if (!tbody) return;
+      if (invs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:32px; color:var(--text-muted);">暂无邀请码，点击上方按钮即可一键签发！</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = invs.map(item => {
+        const isTime = item.invite_type === 'time';
+        const typeBadge = isTime 
+          ? '<span style="background:rgba(139,92,246,0.15); color:#a78bfa; padding:2px 8px; border-radius:4px; font-weight:700;">定时限时码</span>'
+          : '<span style="background:rgba(56,189,248,0.15); color:#38bdf8; padding:2px 8px; border-radius:4px; font-weight:700;">普通计次码</span>';
+        
+        let statusBadge = '';
+        if (isTime) {
+          if (item.is_expired) {
+            statusBadge = '<span style="background:rgba(239,68,68,0.15); color:#ef4444; padding:2px 8px; border-radius:4px; font-weight:700;">已过规定时间失效</span>';
+          } else {
+            const leftHours = Math.max(0, Math.round((item.expires_at - Date.now()/1000) / 3600));
+            statusBadge = `<span style="background:rgba(16,185,129,0.15); color:#10b981; padding:2px 8px; border-radius:4px; font-weight:700;">有效 (剩余约 ${leftHours} 小时)</span>`;
+          }
+        } else {
+          const isDepleted = item.used_count >= item.max_uses;
+          statusBadge = isDepleted
+            ? `<span style="background:rgba(239,68,68,0.15); color:#ef4444; padding:2px 8px; border-radius:4px; font-weight:700;">次数已用尽 (${item.used_count}/${item.max_uses})</span>`
+            : `<span style="background:rgba(16,185,129,0.15); color:#10b981; padding:2px 8px; border-radius:4px; font-weight:700;">可用 (${item.used_count}/${item.max_uses})</span>`;
+        }
+
+        return `
+          <tr style="border-bottom:1px solid var(--border-subtle);">
+            <td style="padding:12px; font-family:monospace; font-size:0.95rem; font-weight:700; color:var(--primary);">${item.code}</td>
+            <td style="padding:12px;">${typeBadge}</td>
+            <td style="padding:12px;">${statusBadge}</td>
+            <td style="padding:12px; color:var(--text-muted);">${item.note || '专属注册邀请码'}</td>
+            <td style="padding:12px; font-size:0.75rem; color:var(--text-muted);">${item.created_at}</td>
+            <td style="padding:12px; text-align:right;">
+              <button class="btn-outline" style="padding:3px 10px; font-size:0.75rem; margin-right:6px;" onclick="copyInviteCode('${item.code}')">复制</button>
+              <button class="btn-outline" style="padding:3px 10px; font-size:0.75rem; color:#ef4444; border-color:rgba(239,68,68,0.3);" onclick="deleteInviteCode(${item.id})">作废</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function toggleRequireInvite(enabled) {
+      try {
+        const res = await fetch(adminApiUrl('/api/admin/invitations/toggle-mode'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ require_invite: enabled })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          const lbl = document.getElementById('require-invite-label');
+          if (lbl) lbl.innerText = enabled ? '已强制开启注册邀请制' : '已关闭邀请制 (开放自由注册)';
+          showAdminToast(enabled ? '已开启邀请制：客户注册时必须填写有效邀请码！' : '已关闭邀请制：允许用户自由公开注册');
+        }
+      } catch (e) {
+        showAdminToast('切换失败: ' + e);
+      }
+    }
+
+    async function openCreateInviteModal(type) {
+      const isTime = type === 'time';
+      const note = prompt('请输入邀请码备注 (例如: 赠送给某某 / 规定时间活动):', isTime ? '限时有效注册码' : '单次有效邀请码');
+      if (note === null) return;
+
+      let validHours = 24;
+      let maxUses = 1;
+
+      if (isTime) {
+        const hoursStr = prompt('【定时邀请码】请设定有效时间 (单位: 小时，在此规定时间内均可注册，超时自动失效):', '24');
+        if (hoursStr === null) return;
+        validHours = parseFloat(hoursStr) || 24;
+      } else {
+        const usesStr = prompt('【普通计次码】请设定最大允许注册使用次数 (默认 1 次):', '1');
+        if (usesStr === null) return;
+        maxUses = parseInt(usesStr, 10) || 1;
+      }
+
+      try {
+        const res = await fetch(adminApiUrl('/api/admin/invitations/create'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ invite_type: type, note, max_uses: maxUses, valid_hours: validHours })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          showAdminToast('🎉 成功签发' + (isTime ? '【定时限时邀请码】' : '【普通计次邀请码】') + ': ' + data.code);
+          loadInvitations();
+        } else {
+          alert(data.error || '签发失败');
+        }
+      } catch (e) {
+        alert('网络请求异常: ' + e);
+      }
+    }
+
+    function copyInviteCode(code) {
+      navigator.clipboard.writeText(code).then(() => {
+        showAdminToast('📋 邀请码 ' + code + ' 已复制到剪贴板！');
+      });
+    }
+
+    async function deleteInviteCode(id) {
+      if (!confirm('确定要彻底作废并删除此邀请码吗？')) return;
+      try {
+        const res = await fetch(adminApiUrl('/api/admin/invitations/delete'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          showAdminToast('已成功作废该邀请码！');
+          loadInvitations();
+        }
+      } catch (e) {
+        alert('删除失败: ' + e);
+      }
+    }
+
+  </script>
+</body>
+
+</html>

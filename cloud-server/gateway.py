@@ -32,6 +32,7 @@ from country_enricher import has_country_info, enrich_node_name_fast, enrich_sub
 
 __version__ = "2.2.1"
 __product__ = "SubFlow Cloud Matrix"
+OFFICIAL_GIT_REPO = "https://github.com/Umbra-ye/SubFlow.git"
 
 # ==============================================================================
 # 1. 运行环境与路径初始化
@@ -939,7 +940,7 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
                 "is_git": is_git,
                 "git_commit": git_commit or "release",
                 "git_branch": git_branch or "main",
-                "git_repo": server_config.get("git_repo", "https://github.com/Umbra-ye/SubFlow.git"),
+                "git_repo": OFFICIAL_GIT_REPO,
                 "uptime": int(time.time() - START_TIME)
             })
             return
@@ -1052,6 +1053,89 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
             return
 
         # 7. 管理员专属 API: 仪表盘概览与用户列表 (/api/admin/overview & /api/admin/users)
+        
+        # 7.1 管理员专属 API: 邀请码管理列表 (/api/admin/invitations)
+        if path == "/api/admin/invitations":
+            user = self.get_current_user()
+            if not user or user["role"] != "admin":
+                self.send_json({"error": "Forbidden"}, code=403)
+                return
+            conn = get_db()
+            c = conn.cursor()
+            c.execute("SELECT id, code, invite_type, max_uses, used_count, expires_at, created_at, note FROM invitations ORDER BY id DESC;")
+            rows = c.fetchall()
+            conn.close()
+            self.send_json({
+                "ok": True,
+                "invitations": [dict(r) for r in rows],
+                "require_invite": server_config.get("require_invite_code", True)
+            })
+            return
+
+        # 7.2 物理数据库快照直接下载 (/api/admin/backup/download-db)
+        if path == "/api/admin/backup/download-db":
+            user = self.get_current_user()
+            if not user or user["role"] != "admin":
+                self.send_json({"error": "Forbidden"}, code=403)
+                return
+            if not os.path.exists(DB_FILE):
+                self.send_json({"error": "Database file not found"}, code=404)
+                return
+            try:
+                with open(DB_FILE, "rb") as f:
+                    db_bytes = f.read()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/x-sqlite3")
+                self.send_header("Content-Disposition", f'attachment; filename="subflow_{int(time.time())}.db"')
+                self.send_header("Content-Length", str(len(db_bytes)))
+                self.end_headers()
+                self.wfile.write(db_bytes)
+                return
+            except Exception as e:
+                self.send_json({"error": str(e)}, code=500)
+                return
+
+        # 7.3 结构化 JSON 资产全量脱敏导出 (/api/admin/backup/export-json)
+        if path == "/api/admin/backup/export-json":
+            user = self.get_current_user()
+            if not user or user["role"] != "admin":
+                self.send_json({"error": "Forbidden"}, code=403)
+                return
+            try:
+                conn = get_db()
+                c = conn.cursor()
+                c.execute("SELECT id, username, role, status, created_at FROM users;")
+                users_dump = [dict(r) for r in c.fetchall()]
+                c.execute("SELECT id, user_id, name, url, latency, node_count, rem_traffic, expire, status, updated_at FROM subscriptions;")
+                subs_dump = [dict(r) for r in c.fetchall()]
+                c.execute("SELECT id, code, invite_type, max_uses, used_count, expires_at, note FROM invitations;")
+                inv_dump = [dict(r) for r in c.fetchall()]
+                conn.close()
+                dump_data = {
+                    "app": "SubFlow",
+                    "version": __version__,
+                    "export_time": int(time.time()),
+                    "users": users_dump,
+                    "subscriptions": subs_dump,
+                    "invitations": inv_dump,
+                    "config": {
+                        "bound_domain": server_config.get("bound_domain", ""),
+                        "force_domain_redirect": server_config.get("force_domain_redirect", False),
+                        "require_invite_code": server_config.get("require_invite_code", True)
+                    }
+                }
+                out_bytes = json.dumps(dump_data, ensure_ascii=False, indent=2).encode('utf-8')
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Content-Disposition", f'attachment; filename="subflow_backup_{int(time.time())}.json"')
+                self.send_header("Content-Length", str(len(out_bytes)))
+                self.end_headers()
+                self.wfile.write(out_bytes)
+                return
+            except Exception as e:
+                self.send_json({"error": str(e)}, code=500)
+                return
+
         if path == "/api/admin/overview":
             user = self.get_current_user()
             if not user or user["role"] != "admin":

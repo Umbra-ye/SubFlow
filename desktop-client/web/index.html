@@ -8,18 +8,6 @@
   <meta http-equiv="Expires" content="0">
   <title>SubFlow v2.0 · 现代订阅流中心</title>
   <script>
-
-    // ⚡ 桌面客户端通信桥接: 将相对路径自动重定向至本地网关 127.0.0.1:25588
-    const CLIENT_LOCAL_GATEWAY = "http://127.0.0.1:25588";
-    const originalFetch = window.fetch;
-    window.fetch = function(url, options) {
-      if (typeof url === 'string' && url.startsWith('/')) {
-        url = CLIENT_LOCAL_GATEWAY + url;
-      }
-      return originalFetch.call(this, url, options);
-    };
-
-
     // 🌐 智能动态 BaseURL 解析引擎 (第一优先级：当前访问域名/IP；第二优先级：后台绑定域名)
     window.SUBFLOW_BOUND_DOMAIN = '';
     window.SUBFLOW_USER = null;
@@ -213,13 +201,14 @@
 
     /* 锁定等高卡片：登录与注册账号 100% 等大，绝无跳动 */
     .login-gate-card {
-      width: 420px;
+      width: 440px;
       max-width: 92vw;
-      height: 520px !important;
-      min-height: 520px !important;
-      max-height: 520px !important;
+      height: auto !important;
+      min-height: 480px !important;
+      max-height: 94vh !important;
+      overflow-y: auto !important;
       box-sizing: border-box !important;
-      padding: 34px 32px !important;
+      padding: 32px 28px !important;
       background: rgba(13, 20, 36, 0.88);
       backdrop-filter: blur(48px) saturate(220%);
       border: 1px solid rgba(255, 255, 255, 0.16);
@@ -2218,6 +2207,51 @@
       }
     }
 
+  
+    /* ==========================================================================
+       极简流体表单控件规范 (日间与夜间自适应，彻底杜绝刺眼纯白底色)
+       ========================================================================== */
+    .modern-input, textarea.modern-input, select.modern-input, input.modern-input {
+      background: rgba(13, 20, 36, 0.75) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      border-radius: var(--radius-md) !important;
+      color: #f8fafc !important;
+      font-family: inherit;
+      outline: none;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4) !important;
+    }
+    .modern-input:focus, textarea.modern-input:focus, select.modern-input:focus, input.modern-input:focus {
+      border-color: #38bdf8 !important;
+      background: rgba(15, 23, 42, 0.95) !important;
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2), inset 0 1px 2px rgba(0, 0, 0, 0.5) !important;
+    }
+    .modern-input option {
+      background: #0f172a !important;
+      color: #f8fafc !important;
+    }
+    [data-theme="light"] .modern-input,
+    [data-theme="light"] textarea.modern-input,
+    [data-theme="light"] select.modern-input,
+    [data-theme="light"] input.modern-input {
+      background: #f8fafc !important;
+      border: 1px solid #cbd5e1 !important;
+      color: #0f172a !important;
+      box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+    }
+    [data-theme="light"] .modern-input:focus,
+    [data-theme="light"] textarea.modern-input:focus,
+    [data-theme="light"] select.modern-input:focus,
+    [data-theme="light"] input.modern-input:focus {
+      background: #ffffff !important;
+      border-color: #2563eb !important;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
+    }
+    [data-theme="light"] .modern-input option {
+      background: #ffffff !important;
+      color: #0f172a !important;
+    }
+
   </style>
 </head>
 <body>
@@ -2243,7 +2277,7 @@
           ⚡
         </div>
         <h1 style="font-size: 1.35rem; font-weight: 800; letter-spacing: -0.02em; color: #ffffff !important; text-shadow: 0 2px 10px rgba(0,0,0,0.5);">SubFlow 订阅流 <span style="font-size:0.75rem; background:linear-gradient(135deg,#2563eb,#10b981); color:#fff; padding:2px 8px; border-radius:12px; font-weight:700; vertical-align:middle; margin-left:4px;">v2.2.1</span></h1>
-        <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 6px;">跨平台流体订阅转换平台 · 请登录后继续</p>
+        <p id="gate-subtitle-txt" style="font-size:0.8rem; color:var(--text-muted); margin-top:6px;">跨平台流体订阅转换平台 · 请登录后继续</p>
       </div>
 
       <!-- 选项卡切换: 登录 / 注册 -->
@@ -2261,7 +2295,7 @@
       <div id="gate-alert-box" style="display:none; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.3); border-radius:8px; padding:10px 14px; font-size:0.8rem; color:#fca5a5; margin-bottom:14px;"></div>
 
       <!-- 表单区域 (自然紧凑流体布局) -->
-      <form id="gate-form" onsubmit="submitGateAuth(event)" style="display:flex; flex-direction:column; gap:14px;">
+      <form id="gate-form" style="display:flex; flex-direction:column; gap:14px; margin-bottom:12px;" onsubmit="submitGateAuth(event)" style="display:flex; flex-direction:column; gap:14px;">
         <div class="gate-fields-wrap" style="display:flex; flex-direction:column; gap:14px;">
           <div class="form-group">
             <label style="display:block; font-size:0.8rem; color:var(--text-secondary); margin-bottom:6px; font-weight:600;">用户名 / 账号</label>
@@ -2615,6 +2649,7 @@
 
         
 
+        <div id="history-stream" class="history-stream" style="display:flex; flex-direction:column; gap:12px; margin: 16px 0; min-height: 40px;"></div>
         <div id="sync-desc-text" style="text-align:center; font-size:0.76rem; color:var(--text-secondary); line-height:1.5;">
           支持手机相机 / 🍏 小火箭 (Shadowrocket) / 🤖 v2rayNG / ⚡ Clash<br>
           <span id="sync-highlight-text" style="color:#38bdf8; font-weight:600;">手机与电脑连入同一 WiFi 即可全自动拉取自适应配置！</span>
@@ -4857,30 +4892,46 @@
 
     
     // 动态探测云端是否开启邀请制
-    async function checkSiteInviteConfig() {
-      try {
-        const res = await fetch(apiUrl('/api/auth/site-config'));
-        const data = await res.json();
-        window.REQUIRE_INVITE = !!data.require_invite;
+    
+      // 动态探测云端是否开启邀请制并联动前台 UI
+      async function checkSiteInviteConfig() {
+        try {
+          const res = await fetch(apiUrl('/api/auth/site-config'));
+          const data = await res.json();
+          window.REQUIRE_INVITE = !!data.require_invite;
+        } catch (e) {
+          window.REQUIRE_INVITE = true;
+        }
         updateInviteInputVisibility();
-      } catch (e) {
-        window.REQUIRE_INVITE = true;
       }
-    }
 
-    function updateInviteInputVisibility() {
-      const invGroup = document.getElementById('gate-invite-group');
-      if (!invGroup) return;
-      if (gateAuthMode === 'register' && window.REQUIRE_INVITE) {
-        invGroup.style.display = 'block';
-      } else {
-        invGroup.style.display = 'none';
+      function updateInviteInputVisibility() {
+        const invGroup = document.getElementById('gate-invite-group');
+        const subtitleEl = document.getElementById('gate-subtitle-txt');
+        const inviteInput = document.getElementById('gate-invite-code');
+
+        if (gateAuthMode === 'register') {
+          if (window.REQUIRE_INVITE) {
+            if (invGroup) invGroup.style.display = 'block';
+            if (inviteInput) inviteInput.required = true;
+            if (subtitleEl) subtitleEl.innerHTML = '🔐 <span style="color:#60a5fa; font-weight:600;">私有邀请制平台</span> · 需凭邀请码注册';
+          } else {
+            if (invGroup) invGroup.style.display = 'none';
+            if (inviteInput) inviteInput.required = false;
+            if (subtitleEl) subtitleEl.innerHTML = '🌐 <span style="color:#34d399; font-weight:600;">开放注册平台</span> · 创建账号后即可使用';
+          }
+        } else {
+          if (invGroup) invGroup.style.display = 'none';
+          if (inviteInput) inviteInput.required = false;
+          if (subtitleEl) subtitleEl.innerText = '跨平台流体订阅转换平台 · 请登录后继续';
+        }
       }
-    }
+
 
     document.addEventListener('DOMContentLoaded', checkSiteInviteConfig);
 
     function switchGateTab(tab) {
+      gateAuthMode = tab;
       gateAuthMode = tab;
       const btnLogin = document.getElementById('tab-gate-login');
       const btnReg = document.getElementById('tab-gate-register');

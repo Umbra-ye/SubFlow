@@ -102,8 +102,8 @@ def collect_clean_files(root_dir):
             filepath = os.path.join(dirpath, fn)
             relpath = os.path.relpath(filepath, root_dir).replace("\\", "/")
             
-            # 排除历史中间补丁与临时工具脚本 (保持开源仓库整洁)
-            if relpath.startswith("tools/") and relpath.endswith(".js"):
+            # 排除历史中间补丁与临时工具脚本 (保持开源仓库整洁，仅保留部署与推送工具)
+            if relpath.startswith("tools/") and relpath not in ["tools/deploy_to_cloud.py", "tools/push_to_github.py"]:
                 continue
             
             # 单文件大小限制 (GitHub 单文件一般 < 50MB，跳过 cloudflared 等超大临时文件)

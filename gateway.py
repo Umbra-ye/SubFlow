@@ -28,6 +28,7 @@ import urllib.error
 import urllib.parse
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
+from country_enricher import has_country_info, enrich_node_name_fast, enrich_subscription_payload, batch_resolve_geoip_fast, COUNTRY_KEYWORDS
 
 __version__ = "2.0.0"
 __product__ = "SubFlow Cloud Matrix"
@@ -54,7 +55,8 @@ CORE_URL = "http://127.0.0.1:25500"
 
 for arg in sys.argv[1:]:
     if arg.startswith("--mode="):
-        RUN_MODE = arg.split("=", 1)[1].strip().lower()
+        _m = arg.split("=", 1)[1].strip().lower()
+        RUN_MODE = "local" if _m in ["local", "desktop"] else _m
     elif arg.startswith("--port="):
         try:
             LISTEN_PORT = int(arg.split("=", 1)[1].strip())
@@ -486,9 +488,9 @@ class NativeSubEngine:
     @staticmethod
     def fetch_upstream(url: str, client_ua: str = ''):
         uas = [
-            'mihomo/1.18.1',
-            'clash.meta',
             'ClashMeta',
+            'clash.meta',
+            'mihomo/1.18.1',
             'Shadowrocket/2.2.35',
             'sing-box/1.9.0',
             'v2rayN/6.23',
@@ -509,7 +511,8 @@ class NativeSubEngine:
                     data = resp.read().decode('utf-8', errors='ignore')
                     if NativeSubEngine.is_invalid_upstream_response(data):
                         continue
-                    return data, resp.headers.get('Subscription-Userinfo', '')
+                    uinfo = resp.headers.get('Subscription-Userinfo') or resp.headers.get('subscription-userinfo') or ''
+                    return data, uinfo
             except Exception:
                 continue
         return None, None
@@ -1457,6 +1460,56 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
             return
 
         
+                # 11.1 管理员修改自身账密 (/api/admin/change-credentials)
+        if path == "/api/admin/change-credentials":
+            user = self.get_current_user()
+            if not user or user["role"] != "admin":
+                self.send_json({"error": "Forbidden: Requires admin privileges"}, code=403)
+                return
+            new_username = body.get("new_username", "").strip()
+            new_password = body.get("new_password", "").strip()
+
+            if not new_username and not new_password:
+                self.send_json({"error": "新账号与新密码不能同时为空"}, code=400)
+                return
+
+            with db_lock:
+                conn = get_db()
+                c = conn.cursor()
+                if new_username:
+                    if len(new_username) < 3:
+                        conn.close()
+                        self.send_json({"error": "账号名称至少 3 个字符"}, code=400)
+                        return
+                    c.execute("SELECT id FROM users WHERE username = ? AND id != ?;", (new_username, user["id"]))
+                    if c.fetchone():
+                        conn.close()
+                        self.send_json({"error": "该账号已被占用，请使用其他账号名"}, code=400)
+                        return
+                    c.execute("UPDATE users SET username = ? WHERE id = ?;", (new_username, user["id"]))
+
+                if new_password:
+                    if len(new_password) < 6:
+                        conn.close()
+                        self.send_json({"error": "新密码至少 6 个字符"}, code=400)
+                        return
+                    new_hash, new_salt = hash_password(new_password)
+                    c.execute("UPDATE users SET password_hash = ?, salt = ? WHERE id = ?;", (new_hash, new_salt, user["id"]))
+
+                conn.commit()
+                c.execute("SELECT id, username, role FROM users WHERE id = ?;", (user["id"],))
+                updated_row = c.fetchone()
+                conn.close()
+
+            new_token = generate_jwt(updated_row["id"], updated_row["username"], updated_row["role"])
+            self.send_json({
+                "ok": True,
+                "message": "管理员账号与密码已成功更新",
+                "token": new_token,
+                "username": updated_row["username"]
+            })
+            return
+
         # 11. 管理员为用户重设密码 (/api/admin/users/reset-password)
         if path == "/api/admin/users/reset-password":
             user = self.get_current_user()
@@ -1798,6 +1851,7 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
                 req.add_header("User-Agent", self.headers["User-Agent"])
             with urllib.request.urlopen(req, timeout=25) as resp:
                 data = resp.read()
+                data = enrich_subscription_payload(data, target_format)
                 # 校验核心返回内容是否包含假节点或拦截页
                 if NativeSubEngine.is_invalid_upstream_response(data.decode('utf-8', errors='ignore')):
                     raise ValueError("C++ core returned dummy node or intercepted payload")
@@ -1833,6 +1887,7 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
             try:
                 native_data, native_mime, native_uinfo = NativeSubEngine.convert(source_urls, target_format, client_ua)
                 if native_data:
+                    native_data = enrich_subscription_payload(native_data, target_format)
                     try:
                         with open(snapshot_file, "wb") as f:
                             f.write(native_data)
@@ -1852,6 +1907,7 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
                         self.send_header("Subscription-Userinfo", native_uinfo)
                     self.send_header("profile-update-interval", "24")
                     self.send_header("Access-Control-Allow-Origin", "*")
+                    self.send_header("Access-Control-Expose-Headers", "Subscription-Userinfo, profile-update-interval, Content-Disposition")
                     self.send_header("X-SubFlow-Engine", "Native-Lossless-Converter")
                     self.end_headers()
                     self.wfile.write(native_data)
@@ -1864,6 +1920,7 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
                 try:
                     with open(snapshot_file, "rb") as f:
                         cached_data = f.read()
+                        cached_data = enrich_subscription_payload(cached_data, target_format)
                     self.send_response(200)
                     self.send_header("Content-Type", "text/plain; charset=utf-8")
                     self.send_header("X-SubFlow-Fallback", "true")

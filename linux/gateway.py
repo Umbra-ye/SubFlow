@@ -32,9 +32,7 @@ from socketserver import ThreadingMixIn
 __version__ = "2.0.0"
 __product__ = "SubFlow Cloud Matrix"
 
-# ==============================================================================
-# 1. 运行环境与路径初始化
-# ==============================================================================
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 CACHE_DIR = os.path.join(DATA_DIR, "cache")
@@ -162,41 +160,10 @@ db_lock = threading.Lock()
 def get_db():
     conn = sqlite3.connect(DB_FILE, check_same_thread=False)
     conn.row_factory = sqlite3.Row
-    try:
-        conn.execute("PRAGMA journal_mode=WAL;")
-        conn.execute("PRAGMA synchronous=NORMAL;")
-    except Exception:
-        pass
     return conn
-
-def ensure_column(conn, table, column, col_def):
-    """自动平滑增量迁移字段，无论新旧版本永不报 no such column"""
-    try:
-        c = conn.cursor()
-        c.execute(f"PRAGMA table_info({table});")
-        existing_cols = [row["name"] for row in c.fetchall()]
-        if column not in existing_cols:
-            c.execute(f"ALTER TABLE {table} ADD COLUMN {column} {col_def};")
-            conn.commit()
-    except Exception:
-        pass
 
 def init_database():
     with db_lock:
-        # 工业级冷备份兜底: 每次服务启动自动在 data/backups 下创建物理快照
-        try:
-            backup_dir = os.path.join(DATA_DIR, "backups")
-            if not os.path.exists(backup_dir):
-                os.makedirs(backup_dir, exist_ok=True)
-            if os.path.exists(DB_FILE) and os.path.getsize(DB_FILE) > 0:
-                today_tag = time.strftime("%Y%m%d")
-                today_bak = os.path.join(backup_dir, f"subflow_auto_{today_tag}.db")
-                if not os.path.exists(today_bak):
-                    import shutil
-                    shutil.copy2(DB_FILE, today_bak)
-        except Exception:
-            pass
-
         conn = get_db()
         c = conn.cursor()
         c.execute("""
@@ -239,12 +206,6 @@ def init_database():
         c.execute("CREATE INDEX IF NOT EXISTS idx_user_token ON users(user_token);")
         c.execute("CREATE INDEX IF NOT EXISTS idx_guest_token ON guest_tokens(token);")
 
-        # 确保关键迁移字段存在 (版本平滑升级自愈)
-        ensure_column(conn, "users", "salt", "VARCHAR(32) DEFAULT ''")
-        ensure_column(conn, "users", "role", "VARCHAR(10) DEFAULT 'user'")
-        ensure_column(conn, "users", "status", "VARCHAR(10) DEFAULT 'active'")
-        ensure_column(conn, "subscriptions", "target_format", "VARCHAR(20) DEFAULT 'clash'")
-
         # 默认初始化管理员 (admin / admin123456)
         c.execute("SELECT id FROM users WHERE role = 'admin' LIMIT 1;")
         admin_row = c.fetchone()
@@ -274,7 +235,7 @@ def load_server_config():
         "allow_public_register": True,
         "announcement": "",
         "close_to_tray": True,
-        "captcha_mode": "off",
+        "captcha_mode": "internal",
         "turnstile_site_key": "",
         "turnstile_secret_key": ""
     }
@@ -435,9 +396,11 @@ def verify_challenge_solution(cid: str, ip: str, client_data: dict):
         return True, ticket
 
 def consume_captcha_ticket(ticket: str, ip: str) -> bool:
-    mode = server_config.get("captcha_mode", "off")
-    if mode in ["off", "internal"] or not ticket:
+    mode = server_config.get("captcha_mode", "internal")
+    if mode == "off":
         return True
+    if not ticket:
+        return False
     clean_expired_challenges()
     with challenge_lock:
         rec = active_challenges.get(ticket)
@@ -447,18 +410,201 @@ def consume_captcha_ticket(ticket: str, ip: str) -> bool:
         return True
 
 # ==============================================================================
-# 5.2 现代协议智能原生转换引擎 (Native Lossless Converter Engine)
-# 1:1 复刻 C# 客户端的高性能自适应解析机制，彻底解决 VLESS 节点转换与 Cloudflare 拦截
+# 6. HTTP 多线程请求处理器 (BaseHTTPRequestHandler)
 # ==============================================================================
+
+# ==============================================================================
+# 🌐 GeoIP 智能地理归属地引擎 (高并发异步查询 + SQLite 持久化秒级缓存)
+# ==============================================================================
+_GEOIP_MEM_CACHE = {}
+
+COUNTRY_CODE_MAP = {
+    'HK': ('🇭🇰', '香港'),
+    'TW': ('🇨🇳', '台湾'),
+    'MO': ('🇲🇴', '澳门'),
+    'JP': ('🇯🇵', '日本'),
+    'KR': ('🇰🇷', '韩国'),
+    'SG': ('🇸🇬', '新加坡'),
+    'US': ('🇺🇸', '美国'),
+    'CA': ('🇨🇦', '加拿大'),
+    'GB': ('🇬🇧', '英国'),
+    'UK': ('🇬🇧', '英国'),
+    'DE': ('🇩🇪', '德国'),
+    'FR': ('🇫🇷', '法国'),
+    'RU': ('🇷🇺', '俄罗斯'),
+    'NL': ('🇳🇱', '荷兰'),
+    'AU': ('🇦🇺', '澳大利亚'),
+    'IN': ('🇮🇳', '印度'),
+    'MY': ('🇲🇾', '马来西亚'),
+    'TH': ('🇹🇭', '泰国'),
+    'VN': ('🇻🇳', '越南'),
+    'PH': ('🇵🇭', '菲律宾'),
+    'ID': ('🇮🇩', '印尼'),
+    'TR': ('🇹🇷', '土耳其'),
+    'BR': ('🇧🇷', '巴西'),
+    'AR': ('🇦🇷', '阿根廷'),
+    'IT': ('🇮🇹', '意大利'),
+    'ES': ('🇪🇸', '西班牙'),
+    'CH': ('🇨🇭', '瑞士'),
+    'SE': ('🇸🇪', '瑞典'),
+    'NO': ('🇳🇴', '挪威'),
+    'FI': ('🇫🇮', '芬兰'),
+    'PL': ('🇵🇱', '波兰'),
+    'UA': ('🇺🇦', '乌克兰'),
+    'ZA': ('🇿🇦', '南非'),
+}
+
+COUNTRY_KEYWORDS = [
+    '🇭🇰', '🇨🇳', '🇯🇵', '🇰🇷', '🇸🇬', '🇺🇸', '🇨🇦', '🇬🇧', '🇩🇪', '🇫🇷', '🇦🇺',
+    '香港', '台湾', '日本', '韩国', '新加坡', '美国', '加拿大', '英国', '德国', '法国',
+    '澳大利亚', '澳洲', '俄罗斯', '荷兰', '印度', '马来西亚', '泰国', '专线', 'IEPL', 'IPLC',
+    '广港', '沪日', '京德', '深港', '沪韩'
+]
+
+def init_geoip_db():
+    try:
+        con = get_db()
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS geoip_cache (
+                ip TEXT PRIMARY KEY,
+                flag TEXT,
+                country_name TEXT,
+                updated_at INTEGER
+            );
+        """)
+        con.commit()
+        con.close()
+    except Exception:
+        pass
+
+def batch_resolve_geoip(ips: list) -> dict:
+    """批量高效解析 IP 归属地，优先查内存与 SQLite，未命中才并发查询"""
+    init_geoip_db()
+    result = {}
+    missing_ips = set()
+
+    # 1. 查内存
+    for ip in ips:
+        if not ip or ip in ['127.0.0.1', 'localhost', '::1']:
+            continue
+        if ip in _GEOIP_MEM_CACHE:
+            result[ip] = _GEOIP_MEM_CACHE[ip]
+        else:
+            missing_ips.add(ip)
+
+    # 2. 查 SQLite
+    if missing_ips:
+        try:
+            con = get_db()
+            c = con.cursor()
+            placeholders = ','.join(['?'] * len(missing_ips))
+            c.execute(f"SELECT ip, flag, country_name FROM geoip_cache WHERE ip IN ({placeholders})", list(missing_ips))
+            rows = c.fetchall()
+            con.close()
+            for r in rows:
+                val = (r['flag'], r['country_name'])
+                result[r['ip']] = val
+                _GEOIP_MEM_CACHE[r['ip']] = val
+                missing_ips.discard(r['ip'])
+        except Exception:
+            pass
+
+    # 3. 对仍然缺失的 IP 进行并发请求 (限时 1.8 秒防阻塞)
+    if missing_ips:
+        def fetch_single(target_ip):
+            # 域名特判
+            low_host = target_ip.lower()
+            for code, (fl, cn) in COUNTRY_CODE_MAP.items():
+                if f"-{code.lower()}." in low_host or f".{code.lower()}." in low_host or low_host.startswith(f"{code.lower()}."):
+                    return target_ip, fl, cn
+            try:
+                url = f"http://ip-api.com/json/{target_ip}?fields=countryCode"
+                req = urllib.request.Request(url, headers={'User-Agent': 'curl/7.88'})
+                with urllib.request.urlopen(req, timeout=1.5) as resp:
+                    data = json.loads(resp.read().decode('utf-8'))
+                    cc = data.get('countryCode', '')
+                    if cc in COUNTRY_CODE_MAP:
+                        fl, cn = COUNTRY_CODE_MAP[cc]
+                        return target_ip, fl, cn
+            except Exception:
+                pass
+            # Cloudflare Anycast 网段兜底
+            if any(target_ip.startswith(cf) for cf in ['172.64.', '104.19.', '104.17.', '104.20.']):
+                return target_ip, '🇨🇦', '加拿大'
+            return target_ip, '🇺🇸', '美国'
+
+        new_entries = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+            for tip, fl, cn in executor.map(fetch_single, list(missing_ips)):
+                val = (fl, cn)
+                result[tip] = val
+                _GEOIP_MEM_CACHE[tip] = val
+                new_entries.append((tip, fl, cn, int(time.time())))
+
+        # 写入 SQLite
+        if new_entries:
+            try:
+                con = get_db()
+                con.executemany("INSERT OR REPLACE INTO geoip_cache (ip, flag, country_name, updated_at) VALUES (?, ?, ?, ?)", new_entries)
+                con.commit()
+                con.close()
+            except Exception:
+                pass
+
+    return result
+
+def enrich_node_name_fast(orig_name: str, host: str, geo_map: dict) -> str:
+    if not orig_name: orig_name = "Node"
+    orig_name = orig_name.strip()
+    if any(k in orig_name for k in COUNTRY_KEYWORDS):
+        return orig_name
+    flag, cname = geo_map.get(host, ('🇺🇸', '美国'))
+    return f"{flag} {cname} | {orig_name}"
+
 class NativeSubEngine:
+    @staticmethod
+    def is_invalid_upstream_response(data: str) -> bool:
+        if not data or len(data.strip()) < 15:
+            return True
+        low = data[:500].lower()
+        if '<html' in low or '<!doctype' in low or '<head' in low:
+            return True
+        bad_keywords = [
+            '\u4e0d\u652f\u6301\u6b64\u5ba2\u6237\u7aef',
+            'unsupported-client',
+            'unsupported client',
+            '\u8bf7\u524d\u5f80\u5b98\u7f51',
+            '\u8bf7\u66f4\u65b0\u5ba2\u6237\u7aef',
+            '\u5ba2\u6237\u7aef\u7248\u672c\u8fc7\u4f4e',
+            'token invalid'
+        ]
+        if any(kw in data for kw in bad_keywords):
+            return True
+        if '127.0.0.1:1' in data or '127.0.0.1:8888' in data:
+            return True
+        try:
+            b64_str = data.strip()
+            missing = len(b64_str) % 4
+            if missing:
+                b64_str += '=' * (4 - missing)
+            decoded = base64.b64decode(b64_str).decode('utf-8', errors='ignore')
+            if any(kw in decoded for kw in bad_keywords) or '127.0.0.1:1' in decoded:
+                return True
+        except Exception:
+            pass
+        return False
+
     @staticmethod
     def fetch_upstream(url: str, client_ua: str = ''):
         uas = [
-            'clash.meta',
-            'QuantumultX',
-            'v2rayN/6.23',
             'ClashMeta',
-            'Shadowrocket/1982 CFNetwork/1410.0.3 Darwin/22.6.0',
+            'clash.meta',
+            'mihomo/1.18.1',
+            'Shadowrocket/2.2.35',
+            'sing-box/1.9.0',
+            'v2rayN/6.23',
+            'Quantumult%20X/1.0.30',
+            'Surge/4.0.0',
             'curl/7.88.1'
         ]
         if client_ua and client_ua not in uas:
@@ -467,13 +613,15 @@ class NativeSubEngine:
         for ua in uas:
             try:
                 req = urllib.request.Request(url, headers={'User-Agent': ua})
-                with urllib.request.urlopen(req, timeout=10) as resp:
+                ctx = ssl.create_default_context()
+                ctx.check_hostname = False
+                ctx.verify_mode = ssl.CERT_NONE
+                with urllib.request.urlopen(req, timeout=12, context=ctx) as resp:
                     data = resp.read().decode('utf-8', errors='ignore')
-                    # 严密过滤任何网页/重定向/Cloudflare盾页面
-                    if '<html' in data[:400].lower() or '<!doctype' in data[:400].lower():
+                    if NativeSubEngine.is_invalid_upstream_response(data):
                         continue
-                    if len(data.strip()) > 10:
-                        return data, resp.headers.get('Subscription-Userinfo', '')
+                    uinfo = resp.headers.get('Subscription-Userinfo') or resp.headers.get('subscription-userinfo') or ''
+                    return data, uinfo
             except Exception:
                 continue
         return None, None
@@ -492,6 +640,7 @@ class NativeSubEngine:
         if '#' in rest:
             rest, name_part = rest.split('#', 1)
             name = urllib.parse.unquote(name_part).strip()
+        name = enrich_node_name(name, host)
         query = {}
         if '?' in rest:
             rest, q_part = rest.split('?', 1)
@@ -530,16 +679,23 @@ class NativeSubEngine:
             ws_opts = {'path': path}
             if host_header: ws_opts['headers'] = {'Host': host_header}
             proxy['ws-opts'] = ws_opts
-        return proxy, line
+        return proxy, line, name, host, rest
 
     @staticmethod
     @staticmethod
-    def parse_yaml_proxy(line: str):
+    @staticmethod
+    def parse_yaml_proxy(line: str, geo_map: dict = None):
         try:
-            name_m = re.search(r'name:\s*["\']?([^"\',}]+)["\']?', line)
-            name = name_m.group(1).strip() if name_m else "Node"
             server_m = re.search(r'server:\s*([^\s,}]+)', line)
             server = server_m.group(1).strip() if server_m else ""
+
+            name_m = re.search(r'(?<![a-zA-Z0-9_-])name:\s*["']?([^"',}]+)["']?', line)
+            raw_name = name_m.group(1).strip() if name_m else "Node"
+            if geo_map:
+                enriched_name = enrich_node_name_fast(raw_name, server, geo_map)
+            else:
+                enriched_name = enrich_node_name(raw_name, server)
+
             port_m = re.search(r'port:\s*([0-9]+)', line)
             port = int(port_m.group(1)) if port_m else 443
             uuid_m = re.search(r'(?:uuid|password):\s*([^\s,}]+)', line)
@@ -551,33 +707,34 @@ class NativeSubEngine:
             fp_m = re.search(r'client-fingerprint:\s*([^\s,}]+)', line)
             fp = fp_m.group(1).strip() if fp_m else "chrome"
 
+            # 精准替换节点名称，绝对不误伤 servername
+            new_line = re.sub(r'(?<![a-zA-Z0-9_-])name:\s*["']?[^"',}]+["']?', f'name: "{enriched_name}"', line)
+
             share_link = ""
             if p_type == 'anytls' and server and uuid:
-                # 1:1 对齐 Windows C# 本地版 SubConverterApp.cs 第 1471 行
-                share_link = f"anytls://{uuid}@{server}:{port}?type=tcp&fp={fp}&security=tls&sni={sni}&alpn=h2,http/1.1&allowInsecure=1&insecure=1&udp=1&tfo=0#{urllib.parse.quote(name)}"
+                share_link = f"anytls://{uuid}@{server}:{port}?type=tcp&fp={fp}&security=tls&sni={sni}&alpn=h2,http/1.1&allowInsecure=1&insecure=1&udp=1&tfo=0#{urllib.parse.quote(enriched_name)}"
             elif p_type == 'hysteria2' and server and uuid:
-                share_link = f"hysteria2://{uuid}@{server}:{port}/?sni={sni}#{urllib.parse.quote(name)}"
+                share_link = f"hysteria2://{uuid}@{server}:{port}/?sni={sni}#{urllib.parse.quote(enriched_name)}"
             elif p_type == 'trojan' and server and uuid:
-                share_link = f"trojan://{uuid}@{server}:{port}?security=tls&sni={sni}#{urllib.parse.quote(name)}"
+                share_link = f"trojan://{uuid}@{server}:{port}?security=tls&sni={sni}#{urllib.parse.quote(enriched_name)}"
             elif p_type == 'vless' and server and uuid:
                 host_m = re.search(r'Host:\s*([^\s,}]+)', line) or re.search(r'host:\s*([^\s,}]+)', line)
                 host = host_m.group(1).strip() if host_m else sni
-                path_m = re.search(r'path:\s*["\']?([^"\',}]+)["\']?', line)
+                path_m = re.search(r'path:\s*["']?([^"',}]+)["']?', line)
                 path = path_m.group(1).strip() if path_m else "/"
                 net_m = re.search(r'network:\s*([^\s,}]+)', line)
                 net = net_m.group(1).strip() if net_m else "tcp"
                 tls = "tls" if ("tls: true" in line or "security: tls" in line) else "none"
-                share_link = f"vless://{uuid}@{server}:{port}?type={net}&security={tls}&path={urllib.parse.quote(path)}&host={host}&sni={sni}&fp={fp}#{urllib.parse.quote(name)}"
+                share_link = f"vless://{uuid}@{server}:{port}?type={net}&security={tls}&path={urllib.parse.quote(path)}&host={host}&sni={sni}&fp={fp}#{urllib.parse.quote(enriched_name)}"
             elif p_type == 'ss' and server and uuid:
                 cipher_m = re.search(r'cipher:\s*([^\s,}]+)', line)
                 cipher = cipher_m.group(1).strip() if cipher_m else "aes-256-gcm"
                 auth = base64.b64encode(f"{cipher}:{uuid}".encode('utf-8')).decode('utf-8')
-                share_link = f"ss://{auth}@{server}:{port}#{urllib.parse.quote(name)}"
-            return line.strip(), share_link, name
+                share_link = f"ss://{auth}@{server}:{port}#{urllib.parse.quote(enriched_name)}"
+            return new_line.strip(), share_link, enriched_name
         except Exception:
             return None, "", ""
 
-    @classmethod
     def convert(cls, source_urls, target_format='clash', client_ua=''):
         all_yaml_proxies = []
         all_share_links = []
@@ -601,10 +758,17 @@ class NativeSubEngine:
             # Case A: Already Clash YAML with proxies
             if 'proxies:' in raw or 'proxy-groups:' in raw:
                 matches = re.findall(r'-\s*\{[^\n]+\}', raw)
+                hosts_to_resolve = set()
                 for m in matches:
-                    if any(bad in m for bad in ['剩余流量', '套餐到期', '官网', '通知', '过期时间']):
+                    sm = re.search(r'server:\s*([^\s,}]+)', m)
+                    if sm:
+                        hosts_to_resolve.add(sm.group(1).strip())
+                geo_map = batch_resolve_geoip(list(hosts_to_resolve))
+
+                for m in matches:
+                    if any(bad in m for bad in ['剩余流量', '套餐到期', '重置', '通知', '过期时间']):
                         continue
-                    y_line, s_link, n_name = cls.parse_yaml_proxy(m)
+                    y_line, s_link, n_name = cls.parse_yaml_proxy(m, geo_map)
                     if y_line:
                         all_yaml_proxies.append(y_line)
                         if s_link: all_share_links.append(s_link)
@@ -622,17 +786,32 @@ class NativeSubEngine:
             except Exception:
                 text_lines = [l.strip() for l in raw.splitlines() if l.strip()]
 
+            # 预提取所有节点 IP 并进行批量并发 GeoIP 识别
+            parsed_vless_list = []
+            hosts_to_resolve = set()
             for line in text_lines:
                 if line.startswith('vless://') or line.startswith('anytls://'):
                     res = cls.parse_vless_share(line)
                     if res:
-                        p_dict, orig_link = res
-                        p_json = json.dumps(p_dict, ensure_ascii=False)
-                        all_yaml_proxies.append(f"- {p_json}")
-                        all_share_links.append(orig_link)
-                        all_names.append(p_dict['name'])
+                        p_dict, orig_link, n_name, s_host, s_rest = res
+                        parsed_vless_list.append((p_dict, orig_link, n_name, s_host, s_rest))
+                        hosts_to_resolve.add(s_host)
                 elif line.startswith('vmess://') or line.startswith('ss://') or line.startswith('trojan://') or line.startswith('hysteria2://') or line.startswith('hy2://') or line.startswith('tuic://'):
                     all_share_links.append(line)
+
+            # 批量解析 IP 归属地 (带缓存)
+            geo_map = batch_resolve_geoip(list(hosts_to_resolve))
+
+            for p_dict, orig_link, n_name, s_host, s_rest in parsed_vless_list:
+                enriched_name = enrich_node_name_fast(n_name, s_host, geo_map)
+                p_dict['name'] = enriched_name
+                p_json = json.dumps(p_dict, ensure_ascii=False)
+                all_yaml_proxies.append(f"- {p_json}")
+                all_names.append(enriched_name)
+                # 重新构建带国家国旗的分享链接 (供 v2rayN 等客户端直接显示)
+                proto_prefix = 'vless://' if orig_link.startswith('vless://') else 'anytls://'
+                rebuilt_link = f"{proto_prefix}{s_rest}#{urllib.parse.quote(enriched_name)}"
+                all_share_links.append(rebuilt_link)
 
         if not all_yaml_proxies and not all_share_links:
             return None, None, ''
@@ -1190,7 +1369,7 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
             password = body.get("password", "").strip()
             conn = get_db()
             c = conn.cursor()
-            c.execute("SELECT id, username, password_hash, salt, role, status FROM users WHERE username = ?;", (username,))
+            c.execute("SELECT id, username, password_hash, salt, role, status, user_token FROM users WHERE username = ?;", (username,))
             user_row = c.fetchone()
             conn.close()
             if not user_row or not verify_password(password, user_row["password_hash"], user_row["salt"]):
@@ -1217,7 +1396,7 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
                 "ok": True,
                 "token": session_token,
                 "session_token": session_token,
-                "user": {"id": user_row["id"], "username": user_row["username"], "role": user_row["role"]}
+                "user": {"id": user_row["id"], "username": user_row["username"], "role": user_row["role"], "token": user_row["user_token"] or ""}
             }, ensure_ascii=False).encode('utf-8')
             self.send_header("Content-Length", str(len(resp_body)))
             self.end_headers()
@@ -1421,6 +1600,56 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
             return
 
         
+                # 11.1 管理员修改自身账密 (/api/admin/change-credentials)
+        if path == "/api/admin/change-credentials":
+            user = self.get_current_user()
+            if not user or user["role"] != "admin":
+                self.send_json({"error": "Forbidden: Requires admin privileges"}, code=403)
+                return
+            new_username = body.get("new_username", "").strip()
+            new_password = body.get("new_password", "").strip()
+
+            if not new_username and not new_password:
+                self.send_json({"error": "新账号与新密码不能同时为空"}, code=400)
+                return
+
+            with db_lock:
+                conn = get_db()
+                c = conn.cursor()
+                if new_username:
+                    if len(new_username) < 3:
+                        conn.close()
+                        self.send_json({"error": "账号名称至少 3 个字符"}, code=400)
+                        return
+                    c.execute("SELECT id FROM users WHERE username = ? AND id != ?;", (new_username, user["id"]))
+                    if c.fetchone():
+                        conn.close()
+                        self.send_json({"error": "该账号已被占用，请使用其他账号名"}, code=400)
+                        return
+                    c.execute("UPDATE users SET username = ? WHERE id = ?;", (new_username, user["id"]))
+
+                if new_password:
+                    if len(new_password) < 6:
+                        conn.close()
+                        self.send_json({"error": "新密码至少 6 个字符"}, code=400)
+                        return
+                    new_hash, new_salt = hash_password(new_password)
+                    c.execute("UPDATE users SET password_hash = ?, salt = ? WHERE id = ?;", (new_hash, new_salt, user["id"]))
+
+                conn.commit()
+                c.execute("SELECT id, username, role FROM users WHERE id = ?;", (user["id"],))
+                updated_row = c.fetchone()
+                conn.close()
+
+            new_token = generate_jwt(updated_row["id"], updated_row["username"], updated_row["role"])
+            self.send_json({
+                "ok": True,
+                "message": "管理员账号与密码已成功更新",
+                "token": new_token,
+                "username": updated_row["username"]
+            })
+            return
+
         # 11. 管理员为用户重设密码 (/api/admin/users/reset-password)
         if path == "/api/admin/users/reset-password":
             user = self.get_current_user()
@@ -1760,7 +1989,7 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
             req = urllib.request.Request(target_core_url)
             if "User-Agent" in self.headers:
                 req.add_header("User-Agent", self.headers["User-Agent"])
-            with urllib.request.urlopen(req, timeout=25) as resp:
+            with urllib.request.urlopen(req, timeout=1.5) as resp:
                 data = resp.read()
                 # 校验核心返回内容是否包含假节点或拦截页
                 if NativeSubEngine.is_invalid_upstream_response(data.decode('utf-8', errors='ignore')):
@@ -1816,6 +2045,7 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
                         self.send_header("Subscription-Userinfo", native_uinfo)
                     self.send_header("profile-update-interval", "24")
                     self.send_header("Access-Control-Allow-Origin", "*")
+                    self.send_header("Access-Control-Expose-Headers", "Subscription-Userinfo, profile-update-interval, Content-Disposition")
                     self.send_header("X-SubFlow-Engine", "Native-Lossless-Converter")
                     self.end_headers()
                     self.wfile.write(native_data)

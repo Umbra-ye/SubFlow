@@ -52,6 +52,7 @@ def main():
 
     files_to_pack = [
         ("gateway.py", "gateway.py"),
+        ("country_enricher.py", "country_enricher.py"),
         ("web/index.html", "web/index.html"),
         ("web/admin.html", "web/admin.html"),
         ("web/subflow_v2.js", "web/subflow_v2.js"),

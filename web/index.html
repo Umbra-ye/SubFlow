@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>SubFlow v2.0 · 现代多租户订阅流中心</title>
+  <title>SubFlow v2.0 · 现代订阅流中心</title>
   <script>
     // 🌐 智能动态 BaseURL 解析引擎 (第一优先级：当前访问域名/IP；第二优先级：后台绑定域名)
     window.SUBFLOW_BOUND_DOMAIN = '';
@@ -199,7 +199,7 @@
       z-index: 2;
     }
 
-    /* 锁定等高卡片：登录与新建租户 100% 等大，绝无跳动 */
+    /* 锁定等高卡片：登录与注册账号 100% 等大，绝无跳动 */
     .login-gate-card {
       width: 440px;
       max-width: 92vw;
@@ -441,19 +441,24 @@
     .theme-toggle-btn {
       display: inline-flex;
       align-items: center;
+      justify-content: center;
       gap: 6px;
       background: var(--bg-surface);
       border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-md);
-      padding: 6px 14px;
+      border-radius: 8px;
+      padding: 0 12px;
+      height: 34px !important;
+      line-height: 32px !important;
+      box-sizing: border-box !important;
       color: var(--text-secondary);
       font-family: inherit;
-      font-size: 0.85rem;
+      font-size: 0.84rem;
       font-weight: 600;
       cursor: pointer;
       transition: all var(--duration-fast) var(--ease-out);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
       user-select: none;
+      white-space: nowrap !important;
+      flex-shrink: 0 !important;
     }
 
     .theme-toggle-btn:hover {
@@ -515,7 +520,7 @@
       position: relative;
       z-index: 1;
       width: 100%;
-      max-width: 820px;
+      max-width: 960px;
       display: flex;
       flex-direction: column;
       gap: 20px;
@@ -535,14 +540,35 @@
     .header-controls {
       display: flex;
       align-items: center;
-      gap: 10px;
-      flex-wrap: nowrap;
+      gap: 8px;
+      flex-wrap: nowrap !important;
+      flex-shrink: 0 !important;
     }
 
     .brand {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
+      flex-shrink: 0 !important;
+      white-space: nowrap !important;
+    }
+
+    .brand-title {
+      font-size: 1.12rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      white-space: nowrap !important;
+    }
+
+    .brand-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.78rem;
+      color: var(--emerald);
+      font-weight: 500;
+      white-space: nowrap !important;
     }
 
     .brand-icon {
@@ -597,19 +623,36 @@
       gap: 4px;
     }
 
+    .segmented-nav {
+      position: relative;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 3px;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 4px;
+      flex-shrink: 0 !important;
+    }
+
     .nav-btn {
       position: relative;
       background: transparent;
       border: none;
       color: var(--text-secondary);
       font-family: inherit;
-      font-size: 0.85rem;
+      font-size: 0.84rem;
       font-weight: 600;
-      padding: 7px 16px;
+      padding: 6px 14px !important;
       border-radius: calc(var(--radius-md) - 2px);
       cursor: pointer;
       transition: color var(--duration-fast) var(--ease-out);
       z-index: 1;
+      white-space: nowrap !important;
+      flex-shrink: 0 !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
     }
 
     .nav-btn.active {
@@ -1353,23 +1396,28 @@
     }
   
     /* ==========================================================================
-       V2.0 现代多租户鉴权、智能人机验证与管理后台 Liquid Glass 样式
+       V2.0 现代用户鉴权、智能人机验证与管理后台 Liquid Glass 样式
        ========================================================================== */
     .auth-pill-btn {
       display: inline-flex;
       align-items: center;
-      gap: 7px;
-      padding: 6px 14px;
-      border-radius: 9999px;
-      font-size: 0.8rem;
+      justify-content: center;
+      gap: 6px;
+      padding: 0 12px;
+      height: 34px !important;
+      line-height: 32px !important;
+      box-sizing: border-box !important;
+      border-radius: 8px !important;
+      font-size: 0.82rem;
       font-weight: 600;
       color: var(--text-primary);
       background: var(--bg-surface-elevated);
       border: 1px solid var(--border-subtle);
       cursor: pointer;
-      backdrop-filter: var(--glass-blur);
-      transition: all var(--duration-normal) var(--ease-spring);
+      transition: all var(--duration-fast) var(--ease-out);
       user-select: none;
+      white-space: nowrap !important;
+      flex-shrink: 0 !important;
     }
     .auth-pill-btn:hover {
       background: var(--bg-surface-hover);
@@ -1723,37 +1771,291 @@
       display: none !important;
     }
 
-    /* 移动端与平板顶栏优雅网格自适应 */
+    /* ==========================================================================
+       📱 现代移动端全场景深度响应式自适应系统 (Mobile-First Adaptive Design)
+       ========================================================================== */
     @media (max-width: 860px) {
       .header {
-        display: grid !important;
-        grid-template-columns: 1fr auto !important;
-        grid-template-areas: 
-          "brand controls"
-          "nav nav" !important;
-        gap: 14px 10px !important;
+        display: flex !important;
+        flex-wrap: wrap !important;
+        justify-content: space-between !important;
         align-items: center !important;
+        gap: 12px 8px !important;
       }
       .brand {
-        grid-area: brand;
+        order: 1 !important;
+        flex: 1 !important;
+        min-width: 0 !important;
       }
       .header-controls {
-        grid-area: controls;
+        order: 2 !important;
         display: flex !important;
         align-items: center !important;
-        justify-content: flex-end !important;
-        gap: 8px !important;
+        gap: 6px !important;
+        flex-shrink: 0 !important;
       }
       .segmented-nav {
-        grid-area: nav;
-        width: 100%;
-        margin-top: 2px;
-        display: flex;
+        order: 3 !important;
+        width: 100% !important;
+        display: flex !important;
+        margin-top: 4px !important;
       }
       .segmented-nav .nav-btn {
-        flex: 1;
-        text-align: center;
+        flex: 1 !important;
+        text-align: center !important;
+        padding: 8px 10px !important;
       }
+    }
+
+    @media (max-width: 640px) {
+      html, body {
+        overflow-x: hidden !important;
+        width: 100% !important;
+        max-width: 100vw !important;
+      }
+      .app-container {
+        padding: 10px 8px 36px 8px !important;
+        width: 100% !important;
+        max-width: 100vw !important;
+        box-sizing: border-box !important;
+      }
+
+      /* 顶栏控件紧凑精简 */
+      .header {
+        padding: 10px 12px !important;
+      }
+      .brand-title {
+        font-size: 1.0rem !important;
+      }
+      .brand-status {
+        font-size: 0.68rem !important;
+      }
+      #settings-btn-text, #theme-text, #header-username {
+        display: none !important;
+      }
+      .header-controls .theme-toggle-btn,
+      .header-controls .auth-pill-btn,
+      .header-controls .user-badge {
+        padding: 4px 8px !important;
+        height: 32px !important;
+        min-width: 32px !important;
+        justify-content: center !important;
+        font-size: 0.8rem !important;
+      }
+
+      /* 卡片与卡片头部流体换行 */
+      .card {
+        padding: 14px 12px !important;
+        border-radius: 14px !important;
+        overflow: hidden !important;
+      }
+      .card-header {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 10px !important;
+      }
+      .card-title {
+        font-size: 0.92rem !important;
+        flex-wrap: wrap !important;
+        line-height: 1.4 !important;
+      }
+      .card-header > div:last-child {
+        width: 100% !important;
+        flex-wrap: wrap !important;
+        justify-content: flex-start !important;
+        gap: 8px !important;
+      }
+
+      /* 历史订阅卡片：手机端上下结构 (0 溢出、大触控区) */
+      .history-item {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 12px !important;
+        padding: 14px 12px !important;
+      }
+      .history-item > div:first-child {
+        margin-right: 0 !important;
+        width: 100% !important;
+        min-width: 0 !important;
+      }
+      .history-url {
+        max-width: 100% !important;
+        font-size: 0.74rem !important;
+      }
+      .history-stats {
+        gap: 8px !important;
+        font-size: 0.72rem !important;
+      }
+      .card-action-bar {
+        width: 100% !important;
+        display: flex !important;
+        justify-content: space-between !important;
+        gap: 5px !important;
+        border-top: 1px solid var(--border-subtle) !important;
+        padding-top: 10px !important;
+        margin-top: 2px !important;
+      }
+      .card-action-bar .action-btn {
+        flex: 1 !important;
+        height: 34px !important;
+        line-height: 32px !important;
+        padding: 0 2px !important;
+        font-size: 0.74rem !important;
+        justify-content: center !important;
+        text-align: center !important;
+      }
+
+      /* 转换页快速操作按钮手机端全宽化 */
+      .action-row {
+        flex-direction: column !important;
+        align-items: stretch !important;
+      }
+      .action-row .primary-btn {
+        width: 100% !important;
+        height: 42px !important;
+        font-size: 0.96rem !important;
+      }
+
+      /* 登录门禁小屏手机适配 */
+      .login-gate-card {
+        width: 95vw !important;
+        max-width: 380px !important;
+        height: auto !important;
+        min-height: unset !important;
+        max-height: 94vh !important;
+        overflow-y: auto !important;
+        padding: 24px 18px !important;
+        border-radius: 20px !important;
+      }
+
+      /* 通用弹窗移动端自适应 */
+      .modal-card {
+        width: 95vw !important;
+        max-width: 95vw !important;
+        padding: 18px 14px !important;
+        margin: 10px !important;
+      }
+    }
+
+
+    /* ==========================================================================
+       Linear & Vercel 极简扁平化现代按钮与操作栏规范 (统一高与微交互)
+       ========================================================================== */
+    .card-action-bar, .history-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      flex-shrink: 0;
+    }
+
+    .action-btn {
+      height: 30px !important;
+      line-height: 28px !important;
+      box-sizing: border-box !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 5px !important;
+      padding: 0 10px !important;
+      border-radius: 6px !important;
+      font-family: inherit !important;
+      font-size: 0.78rem !important;
+      font-weight: 600 !important;
+      white-space: nowrap !important;
+      cursor: pointer !important;
+      transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      border: 1px solid var(--border-subtle) !important;
+      background: var(--bg-surface-elevated) !important;
+      color: var(--text-secondary) !important;
+      flex-shrink: 0 !important;
+      user-select: none !important;
+    }
+    .action-btn:hover {
+      background: var(--bg-surface-hover) !important;
+      border-color: var(--border-hover) !important;
+      color: var(--text-primary) !important;
+    }
+    .action-btn.primary {
+      background: var(--primary) !important;
+      border-color: var(--primary) !important;
+      color: #ffffff !important;
+    }
+    .action-btn.primary:hover {
+      background: var(--primary-hover) !important;
+      border-color: var(--primary-hover) !important;
+    }
+    .action-btn.danger {
+      color: #f87171 !important;
+      border-color: rgba(248, 113, 113, 0.25) !important;
+      background: rgba(248, 113, 113, 0.06) !important;
+    }
+    .action-btn.danger:hover {
+      background: rgba(248, 113, 113, 0.16) !important;
+      border-color: rgba(248, 113, 113, 0.5) !important;
+      color: #ef4444 !important;
+    }
+
+    /* 批量操作工具栏 */
+    .batch-merge-bar {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 8px 14px;
+      margin: 0 0 12px 0;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    [data-theme="light"] .batch-merge-bar {
+      background: #f8fafc !important;
+      border: 1px solid #e2e8f0 !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+    }
+    [data-theme="light"] .action-btn {
+      background: #ffffff !important;
+      border-color: #e2e8f0 !important;
+      color: #475569 !important;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
+    }
+    [data-theme="light"] .action-btn:hover {
+      background: #f8fafc !important;
+      border-color: #cbd5e1 !important;
+      color: #0f172a !important;
+    }
+    [data-theme="light"] .action-btn.primary {
+      background: #2563eb !important;
+      border-color: #2563eb !important;
+      color: #ffffff !important;
+      box-shadow: 0 1px 3px rgba(37, 99, 235, 0.25) !important;
+    }
+    [data-theme="light"] .action-btn.primary:hover {
+      background: #1d4ed8 !important;
+      border-color: #1d4ed8 !important;
+    }
+    [data-theme="light"] .action-btn.danger {
+      color: #dc2626 !important;
+      background: #fef2f2 !important;
+      border-color: #fecaca !important;
+    }
+    [data-theme="light"] .action-btn.danger:hover {
+      background: #fee2e2 !important;
+      border-color: #fca5a5 !important;
+      color: #b91c1c !important;
+    }
+
+  
+    .user-menu-item:hover {
+      background: rgba(255, 255, 255, 0.08) !important;
+      color: #ffffff !important;
+    }
+    .user-badge:hover {
+      background: rgba(37, 99, 235, 0.22) !important;
+      border-color: rgba(59, 130, 246, 0.5) !important;
     }
 
   </style>
@@ -1763,7 +2065,7 @@
   <!-- ==========================================================================
        🔒 全屏独立现代化 2026 Liquid Glass 登录门禁 (未登录 100% 物理拦截转换页)
        ========================================================================== -->
-  <div id="login-gate-screen" class="login-gate-overlay" style="display:flex;">
+  <div id="login-gate-screen" class="login-gate-overlay" style="display:none;">
     <!-- 动态环境光束与微光极光粒子球 -->
     <div class="ambient-beam"></div>
     <div class="aurora-glow-sphere glow-sphere-1"></div>
@@ -1776,17 +2078,17 @@
         <div style="width: 52px; height: 52px; border-radius: 16px; background: linear-gradient(135deg, #2563eb, #10b981); margin: 0 auto 12px; display:flex; align-items:center; justify-content:center; color:#fff; font-size: 1.6rem; font-weight:800; box-shadow: 0 0 24px rgba(37, 99, 235, 0.45);">
           ⚡
         </div>
-        <h1 style="font-size: 1.35rem; font-weight: 800; letter-spacing: -0.02em; color: var(--text-primary);">SubFlow 订阅流 <span style="font-size:0.75rem; background:linear-gradient(135deg,#2563eb,#10b981); color:#fff; padding:2px 8px; border-radius:12px; font-weight:700; vertical-align:middle; margin-left:4px;">v2.0</span></h1>
-        <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 6px;">全自动自适应转换与订阅分发中枢 · 请登录后继续</p>
+        <h1 style="font-size: 1.35rem; font-weight: 800; letter-spacing: -0.02em; color: #ffffff !important; text-shadow: 0 2px 10px rgba(0,0,0,0.5);">SubFlow 订阅流 <span style="font-size:0.75rem; background:linear-gradient(135deg,#2563eb,#10b981); color:#fff; padding:2px 8px; border-radius:12px; font-weight:700; vertical-align:middle; margin-left:4px;">v2.0</span></h1>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 6px;">跨平台流体订阅转换平台 · 请登录后继续</p>
       </div>
 
       <!-- 选项卡切换: 登录 / 注册 -->
       <div class="gate-tab-group" style="display:flex; background:rgba(255,255,255,0.04); border:1px solid var(--border-subtle); border-radius:12px; padding:4px; margin-bottom:18px;">
         <button type="button" class="gate-tab-btn active" id="tab-gate-login" onclick="switchGateTab('login')" style="flex:1; padding:8px; border-radius:8px; font-size:0.85rem; font-weight:700; background:var(--primary); color:#fff; transition:all 0.2s;">
-          🔑 账号登录
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="m21 2-2 2m-1.5 1.5L12 11l4 4 3.5-3.5a2.12 2.12 0 0 0 0-3L21 2Z"></path><path d="m9 15-5 5H2v-2l5-5"></path></svg> <span>账号登录</span>
         </button>
         <button type="button" class="gate-tab-btn" id="tab-gate-register" onclick="switchGateTab('register')" style="flex:1; padding:8px; border-radius:8px; font-size:0.85rem; font-weight:600; background:transparent; color:var(--text-secondary); transition:all 0.2s;">
-          ✨ 新建租户
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg> <span>注册账号</span>
         </button>
       </div>
 
@@ -1804,7 +2106,7 @@
           <div class="form-group">
             <label style="display:flex; justify-content:space-between; font-size:0.8rem; color:var(--text-secondary); margin-bottom:6px; font-weight:600;">
               <span>安全密码</span>
-              <span style="font-size:0.7rem; color:var(--text-muted);">256位加盐保护</span>
+              
             </label>
             <div style="position:relative; display:flex; align-items:center;">
               <input type="password" id="gate-password" class="modern-input" placeholder="请输入密码" autocomplete="current-password" required style="width:100%; padding:10px 42px 10px 14px; border-radius:10px; background:rgba(19,27,46,0.7); border:1px solid var(--border-subtle); color:#fff; font-size:0.9rem; outline:none;">
@@ -1838,27 +2140,26 @@
               </button>
             </div>
           </div>
-          <div class="form-group" id="gate-login-tip-group" style="display:flex; align-items:center; justify-content:space-between; height:60px; padding:0 12px; background:rgba(255,255,255,0.025); border:1px dashed rgba(255,255,255,0.08); border-radius:10px; font-size:0.75rem;">
-            <div style="display:flex; align-items:center; gap:6px; color:var(--text-secondary);">
-              <span>⚡</span>
-              <span>租户独立私有隔离</span>
-            </div>
+          <div class="form-group" id="gate-login-tip-group" style="display:flex; align-items:center; justify-content:space-between; height:50px; padding:0 12px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.08); border-radius:10px; font-size:0.78rem;">
+            <label style="display:inline-flex; align-items:center; gap:7px; cursor:pointer; color:var(--text-secondary); user-select:none;">
+              <input type="checkbox" id="gate-remember-me" checked style="accent-color:#2563eb; width:16px; height:16px; cursor:pointer; border-radius:4px;">
+              <span style="font-weight:500;">记住登录与密码</span>
+            </label>
             <span style="color:#38bdf8; cursor:pointer; font-weight:600;" onclick="switchGateTab('register')">初次使用？点击新建 →</span>
           </div>
         </div>
 
         <button type="submit" id="gate-submit-btn" class="primary-btn" style="width:100%; padding:12px; font-size:0.92rem; font-weight:700; border-radius:12px; justify-content:center; box-shadow:0 8px 24px rgba(37,99,235,0.4); margin-top:14px;">
-          <span>立即登录 · 解锁转换中心 →</span>
+          <span>立即登录</span>
         </button>
       </form>
 
       <div style="text-align:center; margin-top:20px; font-size:0.75rem; color:var(--text-muted);">
-        🔒 256 位端到端会话保护 · 个人私有订阅隔离
       </div>
     </div>
   </div>
 
-  <div class="app-container" id="main-app-container" style="display:none;">
+  <div class="app-container" id="main-app-container" style="display:block;">
     <!-- Header -->
     <header class="header">
       <div class="brand">
@@ -1871,7 +2172,7 @@
           <div class="brand-title">SubFlow 订阅流 <span style="font-size:0.68rem; background:linear-gradient(135deg,#2563eb,#10b981); color:#fff; padding:2px 7px; border-radius:12px; font-weight:700; vertical-align:middle; margin-left:4px;">v2.0</span></div>
           <div class="brand-status">
             <span class="status-dot"></span>
-            <span>本地网关 127.0.0.1:25588 在线</span>
+            <span>订阅解析服务已就绪</span>
           </div>
         </div>
       </div>
@@ -1879,33 +2180,65 @@
       <!-- Segmented Nav (Refactoring UI / Emil Kowalski): 独立水平居中 -->
       <nav class="segmented-nav" id="main-segmented-nav">
         <div class="nav-slider" id="nav-slider"></div>
-        <button class="nav-btn active" id="tab-convert-btn" onclick="switchTab('convert')">⚡ 万能转换</button>
-        <button class="nav-btn" id="tab-history-btn" onclick="switchTab('history')">📋 历史与测活</button>
+        <button class="nav-btn active" id="tab-convert-btn" onclick="switchTab('convert')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> <span>万能转换</span></button>
+        <button class="nav-btn" id="tab-history-btn" onclick="switchTab('history')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg> <span>历史与测活</span></button>
       </nav>
 
       <!-- Right Controls: Settings, Theme Toggle & User Auth -->
       <div class="header-controls">
         
-        <!-- 🔑 用户中心与退出登录 -->
-        <div id="header-auth-zone" style="display:flex; align-items:center; gap:8px;">
-          <div class="user-badge" id="header-user-badge" style="display:inline-flex; align-items:center; gap:6px; background:rgba(37,99,235,0.15); border:1px solid rgba(59,130,246,0.3); padding:4px 12px; border-radius:20px; font-size:0.82rem; color:#93c5fd;">
-            <span>👤</span>
-            <span id="header-username">租户</span>
+        <!-- 🔑 用户中心与二级下拉菜单 (User Capsule & Dropdown) -->
+        <div id="header-auth-zone" style="position:relative; display:flex; align-items:center;">
+          <div class="user-badge" id="header-user-badge" onclick="toggleUserDropdown(event)" title="点击展开个人中心与操作菜单" style="cursor:pointer; user-select:none; display:inline-flex; align-items:center; gap:7px; background:rgba(37,99,235,0.12); border:1px solid rgba(59,130,246,0.28); padding:5px 14px; border-radius:20px; font-size:0.84rem; color:#93c5fd; transition:all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            <span id="header-username" style="font-weight:600; letter-spacing:0.01em;">用户</span>
+            <svg id="header-user-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.75; transition:transform 0.2s ease;"><polyline points="6 9 12 15 18 9"></polyline></svg>
           </div>
-          <button class="auth-pill-btn" onclick="logoutApp()" title="退出当前登录" style="color:#f87171; border-color:rgba(239,68,68,0.25);">
-            <span>退出</span>
-          </button>
+
+          <!-- 💎 二级下拉卡片 (Dropdown Menu) -->
+          <div id="user-dropdown-menu" style="display:none; position:absolute; top:calc(100% + 8px); right:0; min-width:210px; background:rgba(15,23,42,0.95); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,0.12); border-radius:14px; box-shadow:0 18px 40px -10px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.06); padding:8px; z-index:1100;">
+            <!-- 用户头部卡片 -->
+            <div style="display:flex; align-items:center; gap:10px; padding:8px 10px 10px 10px; border-bottom:1px solid rgba(255,255,255,0.08); margin-bottom:6px;">
+              <div style="width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,#2563eb,#38bdf8); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:0.85rem; flex-shrink:0; box-shadow:0 2px 8px rgba(37,99,235,0.35);">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+              </div>
+              <div style="display:flex; flex-direction:column; min-width:0;">
+                <span id="dropdown-username-txt" style="font-size:0.85rem; font-weight:700; color:#f1f5f9; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">用户</span>
+                <span id="dropdown-role-txt" style="font-size:0.68rem; color:#38bdf8; font-weight:600;">已授权账号</span>
+              </div>
+            </div>
+
+            <!-- 功能菜单列表 -->
+            <div style="display:flex; flex-direction:column; gap:2px;">
+              <button class="user-menu-item" onclick="openChangePasswordModal()" style="display:flex; align-items:center; gap:9px; width:100%; padding:9px 12px; background:transparent; border:none; border-radius:8px; color:#e2e8f0; font-size:0.82rem; cursor:pointer; text-align:left; transition:all 0.15s ease;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m21 2-2 2m-1.5 1.5L12 11l4 4 3.5-3.5a2.12 2.12 0 0 0 0-3L21 2Z"></path><path d="m9 15-5 5H2v-2l5-5"></path></svg>
+                <span>修改我的密码</span>
+              </button>
+
+              <button class="user-menu-item" onclick="copyMyTokenFromDropdown()" style="display:flex; align-items:center; gap:9px; width:100%; padding:9px 12px; background:transparent; border:none; border-radius:8px; color:#cbd5e1; font-size:0.82rem; cursor:pointer; text-align:left; transition:all 0.15s ease;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>
+                <span>复制我的专属 Token</span>
+              </button>
+
+              <div style="height:1px; background:rgba(255,255,255,0.08); margin:4px 0;"></div>
+
+              <button class="user-menu-item" onclick="logoutApp()" style="display:flex; align-items:center; gap:9px; width:100%; padding:9px 12px; background:transparent; border:none; border-radius:8px; color:#f87171; font-size:0.82rem; cursor:pointer; text-align:left; transition:all 0.15s ease;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                <span>退出登录</span>
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- ⚙️ 偏好设置按钮 -->
         <button class="theme-toggle-btn" id="settings-btn" onclick="openSettingsModal()" title="SubFlow 偏好设置 (托盘化与系统设置)">
-          <span style="pointer-events: none;">⚙️</span>
+          <span style="pointer-events: none;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></span>
           <span id="settings-btn-text" style="pointer-events: none;">设置</span>
         </button>
 
         <!-- ☀️ / 🌙 日间夜间模式切换按键 -->
         <button class="theme-toggle-btn" id="theme-btn" onclick="toggleAppTheme()" title="切换日间 / 夜间模式">
-          <span id="theme-icon">🌙</span>
+          <span id="theme-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg></span>
           <span id="theme-text">夜间模式</span>
         </button>
       </div>
@@ -1921,8 +2254,8 @@
             <span id="label-source-header">订阅源输入 (自动感知 Clash / v2rayN / VLess / 单节点)</span>
           </div>
           <div style="display:flex; gap:8px;">
-            <button class="secondary-btn" id="btn-paste-clipboard" style="padding:4px 10px; font-size:0.75rem;" onclick="pasteClipboard()">📋 粘贴剪贴板</button>
-            <button class="secondary-btn" id="btn-clear-source" style="padding:4px 10px; font-size:0.75rem;" onclick="clearInput()">清空</button>
+            <button class="secondary-btn" id="btn-paste-clipboard" style="padding:4px 10px; font-size:0.75rem; display:inline-flex; align-items:center; gap:5px;" onclick="pasteClipboard()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"></rect><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path></svg><span>粘贴剪贴板</span></button>
+            <button class="secondary-btn" id="btn-clear-source" style="padding:4px 10px; font-size:0.75rem; display:inline-flex; align-items:center; gap:5px;" onclick="clearInput()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg><span>清空</span></button>
           </div>
         </div>
 
@@ -2040,10 +2373,10 @@
         </div>
 
         <div class="action-group">
-          <button class="primary-btn" id="btn-copy-result" style="padding:8px 16px; font-size:0.84rem;" onclick="copyResult()">📋 复制订阅链接</button>
-          <button class="secondary-btn" id="btn-import-flclash" style="color:#38bdf8; background:rgba(56,189,248,0.12); border-color:rgba(56,189,248,0.35); font-weight:600;" onclick="importToFlClash()">🚀 一键导入 FlClash / Clash</button>
-          <button class="secondary-btn" id="btn-preview-content" onclick="previewContent()">👀 预览纯配置内容</button>
-          <button class="secondary-btn" id="btn-open-qr" style="color: #60a5fa; background: rgba(59, 130, 246, 0.12); border-color: rgba(59, 130, 246, 0.28);" onclick="openMultiDeviceModal()">📱 手机扫码直连 / 防盗同步</button>
+          <button class="primary-btn" id="btn-copy-result" style="padding:8px 16px; font-size:0.84rem; display:inline-flex; align-items:center; gap:6px;" onclick="copyResult()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg><span>复制订阅链接</span></button>
+          <button class="secondary-btn" id="btn-import-flclash" style="color:#38bdf8; background:rgba(56,189,248,0.12); border-color:rgba(56,189,248,0.35); font-weight:600; display:inline-flex; align-items:center; gap:6px;" onclick="importToFlClash()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg><span>一键导入 FlClash / Clash</span></button>
+          <button class="secondary-btn" id="btn-preview-content" style="display:inline-flex; align-items:center; gap:6px;" onclick="previewContent()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg><span>预览纯配置内容</span></button>
+          <button class="secondary-btn" id="btn-open-qr" style="color: #60a5fa; background: rgba(59, 130, 246, 0.12); border-color: rgba(59, 130, 246, 0.28); display:inline-flex; align-items:center; gap:6px;" onclick="openMultiDeviceModal()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect width="5" height="5" x="3" y="3" rx="1"></rect><rect width="5" height="5" x="16" y="3" rx="1"></rect><rect width="5" height="5" x="3" y="16" rx="1"></rect><path d="M21 16h-3a2 2 0 0 0-2 2v3"></path><path d="M21 21v.01"></path><path d="M12 7v3a2 2 0 0 1-2 2H7"></path><path d="M3 12h.01"></path><path d="M12 3h.01"></path><path d="M12 16v.01"></path><path d="M16 12h1"></path><path d="M21 12v.01"></path><path d="M12 21v-1"></path></svg><span>手机扫码直连 / 防盗同步</span></button>
         </div>
       </section>
     </main>
@@ -2060,7 +2393,7 @@
             <div style="display:flex; align-items:center; gap:8px; background:var(--bg-base); padding:3px 10px; border-radius:8px; border:1px solid var(--border-subtle);">
               <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.78rem; color:var(--text-secondary); user-select:none;" title="开启后按设定的时间周期自动静默测活">
                 <input type="checkbox" id="chk-auto-refresh" onchange="toggleAutoRefresh(this.checked)" style="cursor:pointer; accent-color: var(--primary);">
-                <span id="label-auto-refresh" style="font-weight:600; color:var(--text-primary);">⏱️ 定时自动测活</span>
+                <span id="label-auto-refresh" style="font-weight:600; color:var(--text-primary); display:inline-flex; align-items:center; gap:5px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> <span>定时自动测活</span></span>
               </label>
               <div style="display:inline-flex; align-items:center; gap:4px; font-size:0.74rem; color:var(--text-muted);">
                 <span>每</span>
@@ -2068,13 +2401,13 @@
                 <span>分钟</span>
               </div>
             </div>
-            <button class="secondary-btn emerald" id="btn-ping-all" onclick="pingAllHistory()">🔄 全量一键测活</button>
-            <button class="secondary-btn" id="btn-emergency-kill" style="color:#ef4444; border-color:rgba(239,68,68,0.35); background:rgba(239,68,68,0.08); font-size:0.78rem; padding:6px 12px; font-weight:600; cursor:pointer;" onclick="triggerEmergencyKill()" title="断开公网穿透并重置防盗密钥，彻底作废所有外泄链接">🚨 紧急作废旧链接</button>
+            <button class="action-btn" id="btn-ping-all" onclick="pingAllHistory()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg> <span>全量一键测活</span></button>
+            <button class="action-btn danger" id="btn-emergency-kill" onclick="triggerEmergencyKill()" title="重置密钥并作废所有旧链接"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg> <span>重置所有旧链接</span></button>
           </div>
         </div>
 
         <!-- 🔗 批量勾选与多订阅合并操作栏 (动态浮现) -->
-        <div id="batch-merge-bar" style="display:none; align-items:center; justify-content:space-between; background:linear-gradient(135deg, rgba(30, 27, 75, 0.5) 0%, rgba(15, 23, 42, 0.7) 100%); border:1px solid rgba(168, 85, 247, 0.35); border-radius:10px; padding:10px 16px; margin: 0 0 14px 0; gap:12px; flex-wrap:wrap; box-shadow: 0 4px 16px rgba(0,0,0,0.2);">
+        <div id="batch-merge-bar" class="batch-merge-bar">
           <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
             <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.82rem; font-weight:700; color:#c084fc; user-select:none;">
               <input type="checkbox" id="chk-select-all" class="sub-card-checkbox" onchange="toggleSelectAll(this.checked)">
@@ -2083,12 +2416,12 @@
             <span style="font-size:0.84rem; font-weight:700; color:var(--text-primary);" id="batch-count-text">已选中 0 个订阅</span>
             <span style="font-size:0.75rem; color:#a78bfa; font-weight:500;" id="batch-summary-info"></span>
           </div>
-          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-            <button class="primary-btn" id="batch-btn-save" style="padding:6px 14px; font-size:0.78rem; background:linear-gradient(135deg, #8b5cf6, #6366f1); border-color:#8b5cf6;" onclick="saveSelectedAsMergedCard()">💾 保存为聚合卡片</button>
-            <button class="primary-btn" id="batch-btn-copy" style="padding:6px 14px; font-size:0.78rem;" onclick="copyMergedSelected()">🔗 复制合并总订阅</button>
-            <button class="secondary-btn" id="batch-btn-flclash" style="padding:6px 12px; font-size:0.78rem; color:#38bdf8; border-color:rgba(56,189,248,0.4);" onclick="importMergedToFlClash()">🚀 导入 FlClash</button>
-            <button class="secondary-btn" id="batch-btn-preview" style="padding:6px 12px; font-size:0.78rem; color:#a78bfa; border-color:rgba(167,139,250,0.4);" onclick="previewMergedSelected()">👀 预览节点</button>
-            <button class="secondary-btn" id="batch-btn-cancel" style="padding:6px 10px; font-size:0.78rem;" onclick="clearBatchSelection()">✕ 取消</button>
+          <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+            <button class="action-btn primary" id="batch-btn-copy" onclick="copyMergedSelected()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>复制合并总订阅</button>
+            <button class="action-btn" id="batch-btn-save" onclick="saveSelectedAsMergedCard()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>保存为聚合卡片</button>
+            <button class="action-btn" id="batch-btn-flclash" onclick="importMergedToFlClash()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>导入 FlClash</button>
+            <button class="action-btn" id="batch-btn-preview" onclick="previewMergedSelected()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>预览节点</button>
+            <button class="action-btn" id="batch-btn-cancel" onclick="clearBatchSelection()">✕ 取消</button>
           </div>
         </div>
 
@@ -2230,7 +2563,7 @@
       <!-- 登录 / 注册分段切换 -->
       <div class="auth-tab-group">
         <button class="auth-tab-btn active" id="auth-tab-login" onclick="switchAuthTab('login')">
-          <span>🔑 账号登录</span>
+          <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="m21 2-2 2m-1.5 1.5L12 11l4 4 3.5-3.5a2.12 2.12 0 0 0 0-3L21 2Z"></path><path d="m9 15-5 5H2v-2l5-5"></path></svg> <span>账号登录</span></span>
         </button>
         <button class="auth-tab-btn" id="auth-tab-register" onclick="switchAuthTab('register')">
           <span>✨ 快速注册</span>
@@ -2342,7 +2675,7 @@
             <span style="font-size:1rem; font-weight:700;" id="profile-display-name">User</span>
             <span class="detect-badge" id="profile-role-badge">用户</span>
           </div>
-          <span style="font-size:0.72rem; color:var(--text-muted);">SubFlow 授权租户 · 订阅节点与账号安全隔离</span>
+          <span style="font-size:0.72rem; color:var(--text-muted);">SubFlow 授权账号 · 订阅节点与个性化配置</span>
         </div>
         <button class="secondary-btn" style="color:#ef4444; border-color:rgba(239,68,68,0.3); font-size:0.75rem; padding:5px 12px;" onclick="doLogout()">🚪 退出登录</button>
       </div>
@@ -2405,7 +2738,7 @@
   </div>
 
   <!-- ==========================================================================
-       🛡️ 云端多租户管理后台 (Admin Console: 域名绑定 / 人机防爆破 / 用户密码重置)
+       🛡️ 云端运维管理后台 (Admin Console: 域名绑定 / 人机防爆破 / 用户密码重置)
        ========================================================================== -->
   <div class="modal-v2-overlay" id="admin-modal" style="display:none;" onclick="if(event.target===this)closeAdminModal()">
     <div class="modal-v2-card" style="max-width:680px; max-height:88vh; overflow-y:auto;">
@@ -2549,7 +2882,7 @@
           <div style="display:flex; align-items:center; justify-content:space-between;">
             <div style="display:flex; flex-direction:column; gap:2px;">
               <span style="font-size:0.86rem; font-weight:700; color:var(--text-primary);">📦 全量数据备份与导出 (Export)</span>
-              <span style="font-size:0.72rem; color:var(--text-muted);">一键导出当前数据库的所有租户账户、加密密文、专属密钥、订阅链接及系统配置</span>
+              <span style="font-size:0.72rem; color:var(--text-muted);">一键导出当前数据库的所有用户账户、加密密文、专属密钥、订阅链接及系统配置</span>
             </div>
             <span style="font-size:1.2rem;">💾</span>
           </div>
@@ -2616,22 +2949,22 @@
     </div>
   </div>
 
-  <!-- ⚙️ SubFlow 系统偏好设置弹窗 (窗口托盘化 / 端口 / 内核信息) -->
+    <!-- ⚙️ SubFlow 用户偏好设置弹窗 (纯粹精简用户级设置) -->
   <div class="modal-overlay" id="settings-modal" style="display:none; z-index:2147483647;" onclick="if(event.target===this)closeSettingsModal()">
-    <div style="background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:14px; width:100%; max-width:480px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.7); overflow:hidden; animation:modalScaleIn 0.22s cubic-bezier(0.16,1,0.3,1);">
+    <div style="background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:14px; width:100%; max-width:420px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.7); overflow:hidden; animation:modalScaleIn 0.22s cubic-bezier(0.16,1,0.3,1);">
       <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-bottom:1px solid var(--border-subtle); background:var(--bg-surface-elevated);">
         <div style="display:flex; align-items:center; gap:8px;">
-          <span style="font-size:1.1rem;">⚙️</span>
-          <span style="font-weight:700; font-size:0.95rem; color:var(--text-primary);" id="settings-modal-title">SubFlow 偏好与系统设置</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          <span style="font-weight:700; font-size:0.95rem; color:var(--text-primary);" id="settings-modal-title">SubFlow 偏好设置</span>
         </div>
         <button class="secondary-btn" style="padding:4px 10px; font-size:0.75rem;" onclick="closeSettingsModal()">✕</button>
       </div>
       <div style="padding:20px; display:flex; flex-direction:column; gap:14px;">
-        <!-- 界面语言切换项 (默认中文) -->
+        <!-- 界面语言切换项 -->
         <div style="display:flex; align-items:center; justify-content:space-between; background:var(--bg-base); padding:12px 14px; border-radius:10px; border:1px solid var(--border-subtle);">
           <div style="display:flex; flex-direction:column; gap:3px;">
             <span style="font-size:0.85rem; font-weight:600; color:var(--text-primary);" id="label-lang-title">界面语言 / Language</span>
-            <span style="font-size:0.72rem; color:var(--text-muted);" id="label-lang-desc">切换软件全局显示语言 (默认中文)</span>
+            <span style="font-size:0.72rem; color:var(--text-muted);" id="label-lang-desc">切换全局显示语言 (默认中文)</span>
           </div>
           <div style="display:flex; background:rgba(255,255,255,0.06); padding:3px; border-radius:8px; border:1px solid var(--border-subtle); gap:2px;">
             <button id="btn-lang-zh" onclick="setAppLanguage('zh')" style="border:none; padding:4px 12px; border-radius:6px; font-size:0.75rem; font-weight:700; cursor:pointer; transition:all 0.15s; background:var(--primary); color:#ffffff;">中文</button>
@@ -2639,55 +2972,25 @@
           </div>
         </div>
 
-        <!-- 云端开机自启与守护状态 (云端 Web 模式默认开启，无需手工托盘) -->
-        <div id="row-setting-cloud-boot" style="display:flex; align-items:center; justify-content:space-between; background:var(--bg-base); padding:12px 14px; border-radius:10px; border:1px solid var(--border-subtle);">
-          <div style="display:flex; flex-direction:column; gap:3px;">
-            <div style="display:flex; align-items:center; gap:8px;">
-              <span style="font-size:0.85rem; font-weight:600; color:var(--text-primary);">开机自动启动云端服务</span>
-              <span class="detect-badge" style="background:rgba(16,185,129,0.15); color:#34d399; font-size:0.68rem; font-weight:700;">默认自启 · 7×24h 守护</span>
-            </div>
-            <span style="font-size:0.72rem; color:var(--text-muted);">系统服务守护 · 服务器重启或开机后全自动静默拉起，客户端永不失联</span>
-          </div>
-          <span style="font-size:1.2rem; color:#10b981;">🛡️</span>
-        </div>
-
-        <!-- 桌面端单机托盘化开关项 (仅在桌面单机模式出现) -->
+        <!-- 桌面单机托盘化项 (单机模式可选) -->
         <div id="row-setting-tray" class="desktop-only-setting" style="display:none; align-items:center; justify-content:space-between; background:var(--bg-base); padding:12px 14px; border-radius:10px; border:1px solid var(--border-subtle);">
           <div style="display:flex; flex-direction:column; gap:3px;">
             <span style="font-size:0.85rem; font-weight:600; color:var(--text-primary);" id="label-tray-title">关闭主窗口时最小化到系统托盘</span>
-            <span style="font-size:0.72rem; color:var(--text-muted);" id="label-tray-desc">开启后点击右上角 × 保持后台静默运行；关闭则直接退出程序</span>
+            <span style="font-size:0.72rem; color:var(--text-muted);" id="label-tray-desc">开启后点击右上角 × 保持后台静默运行</span>
           </div>
           <label style="display:inline-flex; align-items:center; cursor:pointer;">
             <input type="checkbox" id="chk-close-to-tray" onchange="onCloseToTrayChange(this.checked)" style="width:18px; height:18px; accent-color:var(--primary); cursor:pointer;">
           </label>
         </div>
 
-        <!-- 服务与环境网络信息 -->
-        <div style="display:flex; flex-direction:column; gap:8px; background:var(--bg-base); padding:12px 14px; border-radius:10px; border:1px solid var(--border-subtle);">
-          <div style="display:flex; justify-content:space-between; font-size:0.78rem;">
-            <span style="color:var(--text-muted);" id="label-port-title">服务连接地址</span>
-            <span style="font-family:Consolas, monospace; color:#38bdf8;" id="settings-service-host">127.0.0.1:25588</span>
-          </div>
-          <div style="display:flex; justify-content:space-between; font-size:0.78rem;">
-            <span style="color:var(--text-muted);" id="label-core-title">服务运行模式</span>
-            <span style="color:#10b981; font-weight:600;" id="label-core-val">SubFlow 多租户云端矩阵 (自适应守护)</span>
-          </div>
-          <div style="display:flex; justify-content:space-between; font-size:0.78rem;">
-            <span style="color:var(--text-muted);" id="label-ver-title">版本标识</span>
-            <span style="color:var(--text-secondary);" id="label-ver-val">SubFlow v2.0 (Cloud Matrix)</span>
-          </div>
+        <!-- 极简应用版本徽标 (纯展示，无任何技术敏感信息) -->
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:4px 8px; font-size:0.75rem; color:var(--text-muted);">
+          <span>SubFlow 订阅流</span>
+          <span style="font-family:var(--font-mono); color:var(--text-secondary);">v2.0 正式版</span>
         </div>
 
-        <!-- 彻底退出整套程序按钮 (仅在桌面单机模式显示，云端 Web 彻底隐藏保护服务不停机) -->
-        <div id="row-setting-exit" class="desktop-only-setting" style="display:none; align-items:center; justify-content:space-between; padding-top:4px;">
-          <button class="secondary-btn" id="btn-exit-app" style="color:#ef4444; border-color:rgba(239,68,68,0.35); background:rgba(239,68,68,0.08); font-size:0.75rem; padding:6px 12px; font-weight:600; cursor:pointer;" onclick="exitEntireApp()">
-            🛑 彻底退出程序 (关闭所有进程)
-          </button>
-          <span style="font-size:0.68rem; color:var(--text-muted);" id="label-exit-desc">单机模式 · 退出并清理后台</span>
-        </div>
-      </div>
-      <div style="padding:12px 20px; border-top:1px solid var(--border-subtle); display:flex; justify-content:flex-end; background:var(--bg-surface-elevated);">
-        <button class="primary-btn" id="btn-save-settings" style="padding:6px 18px; font-size:0.8rem;" onclick="closeSettingsModal()">保存并关闭</button>
+        <!-- 保存按钮 -->
+        <button class="primary-btn" style="width:100%; height:38px; justify-content:center; border-radius:10px; font-weight:600; margin-top:4px;" onclick="closeSettingsModal()">保存并完成</button>
       </div>
     </div>
   </div>
@@ -2790,10 +3093,10 @@
         labelSelectAll: '全选',
         batchCountText: '已选中 {0} 个订阅',
         batchPromptMore: '(再勾选 1 项即可自动生成多源聚合流)',
-        batchBtnSave: '💾 保存为聚合卡片',
-        batchBtnCopy: '🔗 复制合并总订阅',
-        batchBtnFlclash: '🚀 导入 FlClash',
-        batchBtnPreview: '👀 预览节点',
+        batchBtnSave: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>保存为聚合卡片',
+        batchBtnCopy: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>复制合并总订阅',
+        batchBtnFlclash: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>导入 FlClash',
+        batchBtnPreview: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>预览节点',
         batchBtnCancel: '✕ 取消',
         noHistoryTitle: '暂无保存的订阅记录',
         noHistoryDesc: '在上方“转换面板”粘贴机场订阅并转换后，将自动沉淀在本地历史列表中，方便多端随时一键复制提取',
@@ -2812,15 +3115,15 @@
         singleNodesLabel: '⚡ 节点数: ',
         singleTrafficLabel: '📊 剩余流量: ',
         singleExpireLabel: '⏳ 到期时间: ',
-        btnCopyMerged: '📋 复制总订阅',
-        btnCopyConverted: '📋 复制转换链接',
-        btnImportCardFlclash: '🚀 导入FlClash',
-        btnPreviewPlain: '👀 预览明文',
-        btnPreviewCard: '👀 预览',
-        btnLoadHub: '⚡ 载入面板',
-        btnLoadEdit: '⚡ 载入编辑',
-        btnDissolve: '🗑️ 解除',
-        btnDelete: '🗑️ 删除',
+        btnCopyMerged: '复制总链',
+      btnCopyConverted: '复制',
+      btnImportCardFlclash: 'FlClash',
+      btnPreviewPlain: '明文',
+      btnPreviewCard: '预览',
+      btnLoadHub: '载入',
+      btnLoadEdit: '载入',
+      btnDissolve: '解散',
+      btnDelete: '删除',
 
         // 设置弹窗
         settingsTitle: 'SubFlow 偏好与系统设置',
@@ -3193,6 +3496,32 @@
       }
     }
 
+    function fallbackCopyText(text) {
+      try {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed";
+        textArea.style.top = "0";
+        textArea.style.left = "0";
+        textArea.style.width = "2em";
+        textArea.style.height = "2em";
+        textArea.style.padding = "0";
+        textArea.style.border = "none";
+        textArea.style.outline = "none";
+        textArea.style.boxShadow = "none";
+        textArea.style.background = "transparent";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        textArea.setSelectionRange(0, textArea.value.length);
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        showSonnerToast(currentAppLang === 'en' ? '📋 Copied to clipboard!' : '📋 已复制到剪贴板！可以直接粘贴使用。');
+      } catch (err) {
+        showSonnerToast(currentAppLang === 'en' ? '📋 Copied to clipboard!' : '📋 已复制到剪贴板！可以直接粘贴使用。');
+      }
+    }
+
     function copyResult() {
       let url = document.getElementById('result-link').value.trim();
       if (!url) {
@@ -3203,12 +3532,18 @@
         }
       }
       if (!url) {
-        showSonnerToast('⚠️ 当前无转换结果，请先输入订阅链接或从历史中载入！');
+        showSonnerToast(currentAppLang === 'en' ? '⚠️ No conversion result' : '⚠️ 当前无转换结果，请先输入订阅链接或从历史中载入！');
         return;
       }
-      navigator.clipboard.writeText(url).then(() => {
-        showSonnerToast('📋 订阅链接已复制到剪贴板！');
-      });
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(() => {
+          showSonnerToast(currentAppLang === 'en' ? '📋 Copied to clipboard!' : '📋 已复制订阅链接到剪贴板！可以直接粘贴使用。');
+        }).catch(() => {
+          fallbackCopyText(url);
+        });
+      } else {
+        fallbackCopyText(url);
+      }
     }
 
     function showSonnerToast(msg) {
@@ -3380,15 +3715,18 @@
     }
 
     function copyHistoryConvertedUrl(sourceUrl, targetFormat = 'auto', forceRemote = false) {
-      let baseUrl = (forceRemote && isTunnelRunning && currentTunnelUrl) ? currentTunnelUrl : 'http://127.0.0.1:25588';
+      let baseUrl = (forceRemote && isTunnelRunning && currentTunnelUrl) ? currentTunnelUrl : getEffectiveBaseUrl();
       let convertedUrl = `${baseUrl}/sub?target=${targetFormat}&url=${encodeURIComponent(sourceUrl)}`;
       if (currentServerPin) convertedUrl += `&pin=${encodeURIComponent(currentServerPin)}`;
-      navigator.clipboard.writeText(convertedUrl).then(() => {
-        let msg = forceRemote ? '🌐 已复制公网远端转换链接！' : '📋 已复制万能转换链接！Clash / v2rayN 均可秒刷！';
-        if (targetFormat === 'clash') msg = forceRemote ? '🌐 已复制 Clash 公网转换链接！' : '📋 已复制 Clash 专属转换链接！';
-        else if (targetFormat === 'mixed') msg = forceRemote ? '🌐 已复制 v2rayN 公网转换链接！' : '📋 已复制 v2rayN 专属转换链接！';
-        showSonnerToast(msg);
-      });
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(convertedUrl).then(() => {
+          showSonnerToast(currentAppLang === 'en' ? '📋 Converted link copied!' : '📋 已复制转换链接！客户端可直接粘贴！');
+        }).catch(() => {
+          fallbackCopyText(convertedUrl);
+        });
+      } else {
+        fallbackCopyText(convertedUrl);
+      }
       try {
         fetch(apiUrl(`/api/save-alias?id=auto&url=${encodeURIComponent(sourceUrl)}`)).catch(() => {});
       } catch (e) {}
@@ -3697,13 +4035,21 @@
             const total = parseInt((userInfo.match(/total=(\d+)/) || [0,0])[1]);
             const exp = parseInt((userInfo.match(/expire=(\d+)/) || [0,0])[1]);
             if (total > 0) {
-              const remGB = ((total - up - down) / 1073741824).toFixed(1);
+              const remGB = Math.max(0, (total - up - down) / 1073741824).toFixed(1);
               const totalGB = (total / 1073741824).toFixed(0);
               historyList[idx].remTraffic = `${remGB} GB / ${totalGB} GB`;
+            } else {
+              historyList[idx].remTraffic = currentAppLang === 'en' ? 'Unlimited' : '不限流量';
             }
             if (exp > 0) {
               historyList[idx].expire = new Date(exp * 1000).toISOString().split('T')[0];
+            } else {
+              historyList[idx].expire = currentAppLang === 'en' ? 'Permanent' : '长期有效';
             }
+          } else {
+            // 上游没有下发 Subscription-Userinfo 头，说明无流量/日期限制！
+            historyList[idx].remTraffic = currentAppLang === 'en' ? 'Unlimited' : '不限流量';
+            historyList[idx].expire = currentAppLang === 'en' ? 'Permanent' : '长期有效';
           }
           try { localStorage.setItem('subflow_history', JSON.stringify(historyList)); } catch(e) {}
           renderHistoryList();
@@ -3750,7 +4096,7 @@
           // 👑 专属多源聚合卡片: 优雅轻量微晶胶囊
           div.className = `history-item merged-stream ${isChecked ? 'selected-card' : ''}`;
           div.innerHTML = `
-            <div style="display:flex; align-items:flex-start; gap:12px; flex:1; margin-right:12px;">
+            <div style="display:flex; align-items:flex-start; gap:12px; flex:1; min-width:0; margin-right:14px;">
               <input type="checkbox" class="sub-card-checkbox" ${isChecked ? 'checked' : ''} onchange="onSubCheckChanged(event, ${idx})" style="margin-top:3px;">
               <div class="history-meta" style="margin-right:0; width:100%;">
                 <div class="history-title-row">
@@ -3782,19 +4128,19 @@
               </div>
             </div>
 
-            <div class="history-actions" style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; min-width:180px; justify-content:flex-end;">
-              <button class="primary-btn" style="padding:6px 12px; font-size:0.8rem; background:linear-gradient(135deg, #8b5cf6, #6366f1); border-color:#8b5cf6;" onclick="copyHistoryConvertedUrl('${item.url}', 'auto')" title="${dict.btnCopyMerged}">${dict.btnCopyMerged}</button>
-              <button class="secondary-btn" style="padding:6px 8px; font-size:0.8rem; color:#38bdf8; border-color:rgba(56,189,248,0.4);" onclick="importHistoryToFlClash('${item.url}')">${dict.btnImportCardFlclash}</button>
-              <button class="secondary-btn" style="padding:6px 8px; font-size:0.8rem; color:#a78bfa; border-color:rgba(167,139,250,0.4);" onclick="previewHistoryItem('${item.url}')">${dict.btnPreviewPlain}</button>
-              <button class="secondary-btn emerald" style="padding:6px 10px; font-size:0.8rem;" onclick="loadHistoryItem('${item.url}')">${dict.btnLoadHub}</button>
-              <button class="secondary-btn" style="padding:6px 8px; font-size:0.8rem; color:#f87171; border-color:rgba(248,113,113,0.3);" onclick="deleteHistoryItem(${idx})" title="${dict.btnDissolve}">${dict.btnDissolve}</button>
+            <div class="card-action-bar">
+              <button class="action-btn primary" onclick="copyHistoryConvertedUrl('${item.url}', 'auto')" title="${dict.btnCopyMerged}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> <span>${dict.btnCopyMerged}</span></button>
+              <button class="action-btn" onclick="importHistoryToFlClash('${item.url}')" title="${dict.btnImportCardFlclash}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"></path><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"></path><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"></path><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"></path></svg> <span>${dict.btnImportCardFlclash}</span></button>
+              <button class="action-btn" onclick="loadHistoryItem('${item.url}')" title="${dict.btnLoadHub}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> <span>${dict.btnLoadHub}</span></button>
+              <button class="action-btn" onclick="previewHistoryItem('${item.url}')" title="${dict.btnPreviewPlain}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg> <span>${dict.btnPreviewPlain}</span></button>
+              <button class="action-btn danger" onclick="deleteHistoryItem(${idx})" title="${dict.btnDissolve}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg> <span>${dict.btnDissolve}</span></button>
             </div>
           `;
         } else {
           // 普通单机场卡片
           div.className = `history-item ${isChecked ? 'selected-card' : ''}`;
           div.innerHTML = `
-            <div style="display:flex; align-items:flex-start; gap:12px; flex:1; margin-right:12px;">
+            <div style="display:flex; align-items:flex-start; gap:12px; flex:1; min-width:0; margin-right:14px;">
               <input type="checkbox" class="sub-card-checkbox" ${isChecked ? 'checked' : ''} onchange="onSubCheckChanged(event, ${idx})" style="margin-top:3px;">
               <div class="history-meta" style="margin-right:0; width:100%;">
                 <div class="history-title-row">
@@ -3810,12 +4156,12 @@
               </div>
             </div>
 
-            <div class="history-actions" style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; min-width:180px; justify-content:flex-end;">
-              <button class="primary-btn" style="padding:6px 12px; font-size:0.8rem;" onclick="copyHistoryConvertedUrl('${item.url}', 'auto')" title="${dict.btnCopyConverted}">${dict.btnCopyConverted}</button>
-              <button class="secondary-btn" style="padding:6px 8px; font-size:0.8rem; color:#38bdf8; border-color:rgba(56,189,248,0.4);" onclick="importHistoryToFlClash('${item.url}')">${dict.btnImportCardFlclash}</button>
-              <button class="secondary-btn" style="padding:6px 8px; font-size:0.8rem; color:#a78bfa; border-color:rgba(167,139,250,0.4);" onclick="previewHistoryItem('${item.url}')">${dict.btnPreviewCard}</button>
-              <button class="secondary-btn emerald" style="padding:6px 10px; font-size:0.8rem;" onclick="loadHistoryItem('${item.url}')">${dict.btnLoadEdit}</button>
-              <button class="secondary-btn" style="padding:6px 8px; font-size:0.8rem; color:#f87171; border-color:rgba(248,113,113,0.3);" onclick="deleteHistoryItem(${idx})">${dict.btnDelete}</button>
+            <div class="card-action-bar">
+              <button class="action-btn primary" onclick="copyHistoryConvertedUrl('${item.url}', 'auto')" title="${dict.btnCopyConverted}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> <span>${dict.btnCopyConverted}</span></button>
+              <button class="action-btn" onclick="importHistoryToFlClash('${item.url}')" title="${dict.btnImportCardFlclash}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"></path><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"></path><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"></path><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"></path></svg> <span>${dict.btnImportCardFlclash}</span></button>
+              <button class="action-btn" onclick="loadHistoryItem('${item.url}')" title="${dict.btnLoadEdit}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> <span>${dict.btnLoadEdit}</span></button>
+              <button class="action-btn" onclick="previewHistoryItem('${item.url}')" title="${dict.btnPreviewCard}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg> <span>${dict.btnPreviewCard}</span></button>
+              <button class="action-btn danger" onclick="deleteHistoryItem(${idx})" title="${dict.btnDelete}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg> <span>${dict.btnDelete}</span></button>
             </div>
           `;
         }
@@ -3826,19 +4172,26 @@
 
     function importHistoryToFlClash(airportUrl) {
       const clashUrl = `${getEffectiveBaseUrl()}/sub?target=clash&url=${encodeURIComponent(airportUrl)}&udp=true&scv=true`;
-      showSonnerToast('🚀 正在一键唤醒 FlClash 导入此订阅...');
-      fetch(apiUrl(`/api/import-flclash?url=${encodeURIComponent(clashUrl)}`))
-        .then(r => r.json())
-        .then(data => {
-          if (data.ok) {
-            showSonnerToast('✅ 已唤醒 FlClash！请在弹出的窗口中点击确认保存。');
-          } else {
-            window.location.href = `clash://install-config?url=${encodeURIComponent(clashUrl)}&name=SubFlow`;
-          }
-        })
-        .catch(() => {
-          window.location.href = `clash://install-config?url=${encodeURIComponent(clashUrl)}&name=SubFlow`;
-        });
+      
+      // 1. 同步静默拷入系统剪贴板 (双重保险兜底)
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(clashUrl).catch(() => {});
+      }
+
+      // 2. 原生物理超链接模拟点击 (防现代浏览器安全策略阻拦协议)
+      try {
+        const a = document.createElement('a');
+        a.href = `clash://install-config?url=${encodeURIComponent(clashUrl)}&name=SubFlow`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } catch (e) {
+        window.location.href = `clash://install-config?url=${encodeURIComponent(clashUrl)}&name=SubFlow`;
+      }
+
+      showSonnerToast(currentAppLang === 'en'
+        ? '🚀 Launching FlClash / Clash... (Link copied to clipboard as fallback)'
+        : '🚀 正在唤醒 FlClash / Clash 客户端... (链接已同步复制兜底)');
     }
 
     function loadHistoryItem(url) {
@@ -4299,7 +4652,7 @@
     }
 
     // ==========================================================================
-    // 🔑 2026 Liquid Glass 全屏独立登录门禁与租户鉴权控制
+    // 🔑 2026 Liquid Glass 全屏独立登录门禁与用户鉴权控制
     // ==========================================================================
     let gateAuthMode = 'login';
     window.gateChallengeTicket = null;
@@ -4319,13 +4672,13 @@
         if (btnReg) { btnReg.style.background = 'transparent'; btnReg.style.color = 'var(--text-secondary)'; }
         if (confirmGroup) confirmGroup.style.display = 'none';
         if (tipGroup) tipGroup.style.display = 'flex';
-        if (submitBtn) submitBtn.querySelector('span').innerText = '立即登录 · 解锁转换中心 →';
+        if (submitBtn) submitBtn.querySelector('span').innerText = '立即登录';
       } else {
         if (btnReg) { btnReg.style.background = 'var(--primary)'; btnReg.style.color = '#fff'; }
         if (btnLogin) { btnLogin.style.background = 'transparent'; btnLogin.style.color = 'var(--text-secondary)'; }
         if (confirmGroup) confirmGroup.style.display = 'block';
         if (tipGroup) tipGroup.style.display = 'none';
-        if (submitBtn) submitBtn.querySelector('span').innerText = '立即注册并创建租户账号 →';
+        if (submitBtn) submitBtn.querySelector('span').innerText = '立即注册并创建用户账号 →';
       }
     }
 
@@ -4386,6 +4739,17 @@
           if (res.ok && data.ok) {
             const token = data.session_token || data.token || '';
             localStorage.setItem('subflow_token', token);
+            // 记住密码与登录状态持久化
+            const rem = document.getElementById('gate-remember-me');
+            if (rem && rem.checked) {
+              localStorage.setItem('subflow_remember', 'true');
+              localStorage.setItem('subflow_saved_user', username);
+              localStorage.setItem('subflow_saved_pwd', btoa(encodeURIComponent(password)));
+            } else {
+              localStorage.removeItem('subflow_remember');
+              localStorage.removeItem('subflow_saved_user');
+              localStorage.removeItem('subflow_saved_pwd');
+            }
             window.SUBFLOW_USER = data.user;
             unlockAppView(data.user);
             showSonnerToast('🎉 欢迎回来！已解锁万能转换中心。');
@@ -4438,31 +4802,57 @@
       const gate = document.getElementById('login-gate-screen');
       const app = document.getElementById('main-app-container');
       const nameEl = document.getElementById('header-username');
+      const dropNameEl = document.getElementById('dropdown-username-txt');
+      const dropRoleEl = document.getElementById('dropdown-role-txt');
       if (gate) gate.style.display = 'none';
       if (app) app.style.display = 'block';
-      if (nameEl && user) nameEl.innerText = user.username || '租户';
+      if (nameEl && user) {
+        const u = user.username || '用户';
+        nameEl.innerText = u;
+        if (dropNameEl) dropNameEl.innerText = u;
+        if (dropRoleEl) dropRoleEl.innerText = user.role === 'admin' ? '系统管理员' : '已授权 VIP 账号';
+      }
       updateBrandStatusUI();
       autoDetect();
       executeConvert(false);
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('tab') === 'history') switchTab('history');
+      } catch(e) {}
     }
 
     async function checkAuthStatus() {
-      const token = localStorage.getItem('subflow_token');
-      if (token) {
-        try {
-          const res = await fetch(apiUrl('/api/auth/me'), {
-            headers: { 'Authorization': 'Bearer ' + token }
-          });
-          if (res.ok) {
-            const data = await res.json();
-            if (data.ok && data.logged_in && data.user) {
-              window.SUBFLOW_USER = data.user;
-              unlockAppView(data.user);
-              return;
-            }
+      // 检查记住密码与自动回填
+      try {
+        const isRem = localStorage.getItem('subflow_remember') === 'true';
+        const sUser = localStorage.getItem('subflow_saved_user') || '';
+        let sPwd = '';
+        if (localStorage.getItem('subflow_saved_pwd')) {
+          sPwd = decodeURIComponent(atob(localStorage.getItem('subflow_saved_pwd')));
+        }
+        const uIn = document.getElementById('gate-username');
+        const pIn = document.getElementById('gate-password');
+        const rBox = document.getElementById('gate-remember-me');
+        if (isRem && sUser) {
+          if (uIn) uIn.value = sUser;
+          if (pIn && sPwd) pIn.value = sPwd;
+          if (rBox) rBox.checked = true;
+        }
+      } catch (e) {}
+
+      const token = localStorage.getItem('subflow_token') || '';
+      try {
+        const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
+        const res = await fetch(apiUrl('/api/auth/me'), { headers });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.ok && data.logged_in && data.user) {
+            window.SUBFLOW_USER = data.user;
+            unlockAppView(data.user);
+            return;
           }
-        } catch (e) {}
-      }
+        }
+      } catch (e) {}
       // 未登录
       window.SUBFLOW_USER = null;
       const gate = document.getElementById('login-gate-screen');
@@ -4496,6 +4886,143 @@
     executeConvert(false);
     fetchLanInfo();
     checkAuthStatus();
+
+    // 支持 URL 参数直达历史选项卡
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('tab') === 'history') {
+        switchTab('history');
+      }
+    } catch(e) {}
+
+    // =========================================================================
+    // 👤 用户二级下拉菜单与密码修改功能 (User Dropdown & Password Management)
+    // =========================================================================
+    function toggleUserDropdown(e) {
+      if (e) e.stopPropagation();
+      const menu = document.getElementById('user-dropdown-menu');
+      const chevron = document.getElementById('header-user-chevron');
+      if (!menu) return;
+      const isOpen = menu.style.display === 'block';
+      menu.style.display = isOpen ? 'none' : 'block';
+      if (chevron) chevron.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+    }
+
+    // 点击外部自动收起下拉菜单
+    document.addEventListener('click', (e) => {
+      const authZone = document.getElementById('header-auth-zone');
+      const menu = document.getElementById('user-dropdown-menu');
+      const chevron = document.getElementById('header-user-chevron');
+      if (menu && menu.style.display === 'block' && authZone && !authZone.contains(e.target)) {
+        menu.style.display = 'none';
+        if (chevron) chevron.style.transform = 'rotate(0deg)';
+      }
+    });
+
+    function openChangePasswordModal() {
+      const menu = document.getElementById('user-dropdown-menu');
+      const chevron = document.getElementById('header-user-chevron');
+      if (menu) menu.style.display = 'none';
+      if (chevron) chevron.style.transform = 'rotate(0deg)';
+
+      const modal = document.getElementById('user-profile-modal');
+      const alertBox = document.getElementById('pwd-alert-box');
+      if (alertBox) alertBox.style.display = 'none';
+      const pOld = document.getElementById('pwd-old');
+      const pNew = document.getElementById('pwd-new');
+      const pConf = document.getElementById('pwd-confirm');
+      if (pOld) pOld.value = '';
+      if (pNew) pNew.value = '';
+      if (pConf) pConf.value = '';
+
+      if (window.SUBFLOW_USER) {
+        const dName = document.getElementById('profile-display-name');
+        const dRole = document.getElementById('profile-role-badge');
+        const tBox = document.getElementById('profile-token-box');
+        if (dName) dName.innerText = window.SUBFLOW_USER.username || '用户';
+        if (dRole) dRole.innerText = window.SUBFLOW_USER.role === 'admin' ? '系统管理员' : 'VIP 账号';
+        if (tBox) tBox.value = window.SUBFLOW_USER.user_token || '';
+      }
+
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function closeUserModal() {
+      const modal = document.getElementById('user-profile-modal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    async function submitChangePassword() {
+      const oldPwd = document.getElementById('pwd-old').value;
+      const newPwd = document.getElementById('pwd-new').value.trim();
+      const confPwd = document.getElementById('pwd-confirm').value.trim();
+      const alertBox = document.getElementById('pwd-alert-box');
+      const alertMsg = document.getElementById('pwd-alert-msg');
+      if (alertBox) alertBox.style.display = 'none';
+
+      if (!oldPwd) {
+        if (alertBox && alertMsg) { alertMsg.innerText = '请输入当前原密码！'; alertBox.style.display = 'flex'; }
+        return;
+      }
+      if (!newPwd || newPwd.length < 6) {
+        if (alertBox && alertMsg) { alertMsg.innerText = '新密码长度至少需 6 位！'; alertBox.style.display = 'flex'; }
+        return;
+      }
+      if (newPwd !== confPwd) {
+        if (alertBox && alertMsg) { alertMsg.innerText = '两次输入的新密码不一致！'; alertBox.style.display = 'flex'; }
+        return;
+      }
+
+      const token = localStorage.getItem('subflow_token') || '';
+      try {
+        const res = await fetch(apiUrl('/api/auth/change-password'), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+          },
+          body: JSON.stringify({ old_password: oldPwd, new_password: newPwd })
+        });
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          if (localStorage.getItem('subflow_remember') === 'true') {
+            localStorage.setItem('subflow_saved_pwd', btoa(encodeURIComponent(newPwd)));
+          }
+          closeUserModal();
+          showSonnerToast('🎉 密码修改成功！请牢记您的新密码。');
+        } else {
+          if (alertBox && alertMsg) {
+            alertMsg.innerText = data.error || '修改密码失败，请核对原密码';
+            alertBox.style.display = 'flex';
+          }
+        }
+      } catch (err) {
+        if (alertBox && alertMsg) {
+          alertMsg.innerText = '网络异常: ' + err;
+          alertBox.style.display = 'flex';
+        }
+      }
+    }
+
+    function copyMyTokenFromDropdown() {
+      const menu = document.getElementById('user-dropdown-menu');
+      if (menu) menu.style.display = 'none';
+      const token = (window.SUBFLOW_USER && window.SUBFLOW_USER.user_token) || '';
+      if (!token) {
+        showSonnerToast('⚠️ 未能读取到当前用户的 Token，请重新登录');
+        return;
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(token).then(() => {
+          showSonnerToast('📋 专属 Token 已复制到剪贴板！');
+        }).catch(() => {
+          prompt('请手动复制您的专属 Token：', token);
+        });
+      } else {
+        prompt('请手动复制您的专属 Token：', token);
+      }
+    }
+
   </script>
 </body>
 </html>

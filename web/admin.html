@@ -330,6 +330,7 @@
       </div>
 
       <div class="nav-actions">
+        <button class="btn-outline" onclick="openAdminSecurityModal()" style="margin-right: 8px;"><span>🔐</span> <span>修改管理账密</span></button>
         <a href="/" class="btn-outline"><span>🌐</span> <span>前往用户前台</span></a>
         <button class="btn-danger" onclick="logoutAdmin()"><span>退出管理后台</span></button>
       </div>
@@ -340,25 +341,25 @@
       <!-- Tabs -->
       <div class="tab-bar">
         <button class="tab-btn active" id="tab-overview" onclick="switchAdminTab('overview')">📊 运行概览与体检</button>
-        <button class="tab-btn" id="tab-users" onclick="switchAdminTab('users')">👥 多租户用户管控</button>
+        <button class="tab-btn" id="tab-users" onclick="switchAdminTab('users')">👥 用户账号管理</button>
         <button class="tab-btn" id="tab-domain" onclick="switchAdminTab('domain')">🌐 公网域名与穿透</button>
-        <button class="tab-btn" id="tab-backup" onclick="switchAdminTab('backup')">💾 全量数据容灾备份</button>
-        <button class="tab-btn" id="tab-logs" onclick="switchAdminTab('logs')">⚡ 系统诊断与审计</button>
-        <button class="tab-btn" id="tab-update" onclick="switchAdminTab('update')">🚀 在线升级与 Git</button>
+        <button class="tab-btn" id="tab-backup" onclick="switchAdminTab('backup')">💾 数据备份与恢复</button>
+        <button class="tab-btn" id="tab-logs" onclick="switchAdminTab('logs')">⚡ 系统日志与诊断</button>
+        <button class="tab-btn" id="tab-update" onclick="switchAdminTab('update')">🚀 系统升级</button>
       </div>
 
       <!-- Tab 1: Overview -->
       <div id="view-overview" class="admin-view">
         <div class="stat-grid">
           <div class="stat-item">
-            <div class="stat-label">注册租户总数</div>
+            <div class="stat-label">注册用户总数</div>
             <div class="stat-value" id="stat-user-count">-</div>
-            <div class="stat-sub">多租户独立私有存储</div>
+            <div class="stat-sub">独立私有安全存储</div>
           </div>
           <div class="stat-item">
             <div class="stat-label">托管订阅总数</div>
             <div class="stat-value" id="stat-sub-count">-</div>
-            <div class="stat-sub">PBKDF2 密文隔离</div>
+            <div class="stat-sub">已安全加密</div>
           </div>
           <div class="stat-item">
             <div class="stat-label">核心进程延迟</div>
@@ -374,7 +375,28 @@
 
         <div class="glass-card">
           <div class="card-title">
-            <span>⚡ 系统健康体检与基准网络</span>
+            <span>🔐 管理员账号与访问安全</span>
+            <button class="btn-primary" onclick="openAdminSecurityModal()">修改管理账密</button>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:12px; font-size:0.85rem;">
+            <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+              <span style="color:var(--text-muted);">当前登录账号</span>
+              <strong id="card-admin-user" style="color:var(--text-primary); font-family: var(--font-mono);">admin</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+              <span style="color:var(--text-muted);">系统角色权限</span>
+              <span style="color:#10b981; font-weight: 600;">超级系统管理员 (Root Admin)</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:8px 0;">
+              <span style="color:var(--text-muted);">安全凭据维护</span>
+              <span style="color:var(--text-dim);">支持随时更换管理员登录用户名与访问密码</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-title">
+            <span>⚡ 系统健康体检与网络配置</span>
             <button class="btn-outline" onclick="loadOverviewData()">🔄 刷新诊断状态</button>
           </div>
           <div style="display:flex; flex-direction:column; gap:12px; font-size:0.85rem;">
@@ -392,7 +414,7 @@
             </div>
             <div style="display:flex; justify-content:space-between; padding:8px 0;">
               <span style="color:var(--text-muted);">数据库存储引擎</span>
-              <strong style="color:var(--emerald);">SQLite 3.x WAL 高并发持久化 (断电0损)</strong>
+              <strong style="color:var(--emerald);">SQLite WAL 模式 (断电0损)</strong>
             </div>
           </div>
         </div>
@@ -402,8 +424,8 @@
       <div id="view-users" class="admin-view" style="display:none;">
         <div class="glass-card">
           <div class="card-title">
-            <span>👥 多租户账户管控列表</span>
-            <button class="btn-outline" onclick="loadUsersData()">🔄 刷新租户列表</button>
+            <span>👥 用户账户管理列表</span>
+            <button class="btn-outline" onclick="loadUsersData()">🔄 刷新用户列表</button>
           </div>
           <div class="table-wrap">
             <table>
@@ -482,7 +504,7 @@
               <span>📥 SQLite 物理数据库镜像</span>
             </div>
             <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:16px;">
-              一键下载当前 live 运行中的二进制 <code style="color:#60a5fa;">subflow.db</code> 完整文件，包含全部租户与订阅数据。
+              一键下载当前 live 运行中的二进制 <code style="color:#60a5fa;">subflow.db</code> 完整文件，包含全部用户与订阅数据。
             </p>
             <button class="btn-primary" onclick="downloadDbBackup()">
               <span>📥 立即下载 subflow.db 物理快照</span>
@@ -495,7 +517,7 @@
               <span>📋 结构化 JSON 资产全量导出</span>
             </div>
             <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:16px;">
-              导出所有租户与私有订阅的脱敏全量 JSON 备份包，可用于跨主机迁移与灾备审查。
+              导出所有用户与私有订阅的脱敏全量 JSON 备份包，可用于跨主机迁移与灾备审查。
             </p>
             <button class="btn-outline" onclick="exportJsonBackup()">
               <span>📋 导出全量 JSON 资产备份</span>
@@ -545,7 +567,7 @@ SubFlow 运维控制中心就绪...
           <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: var(--radius-sm); padding: 14px 18px; font-size: 0.85rem; color: #a7f3d0; line-height: 1.6;">
             <strong>🔒 物理级安全隔离承诺：</strong>
             在线升级与代码覆盖仅针对程序核心（<code>gateway.py</code> 与 <code>web/</code> 静态资源），
-            您的私有域名配置、多租户数据库（<code>data/subflow.db</code>）以及 Cloudflare 隧道凭据全部存储于独立的 <code>data/</code> 物理隔离区，任何版本更新均<strong>绝不覆盖、绝不丢失</strong>！
+            您的私有域名配置、用户数据库（<code>data/subflow.db</code>）以及 Cloudflare 隧道凭据全部存储于独立的 <code>data/</code> 物理隔离区，任何版本更新均<strong>绝不覆盖、绝不丢失</strong>！
           </div>
         </div>
 
@@ -699,14 +721,14 @@ SubFlow 运维控制中心就绪...
 
     async function loadUsersData() {
       const tbody = document.getElementById('user-table-body');
-      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:24px;">正在检索多租户数据库...</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:24px;">正在检索用户数据库...</td></tr>';
       try {
         const res = await fetch('/api/admin/users', { headers: getAuthHeaders() });
         if (res.ok) {
           const d = await res.json();
           if (d.ok && d.users) {
             if (d.users.length === 0) {
-              tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:24px; color:var(--text-muted);">暂无注册租户</td></tr>';
+              tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:24px; color:var(--text-muted);">暂无注册用户</td></tr>';
               return;
             }
             tbody.innerHTML = d.users.map(u => `
@@ -731,13 +753,13 @@ SubFlow 运维控制中心就绪...
           tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:24px; color:#ef4444;">管理员鉴权失效 (${res.status})，请点击右上角退出后重新登录</td></tr>`;
         }
       } catch (e) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#ef4444;">加载租户列表失败: ' + e + '</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#ef4444;">加载用户列表失败: ' + e + '</td></tr>';
       }
     }
 
     async function toggleUserStatus(id, currentStatus) {
       const newStatus = currentStatus === 'active' ? 'banned' : 'active';
-      if (!confirm(`确定要将租户 #${id} 设为 [${newStatus==='active'?'解封':'封禁'}] 吗？`)) return;
+      if (!confirm(`确定要将用户 #${id} 设为 [${newStatus==='active'?'解封':'封禁'}] 吗？`)) return;
       try {
         const res = await fetch('/api/admin/user/status', {
           method: 'POST',
@@ -746,7 +768,7 @@ SubFlow 运维控制中心就绪...
         });
         const d = await res.json();
         if (d.ok) {
-          showToast('✅ 租户状态变更成功！');
+          showToast('✅ 用户状态变更成功！');
           loadUsersData();
         } else {
           showToast('❌ 变更失败: ' + (d.error || '未知错误'));
@@ -955,5 +977,144 @@ SubFlow 运维控制中心就绪...
     // 启动执行
     initAdminAuth();
   </script>
+
+    <!-- 管理员安全凭据设置弹窗 -->
+    <div id="admin-security-modal" class="modal-backdrop" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.65); backdrop-filter: blur(8px); z-index: 9999; align-items: center; justify-content: center;">
+      <div class="glass-card" style="width: 100%; max-width: 440px; padding: 24px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 1.4rem;">🔐</span>
+            <h3 style="margin: 0; font-size: 1.15rem; color: #fff;">修改管理员账号与密码</h3>
+          </div>
+          <button style="background: none; border: none; color: var(--text-muted); font-size: 1.4rem; cursor: pointer;" onclick="closeAdminSecurityModal()">&times;</button>
+        </div>
+        
+        <div style="margin-bottom: 14px;">
+          <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px;">当前登录账号</label>
+          <input type="text" id="admin-cur-name-input" class="modern-input" disabled style="width: 100%; padding: 10px 12px; border-radius: 8px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--text-muted); cursor: not-allowed;">
+        </div>
+
+        <div style="margin-bottom: 14px;">
+          <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px;">新管理员账号 <span style="color:var(--text-dim); font-size: 0.75rem;">(留空则保持原账号不变)</span></label>
+          <input type="text" id="admin-new-user-input" class="modern-input" placeholder="输入新的管理员账号名 (至少 3 位)" style="width: 100%; padding: 10px 12px; border-radius: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: #fff;">
+        </div>
+
+        <div style="margin-bottom: 14px;">
+          <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px;">新登录密码 <span style="color:var(--text-dim); font-size: 0.75rem;">(留空则保持原密码不变)</span></label>
+          <input type="password" id="admin-new-pwd-input" class="modern-input" placeholder="输入新密码 (至少 6 位)" style="width: 100%; padding: 10px 12px; border-radius: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: #fff;">
+        </div>
+
+        <div style="margin-bottom: 18px;">
+          <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px;">再次确认新密码</label>
+          <input type="password" id="admin-confirm-pwd-input" class="modern-input" placeholder="再次输入新密码确认" style="width: 100%; padding: 10px 12px; border-radius: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: #fff;">
+        </div>
+
+        <div id="admin-sec-alert" style="display: none; padding: 10px 14px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 16px;"></div>
+
+        <div style="display: flex; gap: 12px; justify-content: flex-end;">
+          <button class="btn-outline" onclick="closeAdminSecurityModal()">取消</button>
+          <button class="btn-primary" id="btn-save-admin-sec" onclick="submitAdminCredentials()">确认保存修改</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+    function openAdminSecurityModal() {
+      const modal = document.getElementById('admin-security-modal');
+      if (modal) {
+        modal.style.display = 'flex';
+        const cur = localStorage.getItem('subflow_admin_username') || 'admin';
+        document.getElementById('admin-cur-name-input').value = cur;
+        document.getElementById('admin-new-user-input').value = '';
+        document.getElementById('admin-new-pwd-input').value = '';
+        document.getElementById('admin-confirm-pwd-input').value = '';
+        const alertBox = document.getElementById('admin-sec-alert');
+        if (alertBox) alertBox.style.display = 'none';
+      }
+    }
+
+    function closeAdminSecurityModal() {
+      const modal = document.getElementById('admin-security-modal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    async function submitAdminCredentials() {
+      const newUser = document.getElementById('admin-new-user-input').value.trim();
+      const newPwd = document.getElementById('admin-new-pwd-input').value;
+      const confirmPwd = document.getElementById('admin-confirm-pwd-input').value;
+      const alertBox = document.getElementById('admin-sec-alert');
+      const btn = document.getElementById('btn-save-admin-sec');
+
+      if (!newUser && !newPwd) {
+        alertBox.style.display = 'block';
+        alertBox.style.background = 'rgba(239, 68, 68, 0.2)';
+        alertBox.style.color = '#ef4444';
+        alertBox.innerText = '新账号名与新密码不能同时为空';
+        return;
+      }
+
+      if (newPwd && newPwd !== confirmPwd) {
+        alertBox.style.display = 'block';
+        alertBox.style.background = 'rgba(239, 68, 68, 0.2)';
+        alertBox.style.color = '#ef4444';
+        alertBox.innerText = '两次输入的新密码不一致，请重新检查';
+        return;
+      }
+
+      if (newPwd && newPwd.length < 6) {
+        alertBox.style.display = 'block';
+        alertBox.style.background = 'rgba(239, 68, 68, 0.2)';
+        alertBox.style.color = '#ef4444';
+        alertBox.innerText = '新密码长度至少需要 6 位';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerText = '保存中...';
+
+      try {
+        const res = await fetch('/api/admin/change-credentials', {
+          method: 'POST',
+          headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ new_username: newUser, new_password: newPwd })
+        });
+        const d = await res.json();
+        if (res.ok && d.ok) {
+          alertBox.style.display = 'block';
+          alertBox.style.background = 'rgba(16, 185, 129, 0.2)';
+          alertBox.style.color = '#10b981';
+          alertBox.innerText = d.message || '管理员账号密码修改成功！';
+          if (d.token) {
+            localStorage.setItem('subflow_admin_token', d.token);
+          }
+          if (d.username) {
+            localStorage.setItem('subflow_admin_username', d.username);
+            const cardUser = document.getElementById('card-admin-user');
+            if (cardUser) cardUser.innerText = d.username;
+          }
+          setTimeout(() => {
+            closeAdminSecurityModal();
+            btn.disabled = false;
+            btn.innerText = '确认保存修改';
+          }, 1200);
+        } else {
+          alertBox.style.display = 'block';
+          alertBox.style.background = 'rgba(239, 68, 68, 0.2)';
+          alertBox.style.color = '#ef4444';
+          alertBox.innerText = d.error || '修改失败，请重试';
+          btn.disabled = false;
+          btn.innerText = '确认保存修改';
+        }
+      } catch (e) {
+        alertBox.style.display = 'block';
+        alertBox.style.background = 'rgba(239, 68, 68, 0.2)';
+        alertBox.style.color = '#ef4444';
+        alertBox.innerText = '网络请求异常: ' + e.message;
+        btn.disabled = false;
+        btn.innerText = '确认保存修改';
+      }
+    }
+    </script>
 </body>
+
 </html>

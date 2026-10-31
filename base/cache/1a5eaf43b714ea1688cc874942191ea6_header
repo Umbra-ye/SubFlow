@@ -1,0 +1,28 @@
+HTTP/1.1 200 Connection established
+
+HTTP/2 200 
+date: Wed, 28 Oct 2026 05:48:24 GMT
+content-type: text/yaml; charset=utf-8
+content-length: 648
+access-control-allow-origin: *
+access-control-expose-headers: *
+timing-allow-origin: *
+cache-control: public, max-age=604800, s-maxage=43200
+cross-origin-resource-policy: cross-origin
+x-content-type-options: nosniff
+strict-transport-security: max-age=31536000; includeSubDomains; preload
+x-jsd-version: main
+x-jsd-version-type: branch
+etag: W/"288-57ed23b451b7e71d"
+accept-ranges: bytes
+x-served-by: cache-fra-eddf8230136-FRA, cache-den-kden1300086-DEN
+x-cache: HIT, MISS
+vary: Accept-Encoding
+alt-svc: h3=":443"; ma=86400
+nel: {"report_to":"cf-nel","success_fraction":0.01,"max_age":604800}
+age: 34280
+cf-cache-status: HIT
+report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=E52A2hsSDVLWimeUWhF1kR46vppAXI5BE3yd2xVLqTWOH2CUiSgg1hdWZ7VwqHLjqRoIyIMqPD5pt3Co%2FetuLQO0A3u5D1NfWzr50BuE17w5dPHyiatIPxrR5ci1ks1NsQknHkdRT3A%3D"}]}
+server: cloudflare
+cf-ray: a517a6bd0f988acf-SJC
+

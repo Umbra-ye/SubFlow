@@ -226,6 +226,19 @@ def init_database():
         );
         """)
         c.execute("""
+        CREATE TABLE IF NOT EXISTS invitations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            code VARCHAR(64) UNIQUE NOT NULL,
+            invite_type VARCHAR(20) DEFAULT 'count',
+            max_uses INTEGER DEFAULT 1,
+            used_count INTEGER DEFAULT 0,
+            expires_at INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            created_by VARCHAR(50) DEFAULT 'admin',
+            note VARCHAR(100) DEFAULT ''
+        );
+        """)
+        c.execute("""
         CREATE TABLE IF NOT EXISTS guest_tokens (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
@@ -1193,13 +1206,44 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
                 self.send_json({"ok": False, "error": ticket_or_err}, code=400)
             return
 
-        # 1. 注册接口 (/api/auth/register)
+                # 1. 注册接口 (/api/auth/register)
         if path == "/api/auth/register":
-            if not server_config.get("allow_public_register", True):
-                self.send_json({"error": "全站公开注册已由管理员关闭"}, code=403)
-                return
             username = body.get("username", "").strip()
             password = body.get("password", "").strip()
+            invite_code = body.get("invite_code", "").strip()
+            
+            require_invite = server_config.get("require_invite_code", True)
+            
+            if require_invite:
+                if not invite_code:
+                    self.send_json({"error": "当前站点已开启邀请制，必须填写注册邀请码！"}, code=400)
+                    return
+                with db_lock:
+                    conn = get_db()
+                    c = conn.cursor()
+                    c.execute("SELECT id, invite_type, max_uses, used_count, expires_at FROM invitations WHERE code = ?", (invite_code,))
+                    inv = c.fetchone()
+                    if not inv:
+                        self.send_json({"error": "邀请码无效或不存在！"}, code=400)
+                        return
+                    inv_id, inv_type, max_uses, used_count, expires_at = inv
+                    now_ts = int(time.time())
+                    
+                    # 定时邀请码校验
+                    if inv_type == 'time':
+                        if expires_at > 0 and now_ts > expires_at:
+                            self.send_json({"error": "该邀请码已超过规定注册时间，已过期失效！"}, code=400)
+                            return
+                    else:
+                        # 计次邀请码校验
+                        if used_count >= max_uses:
+                            self.send_json({"error": "该邀请码使用次数已达上限！"}, code=400)
+                            return
+                            
+                    # 校验通过，原子增加使用记录
+                    c.execute("UPDATE invitations SET used_count = used_count + 1 WHERE id = ?", (inv_id,))
+                    conn.commit()
+
             if len(username) < 3 or len(password) < 6:
                 self.send_json({"error": "用户名至少3位，密码至少6位"}, code=400)
                 return
@@ -1210,17 +1254,28 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
                     conn = get_db()
                     c = conn.cursor()
                     c.execute("""
-                    INSERT INTO users (username, password_hash, salt, user_token, role, status)
-                    VALUES (?, ?, ?, ?, 'user', 'active');
+                    INSERT INTO users (username, password_hash, salt, user_token, role)
+                    VALUES (?, ?, ?, ?, 'user')
                     """, (username, p_hash, salt, user_token))
                     conn.commit()
-                    conn.close()
-                self.send_json({"ok": True, "message": "注册成功，请使用新账号登录"})
+                self.send_json({"ok": True, "message": "注册成功", "token": user_token, "user": {"username": username, "role": "user"}})
             except sqlite3.IntegrityError:
-                self.send_json({"error": "用户名已存在，请换一个重试"}, code=409)
+                self.send_json({"error": "该用户名已被注册，请更换"}, code=400)
+            except Exception as e:
+                self.send_json({"error": str(e)}, code=500)
             return
 
         # 2. 登录接口 (/api/auth/login)
+                # 公开站点配置状态接口 (前台登录页动态探测是否显示邀请码)
+        if path == "/api/auth/site-config":
+            require_invite = server_config.get("require_invite_code", True)
+            self.send_json({
+                "ok": True,
+                "require_invite": require_invite,
+                "allow_public_register": server_config.get("allow_public_register", True)
+            })
+            return
+
         if path == "/api/auth/login":
             if not check_login_attempts(client_ip):
                 self.send_json({"error": "连续登录失败次数过多，该 IP 已被临时锁定 15 分钟"}, code=429)

@@ -1580,7 +1580,7 @@
       color: var(--text-primary);
     }
 
-    /* 仿 Cloudflare Turnstile 质感“智能真人核验”组件 */
+    /* 仿 Cloudflare Turnstile 质感“人机安全验证”组件 */
     .smart-challenge-card {
       background: rgba(255, 255, 255, 0.03);
       border: 1px solid rgba(255, 255, 255, 0.12);
@@ -2093,6 +2093,62 @@
       color: #0f172a !important;
     }
 
+  
+    /* =========================================================================
+       2026 Liquid Glass: 登录门禁按当前地区白昼智能呈现日间高透微晶白玻
+       ========================================================================= */
+    [data-theme="light"] #login-gate-screen {
+      background: radial-gradient(circle at 50% 25%, rgba(56, 189, 248, 0.22) 0%, rgba(240, 249, 255, 0.95) 55%, #f1f5f9 100%) !important;
+    }
+    [data-theme="light"] #login-gate-screen::before {
+      background-image: 
+        radial-gradient(rgba(15, 23, 42, 0.08) 1.5px, transparent 1.5px) !important;
+      opacity: 0.6 !important;
+    }
+    [data-theme="light"] .login-gate-card {
+      background: rgba(255, 255, 255, 0.92) !important;
+      backdrop-filter: blur(48px) saturate(200%) !important;
+      border: 1px solid rgba(0, 0, 0, 0.08) !important;
+      box-shadow: 
+        0 25px 70px rgba(15, 23, 42, 0.08),
+        0 0 40px rgba(37, 99, 235, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 1) !important;
+      color: #0f172a !important;
+    }
+    [data-theme="light"] .login-gate-card .brand-title {
+      color: #0f172a !important;
+    }
+    [data-theme="light"] .login-gate-card .brand-subtitle {
+      color: #64748b !important;
+    }
+    [data-theme="light"] .gate-tab-group {
+      background: rgba(0, 0, 0, 0.05) !important;
+      border-color: rgba(0, 0, 0, 0.08) !important;
+    }
+    [data-theme="light"] .gate-tab-btn {
+      color: #64748b !important;
+    }
+    [data-theme="light"] .gate-tab-btn.active {
+      color: #ffffff !important;
+    }
+    [data-theme="light"] .auth-input {
+      background: #f8fafc !important;
+      border-color: #cbd5e1 !important;
+      color: #0f172a !important;
+    }
+    [data-theme="light"] .auth-input:focus {
+      background: #ffffff !important;
+      border-color: var(--primary) !important;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
+    }
+    [data-theme="light"] .auth-label {
+      color: #334155 !important;
+    }
+    [data-theme="light"] #gate-login-tip-group span,
+    [data-theme="light"] #gate-login-tip-group label {
+      color: #64748b !important;
+    }
+
   </style>
 </head>
 <body>
@@ -2108,6 +2164,10 @@
     <div class="aurora-glow-sphere glow-sphere-3"></div>
 
     <div class="login-gate-card">
+      <button type="button" id="gate-theme-toggle-btn" onclick="toggleAppTheme(true)" title="当前已按电脑所在地区时间自动识别日夜 (点击可手动切换)" style="position:absolute; top:20px; right:20px; background:rgba(255,255,255,0.06); border:1px solid var(--border-subtle); border-radius:20px; padding:6px 10px; cursor:pointer; display:inline-flex; align-items:center; gap:5px; font-size:0.75rem; color:var(--text-secondary); transition:all 0.2s; z-index:15;">
+        <span id="gate-theme-icon"></span>
+        <span id="gate-theme-text" style="font-size:0.72rem; font-weight:600;"></span>
+      </button>
       <!-- 品牌徽标 -->
       <div style="text-align:center; margin-bottom: 20px;">
         <div style="width: 52px; height: 52px; border-radius: 16px; background: linear-gradient(135deg, #2563eb, #10b981); margin: 0 auto 12px; display:flex; align-items:center; justify-content:center; color:#fff; font-size: 1.6rem; font-weight:800; box-shadow: 0 0 24px rgba(37, 99, 235, 0.45);">
@@ -2456,7 +2516,7 @@
           <button class="primary-btn" id="btn-copy-result" style="padding:8px 16px; font-size:0.84rem; display:inline-flex; align-items:center; gap:6px;" onclick="copyResult()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg><span>复制订阅链接</span></button>
           <button class="secondary-btn" id="btn-import-flclash" style="color:#38bdf8; background:rgba(56,189,248,0.12); border-color:rgba(56,189,248,0.35); font-weight:600; display:inline-flex; align-items:center; gap:6px;" onclick="importToFlClash()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg><span>一键导入 FlClash / Clash</span></button>
           <button class="secondary-btn" id="btn-preview-content" style="display:inline-flex; align-items:center; gap:6px;" onclick="previewContent()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg><span>预览纯配置内容</span></button>
-          <button class="secondary-btn" id="btn-open-qr" style="color: #60a5fa; background: rgba(59, 130, 246, 0.12); border-color: rgba(59, 130, 246, 0.28); display:inline-flex; align-items:center; gap:6px;" onclick="openMultiDeviceModal()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect width="5" height="5" x="3" y="3" rx="1"></rect><rect width="5" height="5" x="16" y="3" rx="1"></rect><rect width="5" height="5" x="3" y="16" rx="1"></rect><path d="M21 16h-3a2 2 0 0 0-2 2v3"></path><path d="M21 21v.01"></path><path d="M12 7v3a2 2 0 0 1-2 2H7"></path><path d="M3 12h.01"></path><path d="M12 3h.01"></path><path d="M12 16v.01"></path><path d="M16 12h1"></path><path d="M21 12v.01"></path><path d="M12 21v-1"></path></svg><span>手机扫码直连 / 防盗同步</span></button>
+          <button class="secondary-btn" id="btn-open-qr" style="color: #60a5fa; background: rgba(59, 130, 246, 0.12); border-color: rgba(59, 130, 246, 0.28); display:inline-flex; align-items:center; gap:6px;" onclick="openMultiDeviceModal()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect width="5" height="5" x="3" y="3" rx="1"></rect><rect width="5" height="5" x="16" y="3" rx="1"></rect><rect width="5" height="5" x="3" y="16" rx="1"></rect><path d="M21 16h-3a2 2 0 0 0-2 2v3"></path><path d="M21 21v.01"></path><path d="M12 7v3a2 2 0 0 1-2 2H7"></path><path d="M3 12h.01"></path><path d="M12 3h.01"></path><path d="M12 16v.01"></path><path d="M16 12h1"></path><path d="M21 12v.01"></path><path d="M12 21v-1"></path></svg><span>公网远程穿透 / 手机扫码直连</span></button>
         </div>
       </section>
     </main>
@@ -2521,12 +2581,12 @@
         <div style="width:100%; background:var(--bg-surface-elevated); border:1px solid var(--border-subtle); border-radius:8px; padding:10px 12px; display:flex; flex-direction:column; gap:8px;">
           <div style="display:flex; align-items:center; justify-content:space-between;">
             <div style="display:flex; align-items:center; gap:6px; font-size:0.8rem; font-weight:600; color:var(--text-primary);">
-              <span>🔑 防盗安全提取码 (PIN)</span>
+              <span>🔑 安全提取码 (PIN)</span>
               <span style="font-size:0.7rem; color:var(--text-muted); font-weight:400;">(家庭免密；公网穿透必开)</span>
             </div>
             <label style="display:inline-flex; align-items:center; gap:5px; font-size:0.74rem; cursor:pointer; color:var(--text-secondary);">
               <input type="checkbox" id="chk-enable-pin" onchange="togglePinProtection(this.checked)" style="accent-color:var(--primary); cursor:pointer;">
-              <span>开启提取码</span>
+              <span>开启 PIN 码验证</span>
             </label>
           </div>
           <div id="pin-input-row" style="display:none; align-items:center; gap:8px;">
@@ -2617,7 +2677,7 @@
           </div>
         </div>
 
-        <!-- 🛡️ 智能真人核验 (Smart Human Challenge) 卡片 -->
+        <!-- 🛡️ 人机安全验证 (Smart Human Challenge) 卡片 -->
         <div id="smart-challenge-wrap">
           <div class="smart-challenge-card" id="smart-challenge-box" onclick="triggerHumanChallenge()">
             <div class="challenge-left">
@@ -2826,7 +2886,7 @@
               <input type="radio" name="captcha-mode-radio" value="off" id="mode-off" style="accent-color:var(--primary); margin-top:3px;">
               <div style="display:flex; flex-direction:column; gap:2px;">
                 <span style="font-size:0.82rem; font-weight:700; color:#f43f5e;">关闭人机验证 (不推荐)</span>
-                <span style="font-size:0.7rem; color:var(--text-muted);">仅建议内网完全物理隔离环境使用，公网开放可能遭受暴力字典爆破。</span>
+                <span style="font-size:0.7rem; color:var(--text-muted);">仅建议内网私有安全隔离环境使用，公网开放可能遭受暴力字典爆破。</span>
               </div>
             </label>
           </div>
@@ -3004,7 +3064,7 @@
       <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-bottom:1px solid var(--border-subtle); background:var(--bg-surface-elevated);">
         <div style="display:flex; align-items:center; gap:8px;">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-          <span style="font-weight:700; font-size:0.95rem; color:var(--text-primary);" id="preview-modal-title">转换配置明文预览</span>
+          <span style="font-weight:700; font-size:0.95rem; color:var(--text-primary);" id="preview-modal-title">配置文件纯文本预览</span>
           <span style="font-size:0.75rem; background:rgba(56,189,248,0.15); color:#38bdf8; padding:2px 8px; border-radius:20px; font-weight:600;" id="preview-node-count">加载中...</span>
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
@@ -3087,7 +3147,7 @@
         btnCopyResult: '复制订阅链接',
         btnImportFlclash: '一键导入 FlClash / Clash',
         btnPreviewContent: '预览纯配置内容',
-        btnOpenQr: '手机扫码直连 / 防盗同步',
+        btnOpenQr: '公网远程穿透 / 手机扫码直连',
         
         // 历史与聚合看板
         historyHeader: '已保存的历史订阅清单',
@@ -3122,11 +3182,11 @@
         btnCopyMerged: '复制总链',
       btnCopyConverted: '复制',
       btnImportCardFlclash: 'FlClash',
-      btnPreviewPlain: '明文',
+      btnPreviewPlain: '预览纯文本',
       btnPreviewCard: '预览',
       btnLoadHub: '载入',
       btnLoadEdit: '载入',
-      btnDissolve: '解散',
+      btnDissolve: '解除合并',
       btnDelete: '删除',
 
         // 设置弹窗
@@ -3144,7 +3204,7 @@
         saveSettingsBtn: '保存并关闭',
 
         // 预览弹窗
-        previewTitle: '转换配置明文预览',
+        previewTitle: '配置文件纯文本预览',
         copyAllConfig: '📋 复制全部配置',
         previewHint: '💡 提示：此配置为本地网关输出的纯节点结果，已剔除一切分流规则，极速稳定。',
         openInBrowser: '在独立浏览器中查看 ➔'
@@ -3921,7 +3981,7 @@
       document.getElementById('source-input').value = compositeInput;
       switchTab('convert');
       autoDetect();
-      showSonnerToast('⚡ 已将多机场管道流载入转换面板！');
+      showSonnerToast('⚡ 已将多订阅聚合流载入转换面板！');
     }
 
     function saveSelectedAsMergedCard() {
@@ -4325,35 +4385,66 @@
     // ==========================================================================
     // 2026 日间 / 夜间模式主题引擎 (实时无缝联动 C# 原生窗口 DWM 沉浸式标题栏)
     // ==========================================================================
-    function toggleAppTheme() {
-      const isCurrentlyLight = document.documentElement.getAttribute('data-theme') === 'light';
-      setAppTheme(isCurrentlyLight ? 'dark' : 'light');
+    
+    // =========================================================================
+    // ☀️ / 🌙 当前电脑地区白昼与黑夜智能自适应识别引擎 (06:00~18:00 为白天)
+    // =========================================================================
+    function getAutoSolarTheme() {
+      try {
+        const manual = localStorage.getItem('subflow_manual_theme');
+        if (manual === 'light' || manual === 'dark') {
+          return manual;
+        }
+      } catch(e) {}
+      
+      const hour = new Date().getHours();
+      // 电脑本地时间 06:00 至 18:00 自动判定为白昼日间，其余判定为黑夜夜间
+      return (hour >= 6 && hour < 18) ? 'light' : 'dark';
     }
 
-    function setAppTheme(theme) {
-      const isDark = theme !== 'light';
-      const icon = document.getElementById('theme-icon');
-      const text = document.getElementById('theme-text');
+    const SVG_SOLAR_SUN = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>`;
+    const SVG_SOLAR_MOON = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#93c5fd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>`;
 
+    function setAppTheme(theme, isManual = false) {
+      const isDark = theme !== 'light';
       if (!isDark) {
         document.documentElement.setAttribute('data-theme', 'light');
-        if (icon) icon.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>';
-        if (text) text.innerText = '日间模式';
       } else {
         document.documentElement.removeAttribute('data-theme');
-        if (icon) icon.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>';
-        if (text) text.innerText = '夜间模式';
       }
+
+      // 更新前台主顶栏
+      const icon = document.getElementById('theme-icon');
+      const text = document.getElementById('theme-text');
+      if (icon) icon.innerHTML = isDark ? SVG_SOLAR_SUN : SVG_SOLAR_MOON;
+      if (text) text.innerText = isDark ? '日间模式' : '夜间模式';
+
+      // 同步更新门禁卡片右上角药丸
+      const gateIcon = document.getElementById('gate-theme-icon');
+      const gateText = document.getElementById('gate-theme-text');
+      if (gateIcon) gateIcon.innerHTML = isDark ? SVG_SOLAR_SUN : SVG_SOLAR_MOON;
+      if (gateText) gateText.innerText = isDark ? '日间模式' : '夜间模式';
 
       try {
-        localStorage.setItem('subflow_theme', isDark ? 'dark' : 'light');
-      } catch (e) {}
-
-      // 联动 C# 原生窗口宿主沉浸式刷新操作系统标题栏与底色
-      if (window.chrome && window.chrome.webview) {
-        window.chrome.webview.postMessage({ type: 'setTheme', isDark: isDark });
-      }
+        localStorage.setItem('subflow_theme', theme);
+        if (isManual) {
+          localStorage.setItem('subflow_manual_theme', theme);
+          showSonnerToast(isDark ? '已切换至沉浸夜间模式' : '已切换至清新日间模式');
+        }
+      } catch(e) {}
     }
+
+    function toggleAppTheme(isManual = true) {
+      const isCurrentlyLight = document.documentElement.getAttribute('data-theme') === 'light';
+      setAppTheme(isCurrentlyLight ? 'dark' : 'light', isManual);
+    }
+
+    // 页面加载阶段：以毫秒级自愈当前电脑地区昼夜
+    (function autoDetectSolarThemeOnLoad() {
+      const initTheme = getAutoSolarTheme();
+      setAppTheme(initTheme, false);
+    })();
+
 
     // 初始化自动恢复持久化主题与定时测活状态
     try {
@@ -4443,7 +4534,7 @@
           if (highlight) highlight.innerText = '手机小火箭 / Clash / v2ray 扫码即可跨公网全自动拉取云端订阅！';
           if (btnLan) btnLan.innerText = '🌐 云端公网直连 (推荐)';
         } else {
-          if (badgeText) badgeText.innerText = '家庭/办公 WiFi 直连 · 100% 物理隔离零外网泄露';
+          if (badgeText) badgeText.innerText = '家庭/办公 WiFi 直连 · 100% 私有安全隔离';
           if (label) label.innerText = '局域网自适应短链 (已自动脱敏，不含机场密码 Token)';
           if (highlight) highlight.innerText = '手机与电脑连入同一 WiFi 即可全自动拉取自适应配置！';
           if (btnLan) btnLan.innerText = '🏠 WiFi 局域网直连 (第1名)';
@@ -4574,10 +4665,10 @@
           currentTunnelUrl = '';
           updateTunnelButtonState();
           renderSyncQrCode();
-          showSonnerToast('🚨 紧急熔断成功！公网隧道已断开，新PIN已重置为 ' + data.new_pin + '，旧链接已彻底报废！');
+          showSonnerToast('🚨 旧链接作废成功！公网隧道已断开，新PIN已重置为 ' + data.new_pin + '，旧链接已彻底报废！');
         }
       } catch (e) {
-        showSonnerToast('⚠️ 熔断请求失败: ' + e);
+        showSonnerToast('⚠️ 作废请求失败: ' + e);
       }
     }
 
@@ -4697,6 +4788,31 @@
     let gateAuthMode = 'login';
     window.gateChallengeTicket = null;
 
+    
+    // 动态探测云端是否开启邀请制
+    async function checkSiteInviteConfig() {
+      try {
+        const res = await fetch(apiUrl('/api/auth/site-config'));
+        const data = await res.json();
+        window.REQUIRE_INVITE = !!data.require_invite;
+        updateInviteInputVisibility();
+      } catch (e) {
+        window.REQUIRE_INVITE = true;
+      }
+    }
+
+    function updateInviteInputVisibility() {
+      const invGroup = document.getElementById('gate-invite-group');
+      if (!invGroup) return;
+      if (gateAuthMode === 'register' && window.REQUIRE_INVITE) {
+        invGroup.style.display = 'block';
+      } else {
+        invGroup.style.display = 'none';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', checkSiteInviteConfig);
+
     function switchGateTab(tab) {
       gateAuthMode = tab;
       const btnLogin = document.getElementById('tab-gate-login');
@@ -4716,6 +4832,7 @@
         const invGroup = document.getElementById('gate-invite-group'); if (invGroup) invGroup.style.display = 'none';
         if (tipGroup) tipGroup.style.display = 'flex';
         if (submitBtn) submitBtn.querySelector('span').innerText = '立即登录';
+        updateInviteInputVisibility();
       } else {
         if (slider) slider.style.transform = 'translateX(100%)';
         if (btnReg) { btnReg.style.color = '#ffffff'; btnReg.style.fontWeight = '700'; }
@@ -4724,6 +4841,7 @@
         const invGroup = document.getElementById('gate-invite-group'); if (invGroup) invGroup.style.display = 'block';
         if (tipGroup) tipGroup.style.display = 'none';
         if (submitBtn) submitBtn.querySelector('span').innerText = '立即注册并创建用户账号 →';
+        updateInviteInputVisibility();
       }
     }
 
@@ -4867,6 +4985,17 @@
     }
 
     async function checkAuthStatus() {
+      // 严格硬件级判定：仅当运行在个人电脑的 SubFlow.exe 本地桌面客户端 (WebView2 原生宿主) 时才免密直通
+      // 部署在云端 Windows 服务器或云端 Linux VPS 时，外部浏览器访问无 webview 宿主，统一执行 100% 高安全门禁与邀请制！
+      const isNativeDesktopApp = !!(window.chrome && window.chrome.webview);
+
+      if (isNativeDesktopApp) {
+        // 本地桌面客户端主人：秒进工作台
+        const localMasterUser = { username: '本地主机', role: 'admin' };
+        window.SUBFLOW_USER = localMasterUser;
+        unlockAppView(localMasterUser);
+        return;
+      }
       // 检查记住密码与自动回填
       try {
         const isRem = localStorage.getItem('subflow_remember') === 'true';

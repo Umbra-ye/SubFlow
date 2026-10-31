@@ -270,7 +270,18 @@ def init_database():
             INSERT INTO users (username, password_hash, salt, user_token, role, status)
             VALUES (?, ?, ?, ?, 'admin', 'active');
             """, ("admin", p_hash, salt, adm_token))
-            conn.commit()
+            
+        c.execute("""
+        CREATE TABLE IF NOT EXISTS persistent_sessions (
+            token TEXT PRIMARY KEY,
+            user_id INTEGER,
+            username TEXT,
+            role TEXT,
+            exp REAL
+        );
+        """)
+
+        conn.commit()
             print("[Init] Default administrator created: admin / admin123456")
 
         conn.commit()
@@ -931,7 +942,7 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
                 "is_git": is_git,
                 "git_commit": git_commit or "release",
                 "git_branch": git_branch or "main",
-                "git_repo": server_config.get("git_repo", "https://github.com/yeying130/SubFlow.git"),
+                "git_repo": server_config.get("git_repo", "https://github.com/Umbra-ye/SubFlow.git"),
                 "uptime": int(time.time() - START_TIME)
             })
             return

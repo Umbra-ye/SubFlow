@@ -372,6 +372,76 @@
       color: #64748b !important;
     }
 
+  
+    /* ==========================================================================
+       🌌 2026 Liquid Glass 动态极光科技全景背景 (告别单调纯黑)
+       ========================================================================== */
+    body {
+      background-color: #050811 !important;
+      background-image: 
+        radial-gradient(circle at 10% 15%, rgba(37, 99, 235, 0.28) 0%, transparent 45%),
+        radial-gradient(circle at 90% 85%, rgba(6, 182, 212, 0.22) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.16) 0%, transparent 55%),
+        radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.14) 0%, transparent 40%),
+        radial-gradient(rgba(255, 255, 255, 0.08) 1.2px, transparent 1.2px) !important;
+      background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%, 28px 28px !important;
+      background-attachment: fixed !important;
+      min-height: 100vh;
+      color: var(--text-primary);
+      position: relative;
+    }
+
+    /* 顶栏微晶透光毛玻璃 */
+    .admin-navbar {
+      background: rgba(5, 8, 17, 0.75) !important;
+      backdrop-filter: blur(24px) saturate(180%) !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+    }
+
+    /* 控制台所有主卡片: 透光暗晶毛玻璃 + 细腻边缘微光 */
+    .card, 
+    .admin-card, 
+    .stat-item,
+    div[class*="card"] {
+      background: rgba(13, 20, 36, 0.72) !important;
+      backdrop-filter: blur(24px) saturate(190%) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+      border-radius: var(--radius-lg);
+      transition: all 0.2s ease !important;
+    }
+
+    .card:hover,
+    .stat-item:hover {
+      border-color: rgba(56, 189, 248, 0.3) !important;
+      box-shadow: 0 20px 44px rgba(0, 0, 0, 0.7), 0 0 20px rgba(37, 99, 235, 0.15) !important;
+    }
+
+    /* 统计块内部数值光晕 */
+    .stat-value {
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    }
+
+    /* 门禁卡片环境背景 */
+    .admin-gate-overlay {
+      position: fixed;
+      inset: 0;
+      background-color: #050811 !important;
+      background-image: 
+        radial-gradient(circle at 20% 30%, rgba(37, 99, 235, 0.35) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(6, 182, 212, 0.28) 0%, transparent 55%),
+        radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.18) 0%, transparent 50%),
+        radial-gradient(rgba(255, 255, 255, 0.08) 1.2px, transparent 1.2px) !important;
+      background-size: 100% 100%, 100% 100%, 100% 100%, 28px 28px !important;
+      backdrop-filter: blur(30px);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
   </style>
 </head>
 <body>
@@ -431,7 +501,7 @@
             <span class="brand-title">SubFlow 运维控制中心</span>
             <span class="badge-admin">管理员权限</span>
           </div>
-          <div style="font-size: 0.7rem; color: var(--text-muted);">版本 v2.0 · 私有安全运维后台</div>
+          <div style="font-size: 0.7rem; color: var(--text-muted);">版本 v2.2.1 · 私有安全运维后台</div>
         </div>
       </div>
 
@@ -1262,7 +1332,23 @@ SubFlow 运维控制中心就绪...
     async function loadInvitations() {
       try {
         const res = await fetch(adminApiUrl('/api/admin/invitations/list'));
-        const data = await res.json();
+        
+        if (res.status === 403 || res.status === 401) {
+          box.innerText += "[鉴权失效] 您的管理员登录态已过期或已被服务器重载，请点击右上角重新登录后再试。\n";
+          btn.disabled = false;
+          btn.innerText = '🔍 检查远程最新版本';
+          document.getElementById('admin-gate-screen').style.display = 'flex';
+          return;
+        }
+
+        if (res.status === 403 || res.status === 401) {
+          box.innerText += "[鉴权失效] 您的管理员登录态已过期，请重新登录管理后台。\n";
+          btn.disabled = false;
+          btn.innerText = '⚡ 一键安全热升级覆盖';
+          document.getElementById('admin-gate-screen').style.display = 'flex';
+          return;
+        }
+const data = await res.json();
         if (data.ok) {
           const chk = document.getElementById('admin-require-invite');
           if (chk) chk.checked = data.require_invite_code;

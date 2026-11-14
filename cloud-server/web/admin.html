@@ -108,33 +108,63 @@
     }
     .btn-danger:hover { background: rgba(239, 68, 68, 0.25); color: #fca5a5; }
 
+    /* Key-Value List Row Alignment */
+    .kv-list-wrap > div:hover {
+      background: rgba(255, 255, 255, 0.035);
+    }
+    .admin-container {
+      max-width: 880px;
+    }
+
     /* Layout */
     .admin-container {
-      max-width: 1200px;
+      max-width: 880px;
       width: 100%;
       margin: 24px auto;
       padding: 0 20px 40px;
       flex: 1;
     }
 
-    /* Tabs */
+    /* Tabs (强制单行优雅横向滚动，永不换行掉队) */
     .tab-bar {
-      display: flex;
-      gap: 8px;
+      display: flex !important;
+      flex-wrap: nowrap !important;
+      overflow-x: auto !important;
+      justify-content: center !important;
+      gap: 8px !important;
       border-bottom: 1px solid var(--border-subtle);
-      padding-bottom: 12px;
-      margin-bottom: 24px;
-      overflow-x: auto;
+      padding-bottom: 10px !important;
+      margin-bottom: 20px !important;
+      scrollbar-width: thin;
+      -webkit-overflow-scrolling: touch;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+    @media (max-width: 860px) {
+      .tab-bar {
+        justify-content: flex-start !important;
+      }
+    }
+    .tab-bar::-webkit-scrollbar {
+      height: 4px;
+    }
+    .tab-bar::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
     }
     .tab-btn {
       background: transparent;
       color: var(--text-secondary);
-      padding: 8px 16px;
+      padding: 7px 11px !important;
       border-radius: var(--radius-md);
-      font-size: 0.88rem;
+      font-size: 0.81rem !important;
       font-weight: 600;
       transition: all 0.2s;
-      white-space: nowrap;
+      white-space: nowrap !important;
+      flex-shrink: 0 !important;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
     }
     .tab-btn:hover { background: rgba(255, 255, 255, 0.05); color: var(--text-primary); }
     .tab-btn.active {
@@ -164,10 +194,20 @@
       display: flex; align-items: center; justify-content: space-between;
     }
     .stat-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 16px;
-      margin-bottom: 20px;
+      display: grid !important;
+      grid-template-columns: repeat(4, 1fr) !important;
+      gap: 14px !important;
+      margin-bottom: 20px !important;
+    }
+    @media (max-width: 960px) {
+      .stat-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+      }
+    }
+    @media (max-width: 520px) {
+      .stat-grid {
+        grid-template-columns: 1fr !important;
+      }
     }
     .stat-item {
       background: rgba(19, 27, 46, 0.6);
@@ -205,6 +245,7 @@
     .form-label { display: block; font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600; }
     .form-input {
       width: 100%;
+      max-width: 680px;
       background: rgba(19, 27, 46, 0.7);
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-sm);
@@ -327,6 +368,77 @@
     [data-theme="light"] .tab-btn.active {
       color: #2563eb !important;
       border-bottom-color: #2563eb !important;
+    }
+
+        /* ☀️ 日间模式高对比度完美补丁 (彻底消灭水泥灰块、发白字、低对比度) */
+    [data-theme="light"] #update-log-box,
+    [data-theme="light"] #diag-result-box,
+    [data-theme="light"] #worker-code-block,
+    [data-theme="light"] pre,
+    [data-theme="light"] pre[id*="code"] {
+      background: #0f172a !important;
+      border: 1px solid #1e293b !important;
+      color: #38bdf8 !important;
+      border-radius: 8px !important;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08), inset 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+    }
+    [data-theme="light"] #worker-code-block {
+      color: #a7f3d0 !important;
+    }
+    [data-theme="light"] .update-safety-box {
+      background: #ecfdf5 !important;
+      border: 1px solid #a7f3d0 !important;
+      color: #065f46 !important;
+    }
+    [data-theme="light"] .update-safety-box strong {
+      color: #047857 !important;
+    }
+    [data-theme="light"] .git-locked-input {
+      background: #f1f5f9 !important;
+      border: 1px solid #cbd5e1 !important;
+      color: #0284c7 !important;
+    }
+    [data-theme="light"] #update-badge-status {
+      background: #d1fae5 !important;
+      color: #047857 !important;
+      font-weight: 700 !important;
+    }
+    [data-theme="light"] .badge-admin {
+      background: #dbeafe !important;
+      color: #1d4ed8 !important;
+      font-weight: 700 !important;
+    }
+    [data-theme="light"] .badge {
+      font-weight: 600 !important;
+    }
+    [data-theme="light"] .badge[style*="var(--emerald)"] {
+      background: #d1fae5 !important;
+      color: #047857 !important;
+    }
+    [data-theme="light"] td span[style*="var(--emerald)"] {
+      background: #d1fae5 !important;
+      color: #047857 !important;
+    }
+    [data-theme="light"] td span[style*="#34d399"] {
+      color: #059669 !important;
+    }
+    [data-theme="light"] .stat-card div[style*="color: #34d399"],
+    [data-theme="light"] .stat-card div[style*="color: #38bdf8"] {
+      color: #0284c7 !important;
+    }
+    [data-theme="light"] tr td a[style*="underline"] {
+      color: #0284c7 !important;
+    }
+
+    /* 🌙 暗黑模式下的安全提示框默认样式 */
+    .update-safety-box {
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      color: #a7f3d0;
+    }
+    .git-locked-input {
+      background: rgba(0,0,0,0.3) !important;
+      color: #38bdf8 !important;
     }
 
     /* 4. 统计卡片与大卡片: 100% 纯白柔和质感 (彻底消灭黑底黑字!) */
@@ -519,25 +631,7 @@
       -moz-appearance: textfield !important;
     }
 
-    /* 📱 通用移动视口 (390px) 响应式与横向平滑流式 Tab 栏 */
-    .tab-bar {
-      display: flex !important;
-      gap: 8px !important;
-      margin-bottom: 24px !important;
-      overflow-x: auto !important;
-      flex-wrap: nowrap !important;
-      scrollbar-width: none !important;
-      -webkit-overflow-scrolling: touch !important;
-      padding-bottom: 4px !important;
-    }
-    .tab-bar::-webkit-scrollbar {
-      display: none !important;
-    }
-    .tab-btn {
-      white-space: nowrap !important;
-      flex-shrink: 0 !important;
-      min-height: 42px !important;
-    }
+    /* 已统一为单行横向平滑 Tab 栏 */
     
     /* 🛡️ 高阶微晶磨砂模态弹窗遮罩（彻底杜绝底图文字透底穿帮） */
     #admin-security-modal, .modal-backdrop, .modal-mask {
@@ -569,16 +663,18 @@
       overflow-x: hidden !important;
     }
     .admin-container {
-      max-width: 100% !important;
-      overflow-x: hidden !important;
-      box-sizing: border-box !important;
-    }
-    .tab-bar {
+      max-width: 1060px !important;
       width: 100% !important;
-      max-width: 100% !important;
-      overflow-x: auto !important;
+      margin: 24px auto !important;
       box-sizing: border-box !important;
     }
+    @media (max-width: 880px) {
+      .admin-container {
+        max-width: 100% !important;
+        padding: 0 12px 30px !important;
+      }
+    }
+    /* tab-bar 保持横向滚动 */
     @media (max-width: 520px) {
       .stat-grid {
         grid-template-columns: 1fr !important;
@@ -589,7 +685,7 @@
         gap: 12px !important;
       }
       .table-wrap {
-        overflow-x: auto !important;
+        overflow: visible !important;
         -webkit-overflow-scrolling: touch !important;
       }
     }
@@ -804,14 +900,15 @@
     <main class="admin-container">
       <!-- Tabs -->
       <div class="tab-bar">
-        <button class="tab-btn active" id="tab-overview" onclick="switchAdminTab('overview')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><path d="m12 14 4-4"></path><path d="M3.34 19a10 10 0 1 1 17.32 0"></path></svg><span>运行概览与体检</span></button>
-        <button class="tab-btn" id="tab-users" onclick="switchAdminTab('users')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg><span>用户账号管理</span></button>
+        <button class="tab-btn active" id="tab-overview" onclick="switchAdminTab('overview')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><path d="m12 14 4-4"></path><path d="M3.34 19a10 10 0 1 1 17.32 0"></path></svg><span>运行概览</span></button>
+        <button class="tab-btn" id="tab-users" onclick="switchAdminTab('users')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg><span>用户管理</span></button>
         <button class="tab-btn" id="tab-invitations" onclick="switchAdminTab('invitations')">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M7 7h.01"></path><path d="M17 7h.01"></path><path d="M7 17h.01"></path><path d="M17 17h.01"></path></svg><span>注册邀请码管理</span>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M7 7h.01"></path><path d="M17 7h.01"></path><path d="M7 17h.01"></path><path d="M17 17h.01"></path></svg><span>邀请码</span>
         </button>
-        <button class="tab-btn" id="tab-domain" onclick="switchAdminTab('domain')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg><span>公网域名与穿透</span></button>
-        <button class="tab-btn" id="tab-backup" onclick="switchAdminTab('backup')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg><span>数据备份与恢复</span></button>
-        <button class="tab-btn" id="tab-logs" onclick="switchAdminTab('logs')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg><span>系统日志与诊断</span></button>
+        <button class="tab-btn" id="tab-domain" onclick="switchAdminTab('domain')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg><span>域名绑定</span></button>
+        <button class="tab-btn" id="tab-guides" onclick="switchAdminTab('guides')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg><span>接入指南</span></button>
+        <button class="tab-btn" id="tab-backup" onclick="switchAdminTab('backup')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg><span>数据备份</span></button>
+        <button class="tab-btn" id="tab-logs" onclick="switchAdminTab('logs')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg><span>日志诊断</span></button>
         <button class="tab-btn" id="tab-update" onclick="switchAdminTab('update')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"></path><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"></path><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"></path><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"></path></svg><span>系统升级</span></button>
       </div>
 
@@ -845,12 +942,12 @@
             <span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>管理员账号与访问安全</span>
             <button class="btn-primary" onclick="openAdminSecurityModal()">修改管理员密码</button>
           </div>
-          <div style="display:flex; flex-direction:column; gap:12px; font-size:0.85rem;">
-            <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+          <div class="kv-list-wrap" style="display:flex; flex-direction:column; gap:4px; font-size:0.86rem;">
+            <div style="display:flex; justify-content:space-between; padding:11px 12px; border-bottom:1px dashed rgba(255,255,255,0.08); border-radius:6px; transition: background 0.15s ease;">
               <span style="color:var(--text-muted);">当前登录账号</span>
               <strong id="card-admin-user" style="color:var(--text-primary); font-family: var(--font-mono);">admin</strong>
             </div>
-            <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+            <div style="display:flex; justify-content:space-between; padding:11px 12px; border-bottom:1px dashed rgba(255,255,255,0.08); border-radius:6px; transition: background 0.15s ease;">
               <span style="color:var(--text-muted);">系统角色权限</span>
               <span style="color:#10b981; font-weight: 600;">超级系统管理员 (Root Admin)</span>
             </div>
@@ -864,18 +961,18 @@
         <div class="glass-card">
           <div class="card-title">
             <span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><path d="m12 14 4-4"></path><path d="M3.34 19a10 10 0 1 1 17.32 0"></path></svg><span>系统健康体检与网络配置</span></span>
-            <button class="btn-outline" onclick="loadOverviewData()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M3 21v-5h5"></path></svg><span>刷新体检</span></button>
+            <button class="btn-outline" id="btn-refresh-overview" onclick="loadOverviewData(this)"><svg id="icon-refresh-spin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M3 21v-5h5"></path></svg><span>刷新体检</span></button>
           </div>
           <div style="display:flex; flex-direction:column; gap:12px; font-size:0.85rem;">
-            <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+            <div style="display:flex; justify-content:space-between; padding:11px 12px; border-bottom:1px dashed rgba(255,255,255,0.08); border-radius:6px; transition: background 0.15s ease;">
               <span style="color:var(--text-muted);">当前探测公网 IP</span>
               <strong id="diag-public-ip" style="color:var(--text-primary);">-</strong>
             </div>
-            <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+            <div style="display:flex; justify-content:space-between; padding:11px 12px; border-bottom:1px dashed rgba(255,255,255,0.08); border-radius:6px; transition: background 0.15s ease;">
               <span style="color:var(--text-muted);">绑定的公网专属域名</span>
               <strong id="diag-bound-domain" style="color:#38bdf8;">未绑定 (自适应)</strong>
             </div>
-            <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+            <div style="display:flex; justify-content:space-between; padding:11px 12px; border-bottom:1px dashed rgba(255,255,255,0.08); border-radius:6px; transition: background 0.15s ease;">
               <span style="color:var(--text-muted);">开放公开注册</span>
               <strong id="diag-allow-reg" style="color:var(--emerald);">允许公开注册</strong>
             </div>
@@ -1004,7 +1101,7 @@
       </div>
 
 <!-- Tab 3: Domain & Tunnel -->
-      <div id="view-domain" class="admin-view" style="display:none;">
+      <div id="view-domain" class="admin-view" style="display:none; max-width: 840px; margin: 0 auto;">
         <div class="glass-card">
           <div class="card-title">
             <span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>公网专属域名绑定与重定向</span>
@@ -1028,6 +1125,30 @@
           <button class="btn-primary" onclick="saveDomainConfig()">💾 保存域名绑定配置</button>
         </div>
 
+        <!-- Cloudflare Pages 自动化创建中继 Card -->
+        <div class="glass-card" style="border-left: 4px solid var(--emerald); margin-bottom: 20px;">
+          <div class="card-title">
+            <span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>Cloudflare Pages 边缘中继 API 一键自动化部署</span>
+            <span class="badge" style="background:rgba(16,185,129,0.15); color:var(--emerald); font-size:0.75rem;">极速全自动</span>
+          </div>
+          <p style="font-size:0.84rem; color:var(--text-secondary); margin-bottom:14px; line-height:1.65;">
+            输入您的 Cloudflare API 令牌（需具备 Pages 编辑权限），系统将通过官方 API <strong>全自动探测账户、一键创建独立 Pages 边缘容器，并自动将生成的 *.pages.dev 域名绑定保存到上方输入框</strong>，免去手动配置！
+          </p>
+          <div class="form-group">
+            <label class="form-label">Cloudflare API Token (需具备 Pages 编辑权限)</label>
+            <input type="password" id="cfg-cf-pages-token" class="form-input" placeholder="cfut_... 或带有 Pages 编辑权限的 API 令牌">
+          </div>
+          <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <button class="btn-primary" id="btn-cf-pages-auto" onclick="triggerCfPagesAutoDeploy()">
+              <span>🚀 一键自动建立 Pages 边缘中继并绑定</span>
+            </button>
+            <button class="btn-outline" onclick="switchAdminTab('guides')" style="font-size:0.78rem;">
+              <span>📖 查看 Token 权限获取避坑指南</span>
+            </button>
+          </div>
+          <div id="cf-pages-deploy-status" style="margin-top:12px; font-size:0.82rem; display:none; padding:10px 12px; border-radius:6px; background:rgba(0,0,0,0.2);"></div>
+        </div>
+
         <div class="glass-card">
           <div class="card-title">
             <span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>Cloudflare 远程穿透隧道</span>
@@ -1040,7 +1161,197 @@
         </div>
       </div>
 
-      
+      <!-- Tab: Network Access & Deployment Guides -->
+      <div id="view-guides" class="admin-view" style="display:none; max-width: 860px; margin: 0 auto;">
+        <!-- 顶部导言卡片 (舒适排版) -->
+        <div class="glass-card" style="border-left: 4px solid var(--primary); margin-bottom: 20px; padding: 22px 24px;">
+          <div class="card-title" style="margin-bottom: 10px;">
+            <span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px; margin-right:8px;"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>网络接入架构与高可用分发工程指南</span>
+          </div>
+          <p style="font-size:0.88rem; color:var(--text-secondary); line-height: 1.75; margin-bottom: 0;">
+            本指南针对订阅客户端（FlClash、Clash Verge、Sing-box 等）在跨网、跨境环境下的传输稳定性进行架构优化。系统提供<strong>边缘网络高可用中继</strong>、<strong>自有域名自动化 SSL</strong> 与 <strong>纯 IP 敏捷直连</strong> 三种模式，彻底消除 TLS 握手异常、连接重置及证书合规未授信问题。
+          </p>
+        </div>
+
+        <!-- 方案决策矩阵卡片 -->
+        <div class="glass-card" style="margin-bottom: 20px; padding: 20px 24px;">
+          <div class="card-title" style="margin-bottom: 12px;">
+            <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:6px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>方案决策矩阵</span>
+          </div>
+          <div style="overflow-x: auto;">
+            <table class="data-table" style="font-size:0.83rem; width:100%; border-collapse:collapse;">
+              <thead>
+                <tr style="border-bottom:1px solid var(--border-color);">
+                  <th style="padding:10px 8px; text-align:left;">接入方案</th>
+                  <th style="padding:10px 8px; text-align:left;">证书信任度</th>
+                  <th style="padding:10px 8px; text-align:left;">抗重置 / 连通率</th>
+                  <th style="padding:10px 8px; text-align:left;">成本</th>
+                  <th style="padding:10px 8px; text-align:left;">推荐场景</th>
+                </tr>
+              </thead>
+              <tbody style="line-height:1.7;">
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                  <td style="padding:10px 8px;"><strong>⚡ 边缘中继 (Pages)</strong></td>
+                  <td style="padding:10px 8px;"><span class="badge" style="background:rgba(16,185,129,0.15); color:var(--emerald);">权威泛域名证书</span></td>
+                  <td style="padding:10px 8px;"><span class="badge" style="background:rgba(16,185,129,0.15); color:var(--emerald);">★★★★★ (Anycast 专线)</span></td>
+                  <td style="padding:10px 8px;">0 元</td>
+                  <td style="padding:10px 8px; color:var(--emerald);"><strong>强烈推荐</strong>。彻底杜绝连接重置与证书红字</td>
+                </tr>
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                  <td style="padding:10px 8px;"><strong>🌐 自有独立域名</strong></td>
+                  <td style="padding:10px 8px;"><span class="badge" style="background:rgba(16,185,129,0.15); color:var(--emerald);">Let's Encrypt 证书</span></td>
+                  <td style="padding:10px 8px;"><span class="badge" style="background:rgba(245,158,11,0.15); color:#f59e0b;">★★★☆☆ (依赖骨干网)</span></td>
+                  <td style="padding:10px 8px;">自备域名</td>
+                  <td style="padding:10px 8px; color:var(--text-secondary);">品牌私有化，网络直连优良环境</td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 8px;"><strong>🔌 纯公网 IP 直连</strong></td>
+                  <td style="padding:10px 8px;"><span class="badge" style="background:rgba(100,116,139,0.15); color:var(--text-muted);">跳过证书校验</span></td>
+                  <td style="padding:10px 8px;"><span class="badge" style="background:rgba(16,185,129,0.15); color:var(--emerald);">★★★★☆ (无 TLS 特征)</span></td>
+                  <td style="padding:10px 8px;">0 元</td>
+                  <td style="padding:10px 8px; color:var(--text-secondary);">个人私有快速体验，100% 顺畅拉取</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 方案一：Cloudflare Pages 边缘高可用中继 -->
+        <div class="glass-card" style="margin-bottom: 20px; padding: 22px 24px;">
+          <div class="card-title" style="margin-bottom: 12px;">
+            <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:6px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>方案一：Cloudflare Pages 边缘高可用中继 (推荐)</span>
+            <span class="badge" style="background:rgba(16,185,129,0.15); color:var(--emerald); font-size:0.75rem;">最佳实践</span>
+          </div>
+
+          <div style="background:var(--bg-tertiary); border:1px solid var(--border-color); border-radius:8px; padding:14px 16px; margin-bottom:18px;">
+            <div style="font-weight:600; font-size:0.86rem; margin-bottom:6px; color:var(--text-primary);">💡 为什么采用边缘中继？（网络工程原理）</div>
+            <div style="font-size:0.84rem; color:var(--text-secondary); line-height:1.75;">
+              在跨区域网络通信中，骨干网网关对部分海外独立域名的 TLS 握手特征（Client Hello 中的 SNI 标头）容易产生偶发性连接重置（TCP RST）或握手阻断，导致客户端报错 <code>HandshakeException: Connection reset by peer</code>。<br>
+              <strong>解决方案</strong>：使用 Cloudflare 全球分布式边缘节点（<code>*.pages.dev</code>）充当接入中继，客户端接入官方权威泛域名安全通道，再由边缘节点通过高速跨境骨干链路回源抓取 SubFlow 节点数据，实现 0 证书报错与极高链路通达率。
+            </div>
+          </div>
+
+          <div style="font-weight:600; font-size:0.86rem; margin-bottom:10px; color:var(--text-primary);">🚀 纯网页拖拽部署法 (0 API Token 门槛，极简 30 秒完成)</div>
+          <ol style="font-size:0.84rem; color:var(--text-secondary); padding-left:20px; line-height:1.8; margin-bottom:18px;">
+            <li>在本地新建一个名为 <code>_worker.js</code> 的纯文本文件（复制下方代码模板打包为 zip 压缩包）；</li>
+            <li>打开 Cloudflare 控制台，进入 <strong>Workers 和 Pages (Workers & Pages)</strong> ➔ 切换到 <strong>Pages</strong> 标签页；</li>
+            <li>点击 <strong>上传资产 (Upload assets)</strong>，项目名称随意输入英文字符（例如 <code>subflow-edge</code>）；</li>
+            <li>将包含 <code>_worker.js</code> 的 zip 压缩包拖拽至网页上传区，点击 <strong>部署站点 (Deploy site)</strong>；</li>
+            <li>部署完成后将系统生成的专属域名（如 <code>https://subflow-edge.pages.dev</code>）复制，填入本后台的【公网专属域名】输入框中保存即可。</li>
+          </ol>
+
+          <div style="background:var(--bg-tertiary); border:1px solid var(--border-color); border-radius:8px; padding:14px; margin-bottom:18px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <span style="font-size:0.82rem; font-weight:600; color:var(--text-muted);">_worker.js 边缘路由代码模板 (自动代理回源)</span>
+              <button class="btn-outline" style="font-size:0.75rem; padding:3px 10px;" onclick="copyWorkerCode()">复制代码</button>
+            </div>
+            <pre id="worker-code-block" style="background:rgba(0,0,0,0.35); border-radius:6px; padding:12px; font-size:0.78rem; color:#a7f3d0; overflow-x:auto; margin:0; font-family:Consolas, monospace; line-height:1.5;">export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
+    // 自动感知回源：优先回源至当前部署服务器
+    const TARGET_ORIGIN = location.origin || "http://YOUR_SERVER_IP:25588";
+    const targetUrl = new URL(url.pathname + url.search, TARGET_ORIGIN);
+    const newReq = new Request(targetUrl, {
+      method: request.method,
+      headers: request.headers,
+      body: request.body,
+      redirect: "follow"
+    });
+    return await fetch(newReq);
+  }
+};</pre>
+          </div>
+
+          <div style="font-weight:600; font-size:0.86rem; margin-bottom:10px; color:var(--text-primary);">🔑 API 自动化令牌权限避坑说明 (中英对照)</div>
+          <p style="font-size:0.84rem; color:var(--text-secondary); line-height:1.75; margin-bottom:10px;">
+            若通过官方 API 创建自定义令牌，请在权限三级下拉菜单中准确配置，避免在搜索框内混淆类别：
+          </p>
+          <div style="font-size:0.82rem; background:rgba(0,0,0,0.25); border-radius:6px; padding:12px 16px; line-height:1.75; color:var(--text-secondary);">
+            • <strong>第一列 (类别 / Category)</strong>：选择 <code>账户</code> / <code>Account</code>（非区域或用户）；<br>
+            • <strong>第二列 (权限 / Resource)</strong>：在搜索框输入 <code>Pages</code> 并选择 <code>Cloudflare Pages</code>（请勿搜索 Account）；<br>
+            • <strong>第三列 (访问级别 / Access)</strong>：选择 <code>编辑</code> / <code>Edit</code>。<br>
+            <span style="color:var(--emerald); font-weight:600;">💡 快捷方案</span>：在创建令牌首页直接点击官方预置模板 <strong>「编辑 Cloudflare Workers / Edit Cloudflare Workers」</strong>，系统将全自动补全所有 Pages 与 Workers 权限，无需手动点选！
+          </div>
+        </div>
+
+        <!-- 方案二：独立域名与本地 SSL -->
+        <div class="glass-card" style="margin-bottom: 20px; padding: 22px 24px;">
+          <div class="card-title" style="margin-bottom: 14px;">
+            <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:6px;"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>方案二：自有独立域名接入与自动化 SSL 部署</span>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px;">
+            <div style="background:var(--bg-tertiary); border:1px solid var(--border-color); border-radius:8px; padding:14px;">
+              <div style="font-weight:600; font-size:0.84rem; margin-bottom:6px; color:var(--text-primary);">步骤 1：域名准备与 DNS 解析</div>
+              <div style="font-size:0.82rem; color:var(--text-secondary); line-height:1.7;">
+                1. 在任意正规国际域名注册商购买所需域名；<br>
+                2. 进入域名的 DNS 解析管理控制台，新增一条 <strong>A 记录</strong>：<br>
+                &nbsp;&nbsp;• <strong>主机记录</strong>：输入 <code>sub</code> (或 <code>@</code>)<br>
+                &nbsp;&nbsp;• <strong>记录值</strong>：填写服务器真实公网 IP<br>
+                3. 等待 2 分钟，终端执行 <code>ping sub.yourdomain.com</code> 确认解析生效。
+              </div>
+            </div>
+
+            <div style="background:var(--bg-tertiary); border:1px solid var(--border-color); border-radius:8px; padding:14px;">
+              <div style="font-weight:600; font-size:0.84rem; margin-bottom:6px; color:var(--text-primary);">步骤 2：绑定到 SubFlow 后台</div>
+              <div style="font-size:0.82rem; color:var(--text-secondary); line-height:1.7;">
+                1. 切换至当前后台的 <strong>【公网域名与穿透】</strong> 选项卡；<br>
+                2. 在输入框填入配置完成的完整地址：<br>
+                &nbsp;&nbsp;<code>https://sub.yourdomain.com</code><br>
+                3. 点击保存，系统生成的所有订阅与二维码将自动使用新域名。
+              </div>
+            </div>
+          </div>
+
+          <div style="font-weight:600; font-size:0.86rem; margin-bottom:10px; color:var(--text-primary);">🛠️ Web 反向代理与 SSL 自动证书配置指引</div>
+          
+          <div style="margin-bottom:14px;">
+            <div style="font-size:0.82rem; font-weight:600; color:var(--text-muted); margin-bottom:6px;">选项 A：Caddy 极简反代 (全自动向 Let's Encrypt 申请并永久自动续期)</div>
+            <pre style="background:rgba(0,0,0,0.35); border-radius:6px; padding:12px; font-size:0.78rem; color:#cbd5e1; overflow-x:auto; margin:0; font-family:Consolas, monospace; line-height:1.5;"># 编辑 /etc/caddy/Caddyfile 写入以下 3 行：
+sub.yourdomain.com {
+    reverse_proxy 127.0.0.1:25588
+}
+# 执行重载生效：
+sudo systemctl reload caddy</pre>
+          </div>
+
+          <div>
+            <div style="font-size:0.82rem; font-weight:600; color:var(--text-muted); margin-bottom:6px;">选项 B：经典 Nginx + Certbot 一键签发</div>
+            <pre style="background:rgba(0,0,0,0.35); border-radius:6px; padding:12px; font-size:0.78rem; color:#cbd5e1; overflow-x:auto; margin:0; font-family:Consolas, monospace; line-height:1.5;"># Nginx 配置 proxy_pass 到 http://127.0.0.1:25588
+# 执行官方 Certbot 自动化证书签发：
+sudo certbot --nginx -d sub.yourdomain.com</pre>
+          </div>
+        </div>
+
+        <!-- 方案三：双层防火墙与安全组排障 -->
+        <div class="glass-card" style="border-left: 4px solid #f59e0b; margin-bottom: 20px; padding: 22px 24px;">
+          <div class="card-title" style="margin-bottom: 12px;">
+            <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:6px;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>排障核心：系统内外双层防火墙与端口放行准则</span>
+          </div>
+          <p style="font-size:0.84rem; color:var(--text-secondary); line-height:1.75; margin-bottom:12px;">
+            <strong>常见故障现象</strong>：在服务器内执行了 <code>ufw allow</code>，但外部申请 SSL 证书时提示 <code>Connection refused</code> 或超时失败。<br>
+            <strong>根本原因</strong>：云主机网络具备<strong>「外置网络安全组」</strong>与<strong>「系统内部防火墙」</strong>双层防护。外部证书机构必须通过公网 TCP 80 端口访问服务器以验证域名归属，若外层被拦截，内部放行将完全失效。
+          </p>
+          <div style="font-size:0.82rem; background:rgba(0,0,0,0.25); border-radius:6px; padding:12px 16px; color:var(--text-secondary); line-height:1.75;">
+            • <strong>TCP 80 端口</strong>：ACME 自动化证书中心（HTTP-01 Challenge）验证域名所有权的必需端口；<br>
+            • <strong>TCP 443 端口</strong>：标准 HTTPS 客户端加密传输通道；<br>
+            • <strong>TCP 25588 端口</strong>：SubFlow 原生服务与网关核心端口。<br>
+            <span style="color:#f59e0b; font-weight:600;">⚠️ 务必检查</span>：若使用主流云主机，请务必登录其<strong>网页控制台 ➔ 安全组 / 防火墙</strong>，确认上述端口均已添加允许规则。
+          </div>
+        </div>
+
+        <!-- 方案四：纯 IP 敏捷模式 -->
+        <div class="glass-card" style="padding: 22px 24px;">
+          <div class="card-title" style="margin-bottom: 12px;">
+            <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:6px;"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>方案三：纯公网 IP 敏捷直连模式</span>
+          </div>
+          <p style="font-size:0.84rem; color:var(--text-secondary); line-height:1.75; margin-bottom:0;">
+            若无需域名及 HTTPS 证书，可直接通过 <code>http://服务器公网IP:25588</code> 进行访问与订阅分发。<br>
+            <strong>技术特点</strong>：由于直接使用标准 HTTP 协议，客户端软件在拉取节点数据时<strong>自动跳过一切 TLS 握手与证书链校验</strong>，100% 杜绝证书不受信任错误，适合追求极致轻量、零额外维护成本的个人或私有团队环境。
+          </p>
+        </div>
+      </div>
+
       <!-- Tab 4: Backup & Recovery -->
       <div id="view-backup" class="admin-view" style="display:none;">
         <div class="glass-card" style="border-left: 4px solid var(--emerald); margin-bottom: 20px;">
@@ -1156,7 +1467,7 @@ SubFlow 运维控制中心就绪...
               <div class="stat-sub">data/ 目录物理免除覆盖</div>
             </div>
           </div>
-          <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: var(--radius-sm); padding: 14px 18px; font-size: 0.85rem; color: #a7f3d0; line-height: 1.6;">
+          <div class="update-safety-box" style="border-radius: var(--radius-sm); padding: 14px 18px; font-size: 0.85rem; line-height: 1.6;">
             <strong><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px; margin-right:3px;"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>物理级安全隔离承诺：</strong>
             在线升级与代码覆盖仅针对程序核心（<code>gateway.py</code> 与 <code>web/</code> 静态资源），
             您的私有域名配置、用户数据库（<code>data/subflow.db</code>）以及 Cloudflare 隧道凭据全部存储于独立的 <code>data/</code> 物理隔离区，任何版本更新均<strong>绝不覆盖、绝不丢失</strong>！
@@ -1172,7 +1483,7 @@ SubFlow 运维控制中心就绪...
               <label class="form-label" style="margin-bottom:0;">官方远程更新源仓库</label>
               <span class="badge-admin" style="background:rgba(59,130,246,0.15); color:#60a5fa; font-size:0.72rem;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px; margin-right:3px;"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>官方正版锁定 · 禁止修改</span>
             </div>
-            <input type="text" class="form-input" id="cfg-git-repo" value="https://github.com/Umbra-ye/SubFlow.git" readonly style="background:rgba(0,0,0,0.3) !important; color:#38bdf8 !important; cursor:not-allowed !important; font-family:var(--font-mono); font-weight:600;" title="官方唯一指定发布源，系统已锁定保护">
+            <input type="text" class="form-input git-locked-input" id="cfg-git-repo" value="https://github.com/Umbra-ye/SubFlow.git" readonly style="cursor:not-allowed !important; font-family:var(--font-mono); font-weight:600;" title="官方唯一指定发布源，系统已锁定保护">
             <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 6px;">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>为杜绝第三方恶意供应链篡改，更新源已被系统永久锁定为官方唯一正版仓库。
             </p>
@@ -1202,7 +1513,21 @@ SubFlow 运维控制中心就绪...
     <span id="admin-toast-text"></span>
   </div>
 
-  <script src="toast.js"></script>
+  <script src="toast.js">
+    function copyText(txt) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(txt).then(() => {
+          showAdminToast('📋 已成功复制到剪贴板！');
+        }).catch(() => {
+          prompt('请手动复制以下内容：', txt);
+        });
+      } else {
+        prompt('请手动复制以下内容：', txt);
+      }
+    }
+    window.copyText = copyText;
+    
+</script>
   <script>
     let challengeTicket = null;
     let currentUser = null;
@@ -1217,6 +1542,60 @@ SubFlow 运维控制中心就绪...
     }
 
     // 页面初始化：自动检查管理态鉴权
+    let currentAdminTab = 'overview';
+
+    function lockAdminPanel(reason = '管理员凭证已失效或会话过期 (403)，请重新输入密码解锁') {
+      const gate = document.getElementById('admin-gate-screen');
+      const panel = document.getElementById('admin-main-panel');
+      if (gate) {
+        gate.style.display = 'flex';
+        gate.style.zIndex = '99999';
+      }
+      if (panel) panel.style.display = 'none';
+      const alertBox = document.getElementById('gate-alert-box');
+      if (alertBox) {
+        alertBox.innerText = reason;
+        alertBox.style.display = 'block';
+      }
+      const pwdIn = document.getElementById('admin-pwd-input');
+      if (pwdIn) {
+        pwdIn.value = '';
+        setTimeout(() => pwdIn.focus(), 150);
+      }
+    }
+    window.lockAdminPanel = lockAdminPanel;
+    window.openAdminAuthModal = lockAdminPanel;
+
+    // 🛡️ 原生 window.fetch 劫持与全局 401/403 自动唤起管理门禁
+    const _origAdminFetch = window.fetch;
+    window.fetch = async function(...args) {
+      const res = await _origAdminFetch.apply(this, args);
+      const url = typeof args[0] === 'string' ? args[0] : (args[0] && args[0].url ? args[0].url : '');
+      if ((res.status === 401 || res.status === 403) && url.includes('/api/admin/')) {
+        console.warn('⚠️ [403/401 自动门禁触发]:', url);
+        if (typeof lockAdminPanel === 'function') {
+          lockAdminPanel('管理员鉴权已失效 (403)，请直接在此输入管理密码立即解锁');
+        }
+      }
+      return res;
+    };
+
+    // 🛡️ 兼容保留 fetchAdmin 别名
+    async function fetchAdmin(url, options = {}) {
+      options.headers = {
+        ...getAuthHeaders(),
+        ...(options.headers || {})
+      };
+      const res = await fetch(url, options);
+      if (res.status === 401 || res.status === 403) {
+        const err = new Error('ADMIN_AUTH_REQUIRED');
+        err.status = res.status;
+        throw err;
+      }
+      return res;
+    }
+    window.fetchAdmin = fetchAdmin;
+
     async function initAdminAuth() {
       try {
         const token = localStorage.getItem('subflow_admin_token') || localStorage.getItem('subflow_token');
@@ -1240,9 +1619,13 @@ SubFlow 运维控制中心就绪...
     function unlockAdminPanel() {
       document.getElementById('admin-gate-screen').style.display = 'none';
       document.getElementById('admin-main-panel').style.display = 'flex';
-      loadOverviewData();
-      loadUsersData();
-      toast.success('管理员凭据鉴权通过，已进入专属运维中枢！');
+      if (typeof switchAdminTab === 'function') {
+        switchAdminTab(currentAdminTab);
+      } else {
+        loadOverviewData();
+        loadUsersData();
+      }
+      toast.success('管理员凭据鉴权通过，已恢复管理视图！');
     }
 
     async function submitAdminLogin(e) {
@@ -1295,7 +1678,9 @@ SubFlow 运维控制中心就绪...
       return token ? { 'Authorization': 'Bearer ' + token } : {};
     }
 
-    async function loadOverviewData() {
+    async function loadOverviewData(btn) {
+      const spinIcon = document.getElementById('icon-refresh-spin');
+      if (spinIcon) spinIcon.classList.add('loading-spin');
       try {
         const res = await fetch('/api/admin/overview', { headers: getAuthHeaders() });
         if (res.ok) {
@@ -1311,15 +1696,20 @@ SubFlow 运维控制中心就绪...
           document.getElementById('cfg-force-redirect').checked = !!d.force_redirect;
         }
         // 体检 core
-        runDiagnostics();
-      } catch (e) {}
+        await runDiagnostics();
+        showToast('✅ 系统健康体检与运行状态已最新刷新！');
+      } catch (e) {
+        showToast('刷新体检失败: ' + e.message);
+      } finally {
+        if (spinIcon) spinIcon.classList.remove('loading-spin');
+      }
     }
 
     async function loadUsersData() {
       const tbody = document.getElementById('user-table-body');
       tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:24px;">正在检索用户数据库...</td></tr>';
       try {
-        const res = await fetch('/api/admin/users', { headers: getAuthHeaders() });
+        const res = await fetchAdmin('/api/admin/users');
         if (res.ok) {
           const d = await res.json();
           if (d.ok && d.users) {
@@ -1345,11 +1735,11 @@ SubFlow 运维控制中心就绪...
           } else {
             tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:24px; color:#ef4444;">获取失败: ${d.error || '数据异常'}</td></tr>`;
           }
-        } else {
-          tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:24px; color:#ef4444;">管理员鉴权失效 (${res.status})，请点击右上角退出后重新登录</td></tr>`;
         }
       } catch (e) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#ef4444;">加载用户列表失败: ' + e + '</td></tr>';
+        if (e.message !== 'ADMIN_AUTH_REQUIRED') {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#ef4444;">加载用户列表失败: ' + e.message + '</td></tr>';
+        }
       }
     }
 
@@ -1417,7 +1807,8 @@ SubFlow 运维控制中心就绪...
         });
         const d = await res.json();
         if (d.ok) {
-          showToast('公网专属域名配置保存成功！');
+          try { localStorage.setItem('subflow_bound_domain', domain); } catch(e) {}
+          showToast('🎉 公网专属域名配置保存成功！系统已同步将全部订阅链接更新为该域名。');
           loadOverviewData();
         } else {
           showToast('保存失败: ' + d.error);
@@ -1797,7 +2188,87 @@ SubFlow 运维控制中心就绪...
     }
 
 
+    async function triggerCfPagesAutoDeploy() {
+      const tokenInput = document.getElementById('cfg-cf-pages-token');
+      const token = tokenInput ? tokenInput.value.trim() : '';
+      if (!token) {
+        showToast('请先输入有效的 Cloudflare API Token！');
+        return;
+      }
+      const btn = document.getElementById('btn-cf-pages-auto');
+      const statusBox = document.getElementById('cf-pages-deploy-status');
+      if (btn) btn.disabled = true;
+      if (statusBox) {
+        statusBox.style.display = 'block';
+        statusBox.style.color = 'var(--text-secondary)';
+        statusBox.innerHTML = '<span class="loading-spin" style="display:inline-block; vertical-align:middle; margin-right:6px;"></span> 正在请求 Cloudflare 官方 API 探测账户并全自动创建 Pages 边缘容器...';
+      }
+
+      try {
+        const adminToken = localStorage.getItem('subflow_admin_token') || '';
+        const res = await fetch('/api/admin/cf-pages/auto-deploy', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + adminToken
+          },
+          body: JSON.stringify({ token: token })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          const newDomain = 'https://' + data.domain;
+          if (statusBox) {
+            statusBox.style.color = 'var(--emerald)';
+            statusBox.style.border = '1px solid rgba(16,185,129,0.3)';
+            statusBox.style.background = 'rgba(16,185,129,0.08)';
+            statusBox.innerHTML = `
+              <div style="font-weight:600; font-size:0.9rem; margin-bottom:6px; color:#10b981;">🎉 自动化部署成功！已反馈生成专属免翻域名：</div>
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                <input type="text" readonly value="${newDomain}" style="background:rgba(0,0,0,0.4); border:1px solid rgba(16,185,129,0.4); color:#a7f3d0; padding:6px 10px; border-radius:4px; flex:1; font-family:var(--font-mono); font-size:0.85rem;">
+                <button type="button" class="btn-primary" style="padding:6px 12px; font-size:0.78rem;" onclick="navigator.clipboard.writeText('${newDomain}'); showToast('专属免翻域名已复制到剪贴板！');">复制域名</button>
+              </div>
+              <div style="font-size:0.78rem; color:var(--text-secondary);">
+                ⚡ <strong>全自动闭环</strong>：该新域名已<strong>全自动填入上方公网专属域名框并保存生效</strong>！所有前台订阅链接已自动刷新！
+              </div>
+            `;
+          }
+          const domainInput = document.getElementById('cfg-bound-domain');
+          if (domainInput) {
+            domainInput.value = newDomain;
+          }
+          showToast('✅ 成功建立 Pages 边缘中继！已自动完成域名绑定与保存！');
+          saveDomainConfig();
+        } else {
+          if (statusBox) {
+            statusBox.style.color = '#ef4444';
+            statusBox.style.border = '1px solid rgba(239,68,68,0.3)';
+            statusBox.style.background = 'rgba(239,68,68,0.08)';
+            statusBox.innerHTML = '❌ 部署失败: ' + (data.msg || data.error || '未知错误，请检查 Token 权限');
+          }
+          showToast(data.msg || '部署失败，请检查 API Token 权限');
+        }
+      } catch (err) {
+        if (statusBox) {
+          statusBox.style.color = '#ef4444';
+          statusBox.innerHTML = '❌ 网络请求异常: ' + err.message;
+        }
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    function copyWorkerCode() {
+      const el = document.getElementById("worker-code-block");
+      if (!el) return;
+      navigator.clipboard.writeText(el.innerText).then(() => {
+        showToast("已成功复制 _worker.js 路由代码到剪贴板！");
+      }).catch(() => {
+        showToast("复制失败，请手动选中文本复制");
+      });
+    }
+
     function switchAdminTab(name) {
+      currentAdminTab = name;
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.admin-view').forEach(v => v.style.display = 'none');
       const targetBtn = document.getElementById('tab-' + name);
@@ -1819,7 +2290,21 @@ SubFlow 运维控制中心就绪...
 
     // 启动执行
     initAdminAuth();
-  </script>
+  
+    function copyText(txt) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(txt).then(() => {
+          showAdminToast('📋 已成功复制到剪贴板！');
+        }).catch(() => {
+          prompt('请手动复制以下内容：', txt);
+        });
+      } else {
+        prompt('请手动复制以下内容：', txt);
+      }
+    }
+    window.copyText = copyText;
+    
+</script>
 
     <!-- 管理员安全凭据设置弹窗 -->
     <div id="admin-security-modal" class="modal-backdrop" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.65); backdrop-filter: blur(8px); z-index: 9999; align-items: center; justify-content: center;">
@@ -1999,6 +2484,20 @@ SubFlow 运维控制中心就绪...
         loadAdminInvitations();
       }
     });
-  </script>
+  
+    function copyText(txt) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(txt).then(() => {
+          showAdminToast('📋 已成功复制到剪贴板！');
+        }).catch(() => {
+          prompt('请手动复制以下内容：', txt);
+        });
+      } else {
+        prompt('请手动复制以下内容：', txt);
+      }
+    }
+    window.copyText = copyText;
+    
+</script>
 </body>
 </html>

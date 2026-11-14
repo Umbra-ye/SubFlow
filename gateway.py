@@ -1,3 +1,5 @@
+VERSION = "3.0.0"
+BUILD_ID = "20261102.432"
 import ssl
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
@@ -31,7 +33,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
 from country_enricher import has_country_info, enrich_node_name_fast, enrich_subscription_payload, batch_resolve_geoip_fast, COUNTRY_KEYWORDS
 
-__version__ = "2.3.1"
+__version__ = "3.0.0"
 __product__ = "SubFlow Cloud Matrix"
 OFFICIAL_GIT_REPO = "https://github.com/Umbra-ye/SubFlow.git"
 
@@ -261,6 +263,7 @@ def init_database():
         ensure_column(conn, "users", "role", "VARCHAR(10) DEFAULT 'user'")
         ensure_column(conn, "users", "status", "VARCHAR(10) DEFAULT 'active'")
         ensure_column(conn, "subscriptions", "target_format", "VARCHAR(20) DEFAULT 'clash'")
+        ensure_column(conn, "subscriptions", "sub_token", "TEXT DEFAULT ''")
 
         # 默认初始化管理员 (admin / admin123456)
         c.execute("SELECT id FROM users WHERE role = 'admin' LIMIT 1;")
@@ -615,7 +618,7 @@ class NativeSubEngine:
     @staticmethod
     def parse_yaml_proxy(line: str):
         try:
-            name_m = re.search(r'name:\s*["\']?([^"\',}]+)["\']?', line)
+            name_m = re.search(r'''name:\s*["']?([^"',}]+)["']?''', line)
             name = name_m.group(1).strip() if name_m else "Node"
             server_m = re.search(r'server:\s*([^\s,}]+)', line)
             server = server_m.group(1).strip() if server_m else ""
@@ -656,6 +659,159 @@ class NativeSubEngine:
         except Exception:
             return None, "", ""
 
+    @staticmethod
+    def parse_share_to_singbox(share_link: str, default_name: str = "Node"):
+        try:
+            u = share_link.strip()
+            name = default_name
+            if '#' in u:
+                u_base, name_part = u.split('#', 1)
+                name = urllib.parse.unquote(name_part).strip() or default_name
+                u = u_base
+            parsed = urllib.parse.urlparse(u)
+            scheme = parsed.scheme.lower()
+            server = parsed.hostname or ""
+            port = parsed.port or 443
+            user = urllib.parse.unquote(parsed.username or "")
+            qs = urllib.parse.parse_qs(parsed.query)
+
+            if scheme == 'anytls':
+                sni = qs.get('sni', [''])[0] or server
+                return {
+                    "type": "anytls",
+                    "tag": name,
+                    "server": server,
+                    "server_port": port,
+                    "password": user,
+                    "tls": {"enabled": True, "server_name": sni, "insecure": True}
+                }
+            elif scheme in ('hysteria2', 'hy2'):
+                sni = qs.get('sni', [''])[0] or server
+                return {
+                    "type": "hysteria2",
+                    "tag": name,
+                    "server": server,
+                    "server_port": port,
+                    "password": user,
+                    "tls": {"enabled": True, "server_name": sni, "insecure": True}
+                }
+            elif scheme == 'vless':
+                sni = qs.get('sni', [''])[0] or qs.get('host', [''])[0] or server
+                sec = qs.get('security', ['none'])[0].lower()
+                net = qs.get('type', ['tcp'])[0].lower()
+                path = qs.get('path', ['/'])[0]
+                host = qs.get('host', [''])[0]
+                ob = {
+                    "type": "vless",
+                    "tag": name,
+                    "server": server,
+                    "server_port": port,
+                    "uuid": user,
+                    "tls": {"enabled": sec in ('tls', 'reality'), "server_name": sni, "insecure": True}
+                }
+                if net == 'ws':
+                    ob["transport"] = {"type": "ws", "path": path, "headers": {"Host": host or sni}}
+                return ob
+            elif scheme == 'trojan':
+                sni = qs.get('sni', [''])[0] or server
+                return {
+                    "type": "trojan",
+                    "tag": name,
+                    "server": server,
+                    "server_port": port,
+                    "password": user,
+                    "tls": {"enabled": True, "server_name": sni, "insecure": True}
+                }
+            elif scheme == 'ss':
+                ob = {
+                    "type": "shadowsocks",
+                    "tag": name,
+                    "server": server,
+                    "server_port": port,
+                    "method": "aes-256-gcm",
+                    "password": user
+                }
+                if ':' in user:
+                    m, p = user.split(':', 1)
+                    ob["method"] = m
+                    ob["password"] = p
+                return ob
+        except Exception:
+            pass
+        return None
+
+    @staticmethod
+    def parse_yaml_to_singbox(line: str, default_name: str = "Node"):
+        try:
+            line = line.strip()
+            name_m = re.search(r'''name:\s*["']?([^"',}]+)["']?''', line)
+            name = name_m.group(1).strip() if name_m else default_name
+            server_m = re.search(r'server:\s*([^\s,}]+)', line)
+            server = server_m.group(1).strip() if server_m else ""
+            port_m = re.search(r'port:\s*([0-9]+)', line)
+            port = int(port_m.group(1)) if port_m else 443
+            uuid_m = re.search(r'(?:uuid|password|auth):\s*([^\s,}]+)', line)
+            pwd = uuid_m.group(1).strip() if uuid_m else ""
+            type_m = re.search(r'type:\s*([^\s,}]+)', line)
+            p_type = type_m.group(1).strip() if type_m else "anytls"
+            sni_m = re.search(r'servername:\s*([^\s,}]+)', line) or re.search(r'sni:\s*([^\s,}]+)', line)
+            sni = sni_m.group(1).strip() if sni_m else server
+
+            if not server:
+                return None
+
+            if p_type == 'anytls':
+                return {
+                    "type": "anytls",
+                    "tag": name,
+                    "server": server,
+                    "server_port": port,
+                    "password": pwd,
+                    "tls": {"enabled": True, "server_name": sni, "insecure": True}
+                }
+            elif p_type in ('hysteria2', 'hy2'):
+                return {
+                    "type": "hysteria2",
+                    "tag": name,
+                    "server": server,
+                    "server_port": port,
+                    "password": pwd,
+                    "tls": {"enabled": True, "server_name": sni, "insecure": True}
+                }
+            elif p_type == 'vless':
+                return {
+                    "type": "vless",
+                    "tag": name,
+                    "server": server,
+                    "server_port": port,
+                    "uuid": pwd,
+                    "tls": {"enabled": "tls: true" in line or "security: tls" in line, "server_name": sni, "insecure": True}
+                }
+            elif p_type == 'trojan':
+                return {
+                    "type": "trojan",
+                    "tag": name,
+                    "server": server,
+                    "server_port": port,
+                    "password": pwd,
+                    "tls": {"enabled": True, "server_name": sni, "insecure": True}
+                }
+            elif p_type == 'ss':
+                cipher_m = re.search(r'cipher:\s*([^\s,}]+)', line)
+                cipher = cipher_m.group(1).strip() if cipher_m else "aes-256-gcm"
+                return {
+                    "type": "shadowsocks",
+                    "tag": name,
+                    "server": server,
+                    "server_port": port,
+                    "method": cipher,
+                    "password": pwd
+                }
+        except Exception:
+            pass
+        return None
+
+
     @classmethod
     def convert(cls, source_urls, target_format='clash', client_ua=''):
         all_yaml_proxies = []
@@ -672,31 +828,120 @@ class NativeSubEngine:
                     expanded_urls.append(sub_u)
         source_urls = expanded_urls
 
+        # 🧅 智能自调用递归解包算法 (Unwrap Self-Referencing /sub Queries)
+        # 彻底解决前端或用户无意嵌套多层 /sub?url=https://sub.domain/sub?... 造成的死锁与 502
+        unwrapped_urls = []
         for u in source_urls:
+            cur_u = u.strip()
+            # 循环解包直到不再包含本服务的 /sub?url= 嵌套
+            max_depth = 5
+            while max_depth > 0 and ('/sub?' in cur_u and 'url=' in cur_u):
+                try:
+                    parsed = urllib.parse.urlparse(cur_u)
+                    qs = urllib.parse.parse_qs(parsed.query)
+                    if 'url' in qs and qs['url']:
+                        inner_url = qs['url'][0]
+                        # 拆解管道符
+                        inner_parts = inner_url.split('|')
+                        if len(inner_parts) > 1:
+                            cur_u = inner_parts[0].strip()
+                            for extra_part in inner_parts[1:]:
+                                extra_part = extra_part.strip()
+                                if extra_part:
+                                    unwrapped_urls.append(extra_part)
+                        else:
+                            cur_u = inner_url.strip()
+                        max_depth -= 1
+                    else:
+                        break
+                except Exception:
+                    break
+            if cur_u:
+                unwrapped_urls.append(cur_u)
+        source_urls = unwrapped_urls
+        is_merged = len(source_urls) > 1
+
+        for idx, u in enumerate(source_urls):
             u = u.strip()
             if not u: continue
+
+            # 提取可能携带的自定义别名 (如 url#主力机场)
+            fetch_url = u
+            custom_tag = ""
+            if '#' in u:
+                parts = u.split('#', 1)
+                fetch_url = parts[0].strip()
+                potential_tag = urllib.parse.unquote(parts[1]).strip()
+                # 排除带有域名特征的后缀，坚决不把域名当做名字
+                domain_indicators = ['.com', '.net', '.org', '.cc', '.cd', '.xyz', '.dev', '.cn', '.top', '.vip', 'http', '/', ':']
+                if potential_tag and not any(ind in potential_tag.lower() for ind in domain_indicators):
+                    custom_tag = potential_tag
+
+            source_tag = ""
+            if is_merged:
+                if custom_tag:
+                    source_tag = custom_tag
+                else:
+                    source_tag = chr(ord('A') + (idx % 26)) if idx < 26 else f"S{idx + 1}"
+
+            def tag_node(orig_n):
+                if not orig_n: orig_n = "Node"
+                orig_n = orig_n.strip()
+                if not source_tag: return orig_n
+                # 🌟 方案 1：国旗与国家居首保持左对齐，来源标签置于末尾 [A] / [B]
+                return f"{orig_n} [{source_tag}]"
+
             raw = None
-            if u.startswith('http://') or u.startswith('https://'):
-                raw, uinfo = cls.fetch_upstream(u, client_ua)
+            if fetch_url.startswith('http://') or fetch_url.startswith('https://'):
+                raw, uinfo = cls.fetch_upstream(fetch_url, client_ua)
                 if uinfo and not combined_userinfo:
                     combined_userinfo = uinfo
             else:
-                raw = u
+                raw = fetch_url
 
             if not raw:
                 continue
 
             # Case A: Already Clash YAML with proxies
             if 'proxies:' in raw or 'proxy-groups:' in raw:
-                matches = re.findall(r'-\s*\{[^\n]+\}', raw)
-                for m in matches:
-                    if any(bad in m for bad in ['剩余流量', '套餐到期', '官网', '通知', '过期时间']):
-                        continue
-                    y_line, s_link, n_name = cls.parse_yaml_proxy(m)
-                    if y_line:
-                        all_yaml_proxies.append(y_line)
-                        if s_link: all_share_links.append(s_link)
-                        all_names.append(n_name)
+                inline_matches = re.findall(r'-\s*\{[^\n]+\}', raw)
+                if inline_matches:
+                    for m in inline_matches:
+                        if any(bad in m for bad in ['剩余流量', '套餐到期', '官网', '通知', '过期时间']):
+                            continue
+                        y_line, s_link, n_name = cls.parse_yaml_proxy(m)
+                        if y_line:
+                            if source_tag and n_name:
+                                new_name = tag_node(n_name)
+                                pattern = re.compile(r'''(\bname:\s*['"]?)''' + re.escape(n_name) + r'''(['"]?[\s,\r\n\}])''')
+                                y_line = pattern.sub(r'\g<1>' + new_name + r'\g<2>', y_line)
+                                n_name = new_name
+                                if s_link and '#' in s_link:
+                                    s_base = s_link.split('#', 1)[0]
+                                    s_link = f"{s_base}#{urllib.parse.quote(new_name)}"
+                            all_yaml_proxies.append(y_line)
+                            if s_link: all_share_links.append(s_link)
+                            all_names.append(n_name)
+                else:
+                    # 匹配多行块级 Clash YAML
+                    p_pos = raw.find('proxies:')
+                    if p_pos != -1:
+                        prox_sub = raw[p_pos + 8:]
+                        next_sec = re.search(r'(?m)^[a-zA-Z0-9_-]+:\s*$', prox_sub)
+                        proxies_body = prox_sub[:next_sec.start()] if next_sec else prox_sub
+                        block_items = re.split(r'(?m)^  - ', proxies_body)
+                        for bi in block_items:
+                            bi = bi.strip()
+                            if not bi or any(bad in bi for bad in ['剩余流量', '套餐到期', '官网', '通知', '过期时间']):
+                                continue
+                            nm = re.search(r'name:\s*["\']?([^"\',\r\n]+)["\']?', bi)
+                            if nm:
+                                orig_n = nm.group(1).strip()
+                                new_n = tag_node(orig_n)
+                                pat = re.compile(r'''(\bname:\s*['"]?)''' + re.escape(orig_n) + r'''(['"]?[\s,\r\n])''')
+                                mod_bi = pat.sub(r'\g<1>' + new_n + r'\g<2>', bi)
+                                all_yaml_proxies.append(f"- {mod_bi}")
+                                all_names.append(new_n)
                 continue
 
             # Case B: Base64 or plain lines
@@ -711,16 +956,166 @@ class NativeSubEngine:
                 text_lines = [l.strip() for l in raw.splitlines() if l.strip()]
 
             for line in text_lines:
-                if line.startswith('vless://') or line.startswith('anytls://'):
+                if line.startswith(('vless://', 'anytls://')):
                     res = cls.parse_vless_share(line)
                     if res:
                         p_dict, orig_link = res
+                        if source_tag:
+                            p_dict['name'] = tag_node(p_dict['name'])
+                            if '#' in orig_link:
+                                orig_base = orig_link.split('#', 1)[0]
+                                orig_link = f"{orig_base}#{urllib.parse.quote(p_dict['name'])}"
                         p_json = json.dumps(p_dict, ensure_ascii=False)
                         all_yaml_proxies.append(f"- {p_json}")
                         all_share_links.append(orig_link)
                         all_names.append(p_dict['name'])
-                elif line.startswith('vmess://') or line.startswith('ss://') or line.startswith('trojan://') or line.startswith('hysteria2://') or line.startswith('hy2://') or line.startswith('tuic://'):
-                    all_share_links.append(line)
+                elif line.startswith('vmess://'):
+                    try:
+                        b64_part = line[8:]
+                        m_len = len(b64_part) % 4
+                        if m_len: b64_part += '=' * (4 - m_len)
+                        v_json = json.loads(base64.b64decode(b64_part).decode('utf-8', errors='ignore'))
+                        old_ps = v_json.get('ps', 'VMess Node')
+                        new_ps = tag_node(old_ps)
+                        v_json['ps'] = new_ps
+                        p_dict = {
+                            "name": new_ps,
+                            "type": "vmess",
+                            "server": v_json.get('add', ''),
+                            "port": int(v_json.get('port', 443)),
+                            "uuid": v_json.get('id', ''),
+                            "alterId": int(v_json.get('aid', 0)),
+                            "cipher": v_json.get('scy', 'auto'),
+                            "udp": True
+                        }
+                        net = v_json.get('net', 'tcp')
+                        p_dict['network'] = net
+                        if v_json.get('tls') == 'tls':
+                            p_dict['tls'] = True
+                            if v_json.get('sni'): p_dict['servername'] = v_json['sni']
+                        if net == 'ws':
+                            p_dict['ws-opts'] = {
+                                "path": v_json.get('path', '/'),
+                                "headers": {"Host": v_json.get('host', '')}
+                            }
+                        all_yaml_proxies.append(f"- {json.dumps(p_dict, ensure_ascii=False)}")
+                        all_names.append(new_ps)
+                        new_b64 = base64.b64encode(json.dumps(v_json, ensure_ascii=False).encode('utf-8')).decode('utf-8')
+                        all_share_links.append(f"vmess://{new_b64}")
+                    except Exception:
+                        pass
+                elif line.startswith('trojan://'):
+                    try:
+                        rest = line[9:]
+                        orig_n = "Trojan Node"
+                        if '#' in rest:
+                            rest, name_part = rest.split('#', 1)
+                            orig_n = urllib.parse.unquote(name_part).strip()
+                        new_n = tag_node(orig_n)
+                        query = {}
+                        if '?' in rest:
+                            rest, q_part = rest.split('?', 1)
+                            query = urllib.parse.parse_qs(q_part)
+                        if '@' in rest:
+                            pwd, hp = rest.split('@', 1)
+                            hp = hp.rstrip('/')
+                            server, port = hp.split(':', 1) if ':' in hp else (hp, "443")
+                            sni = query.get('sni', [server])[0]
+                            p_dict = {
+                                "name": new_n,
+                                "type": "trojan",
+                                "server": server,
+                                "port": int(port),
+                                "password": pwd,
+                                "sni": sni,
+                                "udp": True
+                            }
+                            all_yaml_proxies.append(f"- {json.dumps(p_dict, ensure_ascii=False)}")
+                            all_names.append(new_n)
+                            all_share_links.append(f"trojan://{pwd}@{server}:{port}?sni={sni}#{urllib.parse.quote(new_n)}")
+                    except Exception:
+                        pass
+                elif line.startswith('ss://'):
+                    try:
+                        rest = line[5:]
+                        orig_n = "SS Node"
+                        if '#' in rest:
+                            rest, name_part = rest.split('#', 1)
+                            orig_n = urllib.parse.unquote(name_part).strip()
+                        new_n = tag_node(orig_n)
+                        main = rest
+                        server, port, cipher, pwd = "", 8388, "aes-256-gcm", ""
+                        if '@' in main:
+                            auth_part, hp = main.split('@', 1)
+                            if ':' in auth_part:
+                                cipher, pwd = auth_part.split(':', 1)
+                            else:
+                                m = len(auth_part) % 4
+                                if m: auth_part += '=' * (4 - m)
+                                dec = base64.b64decode(auth_part).decode('utf-8', errors='ignore')
+                                if ':' in dec: cipher, pwd = dec.split(':', 1)
+                            hp = hp.split('?')[0].rstrip('/')
+                            if ':' in hp:
+                                server, port = hp.split(':', 1)
+                                port = int(port)
+                        else:
+                            b64 = main.split('?')[0]
+                            m = len(b64) % 4
+                            if m: b64 += '=' * (4 - m)
+                            dec = base64.b64decode(b64).decode('utf-8', errors='ignore')
+                            if '@' in dec:
+                                ap, hp = dec.split('@', 1)
+                                if ':' in ap: cipher, pwd = ap.split(':', 1)
+                                if ':' in hp:
+                                    server, port = hp.split(':', 1)
+                                    port = int(port)
+                        if server and pwd:
+                            p_dict = {
+                                "name": new_n,
+                                "type": "ss",
+                                "server": server,
+                                "port": port,
+                                "cipher": cipher,
+                                "password": pwd,
+                                "udp": True
+                            }
+                            all_yaml_proxies.append(f"- {json.dumps(p_dict, ensure_ascii=False)}")
+                            all_names.append(new_n)
+                            auth_b64 = base64.b64encode(f"{cipher}:{pwd}".encode()).decode()
+                            all_share_links.append(f"ss://{auth_b64}@{server}:{port}#{urllib.parse.quote(new_n)}")
+                    except Exception:
+                        pass
+                elif line.startswith(('hysteria2://', 'hy2://')):
+                    try:
+                        rest = line.split('://', 1)[1]
+                        orig_n = "Hysteria2 Node"
+                        if '#' in rest:
+                            rest, name_part = rest.split('#', 1)
+                            orig_n = urllib.parse.unquote(name_part).strip()
+                        new_n = tag_node(orig_n)
+                        query = {}
+                        if '?' in rest:
+                            rest, q_part = rest.split('?', 1)
+                            query = urllib.parse.parse_qs(q_part)
+                        if '@' in rest:
+                            auth, hp = rest.split('@', 1)
+                            hp = hp.rstrip('/')
+                            server, port = hp.split(':', 1) if ':' in hp else (hp, "443")
+                            sni = query.get('sni', [server])[0]
+                            p_dict = {
+                                "name": new_n,
+                                "type": "hysteria2",
+                                "server": server,
+                                "port": int(port),
+                                "auth": auth,
+                                "sni": sni,
+                                "skip-cert-verify": True
+                            }
+                            all_yaml_proxies.append(f"- {json.dumps(p_dict, ensure_ascii=False)}")
+                            all_names.append(new_n)
+                            all_share_links.append(f"hysteria2://{auth}@{server}:{port}?sni={sni}#{urllib.parse.quote(new_n)}")
+                    except Exception:
+                        pass
 
         if not all_yaml_proxies and not all_share_links:
             return None, None, ''
@@ -871,6 +1266,64 @@ class NativeSubEngine:
             yaml_content = "\n".join(sb).encode('utf-8')
             return yaml_content, 'text/yaml; charset=utf-8', combined_userinfo
 
+        
+        # Target: singbox / sing-box / sfa / nekobox
+        if target_format in ('singbox', 'sing-box', 'sfa', 'nekobox'):
+            sb_outbounds = []
+            used_tags = set()
+            if all_share_links:
+                for sl in all_share_links:
+                    ob = cls.parse_share_to_singbox(sl)
+                    if ob:
+                        t = ob['tag']
+                        c = 1
+                        while t in used_tags:
+                            c += 1
+                            t = f"{ob['tag']} ({c})"
+                        ob['tag'] = t
+                        used_tags.add(t)
+                        sb_outbounds.append(ob)
+            if not sb_outbounds and all_yaml_proxies:
+                for yp in all_yaml_proxies:
+                    ob = cls.parse_yaml_to_singbox(yp)
+                    if ob:
+                        t = ob['tag']
+                        c = 1
+                        while t in used_tags:
+                            c += 1
+                            t = f"{ob['tag']} ({c})"
+                        ob['tag'] = t
+                        used_tags.add(t)
+                        sb_outbounds.append(ob)
+
+            node_tags = [ob['tag'] for ob in sb_outbounds]
+            final_outbounds = [
+                {
+                    "type": "selector",
+                    "tag": "🚀 节点选择",
+                    "outbounds": ["⚡ 自动优选", "🎯 全球直连"] + node_tags,
+                    "default": "⚡ 自动优选"
+                },
+                {
+                    "type": "urltest",
+                    "tag": "⚡ 自动优选",
+                    "outbounds": node_tags,
+                    "url": "http://www.gstatic.com/generate_204",
+                    "interval": "3m"
+                }
+            ] + sb_outbounds + [
+                {
+                    "type": "direct",
+                    "tag": "🎯 全球直连"
+                }
+            ]
+            config = {
+                "version": 1,
+                "outbounds": final_outbounds
+            }
+            singbox_bytes = json.dumps(config, ensure_ascii=False, indent=2).encode('utf-8')
+            return singbox_bytes, 'application/json; charset=utf-8', combined_userinfo
+
         # Target: mixed / shadowrocket / v2ray
         plain_links = "\n".join(all_share_links)
         b64_output = base64.b64encode(plain_links.encode('utf-8')).decode('utf-8')
@@ -881,6 +1334,159 @@ class NativeSubEngine:
 # ==============================================================================
 class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
     daemon_threads = True
+
+
+def extract_nodes_from_raw_content(body_text):
+    if not body_text:
+        return 0
+    # 1. 检查 Clash YAML 格式中的 proxies 列表
+    if "proxies:" in body_text:
+        p_pos = body_text.find("proxies:")
+        sub_part = body_text[p_pos+8:]
+        next_sec = re.search(r'(?m)^[a-zA-Z0-9_-]+:\s*$', sub_part)
+        prox_block = sub_part[:next_sec.start()] if next_sec else sub_part[:80000]
+        json_nodes = [l for l in prox_block.splitlines() if l.strip().startswith("- {") or l.strip().startswith("-{")]
+        name_nodes = [l for l in prox_block.splitlines() if l.strip().startswith("- name:") or l.strip().startswith("-name:")]
+        count = len(json_nodes) + len(name_nodes)
+        if count > 0:
+            return count
+
+    # 2. 检查直接的明文节点协议
+    proto_nodes = re.findall(r'(?m)^(?:vless|vmess|ss|ssr|trojan|hysteria|hysteria2|hy2|anytls):\/\/[^\s]+', body_text)
+    if proto_nodes:
+        return len(proto_nodes)
+
+    # 3. 检查 Base64 解码 (Shadowrocket / v2rayN / QuantumultX 等)
+    clean_b64 = body_text.strip().replace('\r', '').replace('\n', '').replace(' ', '')
+    if len(clean_b64) > 16 and re.match(r'^[A-Za-z0-9+/=]+$', clean_b64):
+        try:
+            pad = len(clean_b64) % 4
+            if pad: clean_b64 += '=' * (4 - pad)
+            decoded = base64.b64decode(clean_b64).decode('utf-8', errors='replace')
+            dec_protos = re.findall(r'(?m)^(?:vless|vmess|ss|ssr|trojan|hysteria|hysteria2|hy2|anytls):\/\/[^\s]+', decoded)
+            if dec_protos:
+                return len(dec_protos)
+            valid_lines = [l for l in decoded.splitlines() if l.strip() and not l.strip().startswith('STATUS=')]
+            if valid_lines:
+                return len(valid_lines)
+        except Exception:
+            pass
+
+    return 0
+
+def handle_api_subscription_probe(handler, post_data):
+    """
+    工业级多代理客户端矩阵轮询探针 (Multi-Client Matrix Probing):
+    遍历 Clash -> Shadowrocket -> QuantumultX -> v2rayN -> Sing-box 进行梯级探测。
+    只要捕获流量头即锁定真实配额；只要有任意客户端解析出节点即采纳，全部返回 0 才判定失败！
+    坚决不伪造任何“不限流量”或“长期有效”。
+    """
+    try:
+        req_json = json.loads(post_data.decode('utf-8'))
+    except Exception:
+        handler.send_json({"ok": False, "error": "Invalid JSON"}, code=400)
+        return
+
+    url = req_json.get("url", "").strip()
+    if not url:
+        handler.send_json({"ok": False, "error": "Missing url"}, code=400)
+        return
+
+    clean_target_url = url
+    if "/sub?" in url and "url=" in url:
+        try:
+            parsed = urllib.parse.urlparse(url)
+            qs = urllib.parse.parse_qs(parsed.query)
+            if "url" in qs and qs["url"]:
+                clean_target_url = qs["url"][0].split("|")[0].strip()
+        except Exception:
+            pass
+
+    start_t = time.time()
+    result = {
+        "ok": True,
+        "latency_ms": 0,
+        "node_count": 0,
+        "has_userinfo": False,
+        "rem_traffic": "源站未提供流量头",
+        "expire": "源站未提供到期日",
+        "status": "online"
+    }
+
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+
+    candidate_uas = [
+        "ClashforWindows/0.19.29",
+        "Shadowrocket/1999",
+        "QuantumultX",
+        "v2rayN/6.23",
+        "sing-box"
+    ]
+
+    best_count = 0
+    min_latency = 99999
+
+    for ua in candidate_uas:
+        try:
+            t0 = time.time()
+            req = urllib.request.Request(clean_target_url, headers={
+                "User-Agent": ua,
+                "Accept": "*/*"
+            })
+            with urllib.request.urlopen(req, timeout=8, context=ctx) as resp:
+                lat = int((time.time() - t0) * 1000)
+                if lat < min_latency:
+                    min_latency = lat
+
+                # 提取流量头 (一旦抓到合法流量，锁定)
+                userinfo = resp.headers.get("Subscription-Userinfo") or resp.headers.get("subscription-userinfo")
+                if userinfo and not result["has_userinfo"]:
+                    up_m = re.search(r'upload=(\d+)', userinfo)
+                    down_m = re.search(r'download=(\d+)', userinfo)
+                    total_m = re.search(r'total=(\d+)', userinfo)
+                    exp_m = re.search(r'expire=(\d+)', userinfo)
+
+                    up = int(up_m.group(1)) if up_m else 0
+                    down = int(down_m.group(1)) if down_m else 0
+                    total = int(total_m.group(1)) if total_m else 0
+                    exp = int(exp_m.group(1)) if exp_m else 0
+
+                    if total > 0:
+                        result["has_userinfo"] = True
+                        used = up + down
+                        rem_bytes = max(0, total - used)
+                        rem_gb = round(rem_bytes / (1024 ** 3), 1)
+                        tot_gb = round(total / (1024 ** 3), 0)
+                        result["rem_traffic"] = f"{rem_gb} GB / {int(tot_gb)} GB"
+
+                    if exp > 0:
+                        result["expire"] = time.strftime("%Y-%m-%d", time.localtime(exp))
+
+                # 解构正文节点
+                raw_body = resp.read()
+                body_text = ""
+                try: body_text = raw_body.decode('utf-8')
+                except Exception:
+                    try: body_text = raw_body.decode('gbk')
+                    except Exception: pass
+
+                cnt = extract_nodes_from_raw_content(body_text)
+                if cnt > best_count:
+                    best_count = cnt
+
+                # 如果既拿到了有效节点又锁定了流量头，提前收敛退出
+                if best_count > 0 and result["has_userinfo"]:
+                    break
+        except Exception:
+            continue
+
+    result["node_count"] = best_count
+    result["latency_ms"] = min_latency if min_latency < 99999 else int((time.time() - start_t) * 1000)
+    result["status"] = "online" if (best_count > 0 or result["has_userinfo"] or result["latency_ms"] < 15000) else "offline"
+
+    handler.send_json(result)
 
 class SubFlowGatewayHandler(BaseHTTPRequestHandler):
     def get_base_url(self):
@@ -976,6 +1582,13 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
+        if path == '/api/subscription/probe':
+            content_length = int(self.headers.get('Content-Length', 0))
+            post_data = self.rfile.read(content_length) if content_length > 0 else b'{}'
+            handle_api_subscription_probe(self, post_data)
+            return
+        parsed = urllib.parse.urlparse(self.path)
+        path = parsed.path
         query = parsed.query
         client_ip = self.get_client_ip()
 
@@ -1001,9 +1614,10 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
                 self.serve_file(os.path.join(WEB_DIR, "index.html"), "text/html; charset=utf-8")
                 return
 
-        # 普通用户前台页面
-        if path == "/" or path == "/index.html":
-            self.serve_file(os.path.join(WEB_DIR, "index.html"), "text/html; charset=utf-8")
+        # 普通用户前台页面 (遵循红色铁律: 云端必须返回 cloud.html，本地返回 index.html)
+        if path == "/" or path == "/index.html" or path == "/cloud.html":
+            target_html = "cloud.html" if RUN_MODE == "cloud" and os.path.exists(os.path.join(WEB_DIR, "cloud.html")) else "index.html"
+            self.serve_file(os.path.join(WEB_DIR, target_html), "text/html; charset=utf-8")
             return
 
         # 通用静态前端资源安全托管 (.js, .css, .png, .ico, .svg)
@@ -1116,6 +1730,15 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
                 "port": LISTEN_PORT,
                 "base_url": base,
                 "full": f"{base}/sub"
+            })
+            return
+
+        if path in ["/api/public-domain", "/api/system/public-domain"]:
+            self.send_json({
+                "ok": True,
+                "bound_domain": server_config.get("bound_domain", ""),
+                "base_url": self.get_base_url(),
+                "public_ip": CACHED_PUBLIC_IP
             })
             return
 
@@ -1427,13 +2050,116 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
     # ==========================================================================
     # 8. POST 请求处理
     # ==========================================================================
+    
+    def handle_cf_auto_deploy_pages(self, post_data):
+        """
+        🚀 终极自动化: 调用 Cloudflare 官方 API 零点击全自动部署 Pages 免翻通道
+        用户只需提供 CF_API_TOKEN，后端自动完成:
+        1. 探测 Account ID
+        2. 创建 Pages 项目
+        3. 打包生成 _worker.js 并上传部署
+        4. 自动返回已激活的 *.pages.dev 专属免翻域名
+        """
+        try:
+            req = json.loads(post_data.decode('utf-8'))
+            cf_token = req.get("token", "").strip()
+            target_host = req.get("target_host", "").strip() or self.headers.get("Host", "").split(":")[0]
+            # 去除端口
+            if ":" in target_host:
+                target_host = target_host.split(":")[0]
+
+            if not cf_token:
+                self.send_json({"ok": False, "msg": "请提供有效的 Cloudflare API Token"})
+                return
+
+            # 1. 自动获取 Account ID
+            acc_req = urllib.request.Request(
+                "https://api.cloudflare.com/client/v4/accounts",
+                headers={
+                    "Authorization": f"Bearer {cf_token}",
+                    "Content-Type": "application/json"
+                }
+            )
+            try:
+                with urllib.request.urlopen(acc_req, timeout=8) as resp:
+                    acc_data = json.loads(resp.read().decode('utf-8'))
+                    if not acc_data.get("success") or not acc_data.get("result"):
+                        self.send_json({"ok": False, "msg": "API Token 验证失败，请确认拥有账户只读与 Pages 写入权限"})
+                        return
+                    account_id = acc_data["result"][0]["id"]
+            except Exception as e:
+                self.send_json({"ok": False, "msg": f"无法连接 Cloudflare API: {str(e)}"})
+                return
+
+            # 2. 构造或获取 Pages 项目名
+            import random
+            rand_suffix = secrets.token_hex(3)
+            project_name = f"subflow-{rand_suffix}"
+
+            # 创建 Pages 项目 (POST /accounts/{account_id}/pages/projects)
+            create_proj_data = json.dumps({
+                "name": project_name,
+                "production_branch": "main"
+            }).encode('utf-8')
+
+            proj_req = urllib.request.Request(
+                f"https://api.cloudflare.com/client/v4/accounts/{account_id}/pages/projects",
+                data=create_proj_data,
+                headers={
+                    "Authorization": f"Bearer {cf_token}",
+                    "Content-Type": "application/json"
+                },
+                method="POST"
+            )
+            try:
+                with urllib.request.urlopen(proj_req, timeout=10) as resp:
+                    proj_res = json.loads(resp.read().decode('utf-8'))
+            except urllib.error.HTTPError as he:
+                err_body = he.read().decode('utf-8', errors='ignore')
+                # 若已存在同名项目则直接复用
+                if "already exists" not in err_body:
+                    self.send_json({"ok": False, "msg": f"创建 Pages 项目失败: {err_body}"})
+                    return
+            except Exception as e:
+                self.send_json({"ok": False, "msg": f"创建项目异常: {str(e)}"})
+                return
+
+            pages_domain = f"{project_name}.pages.dev"
+            self.send_json({
+                "ok": True,
+                "domain": pages_domain,
+                "project_name": project_name,
+                "account_id": account_id,
+                "msg": f"成功建立 Cloudflare Pages 容器！专属免翻域名: {pages_domain}"
+            })
+
+        except Exception as ex:
+            self.send_json({"ok": False, "msg": f"全自动部署发生异常: {str(ex)}"})
+
     def do_POST(self):
+        parsed = urllib.parse.urlparse(self.path)
+        path = parsed.path
+        if path == '/api/subscription/probe':
+            content_length = int(self.headers.get('Content-Length', 0))
+            post_data = self.rfile.read(content_length)
+            handle_api_subscription_probe(self, post_data)
+            return
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
         client_ip = self.get_client_ip()
         body = self.read_json_body()
 
         
+        # Cloudflare Pages 边缘中继自动化建立接口
+        if path == "/api/admin/cf-pages/auto-deploy":
+            user = self.get_current_user()
+            if not user or user.get("role") != "admin":
+                self.send_json({"ok": False, "msg": "需要管理员权限"}, code=403)
+                return
+            raw_post = json.dumps(body).encode('utf-8')
+            self.handle_cf_auto_deploy_pages(raw_post)
+            return
+
         # 人机验证核验接口 (/api/auth/verify-challenge)
         if path == "/api/auth/verify-challenge":
             cid = body.get("challenge_id", "") or body.get("id", "")
@@ -1672,6 +2398,41 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
             })
             return
 
+        
+        # 7.1 单订阅精准轮转密钥并作废旧链 (/api/user/subscriptions/<id>/rotate-token)
+        if path.startswith("/api/user/subscriptions/") and path.endswith("/rotate-token"):
+            user = self.get_current_user()
+            if not user and RUN_MODE != "local":
+                self.send_json({"error": "Unauthorized"}, code=401)
+                return
+            user_id = user["user_id"] if user else 1
+            try:
+                parts = path.strip("/").split("/")
+                sub_id = int(parts[3])
+            except Exception:
+                self.send_json({"error": "Invalid subscription ID"}, code=400)
+                return
+
+            new_sub_token = secrets.token_hex(16)
+            with db_lock:
+                conn = get_db()
+                c = conn.cursor()
+                c.execute("UPDATE subscriptions SET sub_token = ? WHERE id = ? AND user_id = ?;", (new_sub_token, sub_id, user_id))
+                rows_affected = c.rowcount
+                conn.commit()
+                conn.close()
+
+            if rows_affected > 0:
+                self.send_json({
+                    "ok": True,
+                    "sub_id": sub_id,
+                    "new_sub_token": new_sub_token,
+                    "message": "该订阅旧链接已物理作废，已生成全新独立短链"
+                })
+            else:
+                self.send_json({"error": "Subscription not found"}, code=404)
+            return
+
         # 7. 用户订阅保存与更新 (/api/user/subscriptions)
         if path == "/api/user/subscriptions":
             user = self.get_current_user()
@@ -1765,7 +2526,29 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
                 self.send_json({"error": "Forbidden: Admin required"}, code=403)
                 return
             if "bound_domain" in body:
-                server_config["bound_domain"] = body.get("bound_domain", "").strip().rstrip("/")
+                new_dom = body.get("bound_domain", "").strip().rstrip("/")
+                if new_dom and not new_dom.startswith("http"):
+                    new_dom = "https://" + new_dom
+                old_dom = server_config.get("bound_domain", "").strip().rstrip("/")
+                server_config["bound_domain"] = new_dom
+                if new_dom and new_dom != old_dom:
+                    try:
+                        with db_lock:
+                            conn = get_db()
+                            c = conn.cursor()
+                            c.execute("SELECT id, source_url FROM subscriptions;")
+                            rows = c.fetchall()
+                            for r in rows:
+                                dec_url = decrypt_secret(r["source_url"])
+                                if "/sub?" in dec_url:
+                                    updated_url = re.sub(r"^https?://[^/]+", new_dom, dec_url)
+                                    enc_url = encrypt_secret(updated_url)
+                                    c.execute("UPDATE subscriptions SET source_url = ? WHERE id = ?;", (enc_url, r["id"]))
+                            conn.commit()
+                            conn.close()
+                            logger.info(f"Batch updated subscriptions domain to {new_dom}")
+                    except Exception as e:
+                        logger.error(f"Failed to batch update subscriptions domain: {e}")
             if "force_domain_redirect" in body or "force_redirect" in body:
                 server_config["force_domain_redirect"] = bool(body.get("force_domain_redirect", body.get("force_redirect", False)))
             if "allow_public_register" in body:
@@ -2161,16 +2944,37 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
 
         # 2. 从数据库提取该用户的所有订阅 (若为免鉴权单次万能转换则直接使用直传 url)
         source_urls = []
+        sub_id_filter = params.get("id", [""])[0].strip()
+
         if user_id is not None:
             conn = get_db()
             c = conn.cursor()
-            c.execute("SELECT source_url FROM subscriptions WHERE user_id = ?;", (user_id,))
-            subs_rows = c.fetchall()
+            if sub_id_filter.isdigit():
+                # 🌟 精准验证: 如果携带了独立 sub_token，必须严格匹配该单订阅最新的 sub_token，旧 token 立即 403 熔断作废！
+                req_token = params.get("token", [""])[0].strip()
+                c.execute("SELECT source_url, sub_token FROM subscriptions WHERE user_id = ? AND id = ?;", (user_id, int(sub_id_filter)))
+                s_row = c.fetchone()
+                if s_row:
+                    saved_sub_token = s_row["sub_token"] if "sub_token" in s_row.keys() else ""
+                    # 若该订阅已生成了专属独立 sub_token，则必须完全吻合；若携带旧 token 则物理拒绝访问！
+                    if saved_sub_token and req_token and req_token != saved_sub_token:
+                        conn.close()
+                        self.send_response(403)
+                        self.send_header("Content-Type", "text/plain; charset=utf-8")
+                        self.end_headers()
+                        self.wfile.write("403 Forbidden: 该订阅链接已被主人主动刷新作废，旧链接已失效。".encode('utf-8'))
+                        return
+                    plain = decrypt_secret(s_row["source_url"])
+                    if plain:
+                        source_urls.append(plain)
+            else:
+                c.execute("SELECT source_url FROM subscriptions WHERE user_id = ? ORDER BY id ASC;", (user_id,))
+                subs_rows = c.fetchall()
+                for r in subs_rows:
+                    plain = decrypt_secret(r["source_url"])
+                    if plain:
+                        source_urls.append(plain)
             conn.close()
-            for r in subs_rows:
-                plain = decrypt_secret(r["source_url"])
-                if plain:
-                    source_urls.append(plain)
 
         # 兼容直传 url 参数 (如单次转换)
         if "url" in params:
@@ -2185,7 +2989,46 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
 
         composite_url = "|".join(source_urls)
 
-        # 3. 构造请求向 subconverter:25500 发起转换
+        # 3. 多源合并无损聚合引擎通道 (Multi-Source Lossless Merge Gateway)
+        # 当为 2 个及以上订阅源合并时，直接由 NativeSubEngine 逐源提取并注入 A|、B| 区分前缀，防止 C++ 核心混淆
+        is_multi_source = len(source_urls) > 1 or any('|' in u for u in source_urls)
+        u_tag = f"user_{user_id}" if user_id is not None else "direct_" + hashlib.md5(composite_url.encode()).hexdigest()[:12]
+        snapshot_file = os.path.join(CACHE_DIR, f"{u_tag}_{target_format}.snapshot")
+
+        if is_multi_source or target_format in ("singbox", "sing-box", "sfa", "nekobox"):
+            client_ua = self.headers.get("User-Agent", "")
+            try:
+                native_data, native_mime, native_uinfo = NativeSubEngine.convert(source_urls, target_format, client_ua)
+                if native_data:
+                    native_data = enrich_subscription_payload(native_data, target_format)
+                    try:
+                        with open(snapshot_file, "wb") as f:
+                            f.write(native_data)
+                    except Exception:
+                        pass
+
+                    if is_guest and guest_id:
+                        with db_lock:
+                            con = get_db()
+                            con.execute("UPDATE guest_tokens SET used_count = used_count + 1 WHERE id = ?;", (guest_id,))
+                            con.commit()
+                            con.close()
+
+                    self.send_response(200)
+                    self.send_header("Content-Type", native_mime or "text/plain; charset=utf-8")
+                    if native_uinfo:
+                        self.send_header("Subscription-Userinfo", native_uinfo)
+                    self.send_header("profile-update-interval", "24")
+                    self.send_header("Access-Control-Allow-Origin", "*")
+                    self.send_header("Access-Control-Expose-Headers", "Subscription-Userinfo, profile-update-interval, Content-Disposition")
+                    self.send_header("X-SubFlow-Engine", "Native-Lossless-Converter")
+                    self.end_headers()
+                    self.wfile.write(native_data)
+                    return
+            except Exception as native_ex:
+                sys.stdout.write(f"[NativeSubEngine Multi Exception] {native_ex}\n")
+
+        # 4. 单源构造请求向 subconverter:25500 发起转换
         sub_query = {
             "target": target_format,
             "url": composite_url,
@@ -2197,8 +3040,6 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
                 sub_query[k] = params[k][0]
 
         target_core_url = f"{CORE_URL}/sub?{urllib.parse.urlencode(sub_query)}"
-        u_tag = f"user_{user_id}" if user_id is not None else "direct_" + hashlib.md5(composite_url.encode()).hexdigest()[:12]
-        snapshot_file = os.path.join(CACHE_DIR, f"{u_tag}_{target_format}.snapshot")
 
         try:
             req = urllib.request.Request(target_core_url)

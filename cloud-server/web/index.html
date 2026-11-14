@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>SubFlow v2.0 · 现代订阅流中心</title>
+  <title>SubFlow v3.1.0 · 现代订阅流中心</title>
   <script>
     // 🌐 智能动态 BaseURL 解析引擎 (第一优先级：当前访问域名/IP；第二优先级：后台绑定域名)
     window.SUBFLOW_BOUND_DOMAIN = '';
@@ -33,6 +33,46 @@
       }
       return 'http://127.0.0.1:25588' + endpoint;
     }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+    window.escapeHtml = escapeHtml;
+
+    // 👑 前端 URL 自动脱壳清洗函数 (剥离多层嵌套的 /sub?url=)
+    function unwrapSubFlowUrl(raw) {
+      if (!raw || typeof raw !== 'string') return raw || '';
+      let cur = raw.trim();
+      let depth = 5;
+      while (depth > 0 && cur.includes('/sub?') && cur.includes('url=')) {
+        try {
+          const m = cur.match(/[?&]url=([^&]+)/);
+          if (m) {
+            const inner = decodeURIComponent(m[1]);
+            if (inner.includes('/sub?') && inner.includes('url=')) {
+              cur = inner.trim();
+              depth--;
+            } else {
+              cur = inner.trim();
+              break;
+            }
+          } else {
+            break;
+          }
+        } catch(e) {
+          break;
+        }
+      }
+      return cur;
+    }
+    window.unwrapSubFlowUrl = unwrapSubFlowUrl;
+    window.unwrapSubUrl = unwrapSubFlowUrl;
 
     // 👁️ 密码显隐高颜值切换 (SVG 矢量双态无缝过渡)
     function togglePasswordVisibility(inputId, btn) {
@@ -64,6 +104,32 @@
       if (modal) {
         modal.style.display = 'flex';
         const hostEl = document.getElementById('settings-service-host');
+        
+      
+      
+      const statusEl = document.getElementById('cf-scan-status-text');
+      if (statusEl) {
+        const lastStr = localStorage.getItem('subflow_cf_last_scan_str');
+        const bestIp = localStorage.getItem('subflow_best_cf_ip') || currentBestCleanIp;
+        let count = 0;
+        try {
+          const raw = localStorage.getItem('subflow_cf_valid_list');
+          if (raw) count = JSON.parse(raw).length;
+        } catch(e) {}
+        if (lastStr) {
+          statusEl.innerHTML = '🟢 最近巡检：<b>' + lastStr + '</b>（' + (count > 0 ? '优选出 <b>' + count + '</b> 个通畅 IP，' : '') + '当前首选: <code>' + bestIp + '</code>）';
+        } else {
+          statusEl.innerHTML = '⏱️ 巡检状态：每 30 分钟自动测试一遍大陆未被墙 IP（首选: <code>' + bestIp + '</code>）';
+        }
+      }
+
+      const chkFailover = document.getElementById('chk-auto-cf-failover');
+      if (chkFailover) chkFailover.checked = (localStorage.getItem('subflow_auto_cf_failover') !== 'false');
+      
+      const chkIntercept = document.getElementById('chk-anti-intercept');
+      if (chkIntercept) chkIntercept.checked = (localStorage.getItem('subflow_anti_intercept') !== 'false');
+      const chkFallback = document.getElementById('chk-auto-fallback');
+      if (chkFallback) chkFallback.checked = (localStorage.getItem('subflow_auto_fallback') !== 'false');
         if (hostEl) {
           hostEl.innerText = (window.location.origin && !window.location.origin.startsWith('file://')) 
             ? window.location.origin.replace(/^https?:\/\//, '')
@@ -1063,248 +1129,15 @@
       background: var(--bg-surface-elevated);
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-md);
-      padding: 16px 18px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      padding: 14px 18px;
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 10px !important;
+      align-items: stretch !important;
+      justify-content: flex-start !important;
       transition: all var(--duration-fast) var(--ease-out);
-    }
-
-    .history-item:hover {
-      border-color: var(--border-hover);
-      background: var(--bg-surface-hover);
-    }
-
-    .history-meta {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-      flex: 1;
-      margin-right: 16px;
-    }
-
-    .history-title-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .history-name {
-      font-size: 0.95rem;
-      font-weight: 700;
-      color: var(--text-primary);
-    }
-
-    .history-status-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 0.72rem;
-      font-weight: 600;
-      padding: 2px 8px;
-      border-radius: 12px;
-    }
-
-    .history-status-pill.online {
-      background: rgba(16, 185, 129, 0.12);
-      color: var(--emerald);
-      border: 1px solid rgba(16, 185, 129, 0.25);
-    }
-
-    .history-url {
-      font-family: var(--font-mono);
-      font-size: 0.78rem;
-      color: var(--text-muted);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 480px;
-    }
-
-    .history-stats {
-      font-size: 0.76rem;
-      color: var(--text-secondary);
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-
-    .history-actions {
-      display: flex;
-      gap: 8px;
-    }
-
-    /* 👑 2026 Liquid Glass: 定制圆角微晶复选框 (Smooth Rounded Checkbox) */
-    .sub-card-checkbox {
-      appearance: none;
-      -webkit-appearance: none;
-      width: 17px;
-      height: 17px;
-      border-radius: 5px;
-      border: 1.5px solid var(--border-subtle);
-      background: rgba(255, 255, 255, 0.04);
-      cursor: pointer;
-      position: relative;
-      outline: none;
-      transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-      flex-shrink: 0;
-      display: inline-grid;
-      place-content: center;
-    }
-    .sub-card-checkbox:hover {
-      border-color: var(--primary);
-      background: rgba(59, 130, 246, 0.12);
-    }
-    .sub-card-checkbox:checked {
-      background: var(--primary);
-      border-color: var(--primary);
-      box-shadow: 0 0 10px rgba(59, 130, 246, 0.45);
-    }
-    .sub-card-checkbox:checked::after {
-      content: '';
-      width: 4px;
-      height: 8px;
-      border: solid white;
-      border-width: 0 2px 2px 0;
-      transform: rotate(45deg) translate(-0.5px, -1px);
-    }
-
-    .history-item.selected-card {
-      border-color: rgba(59, 130, 246, 0.6) !important;
-      background: rgba(59, 130, 246, 0.05) !important;
-      box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.25) !important;
-    }
-
-    /* 👑 专属多源聚合卡片: 优雅紫金微光与极简胶囊 */
-    .history-item.merged-stream {
-      background: linear-gradient(135deg, rgba(30, 27, 75, 0.32) 0%, rgba(15, 23, 42, 0.5) 100%);
-      border: 1px solid rgba(168, 85, 247, 0.35);
-      position: relative;
-    }
-    [data-theme="light"] .history-item.merged-stream {
-      background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
-      border: 1px solid #c084fc;
-    }
-    .history-item.merged-stream:hover {
-      border-color: rgba(192, 132, 252, 0.7);
-      box-shadow: 0 6px 20px -4px rgba(168, 85, 247, 0.15);
-    }
-
-    /* 极简微晶明细药丸流 (Micro-Pill Breakdown Flow) */
-    .airport-pill-grid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin: 5px 0 3px 0;
-    }
-    .airport-micro-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: rgba(255, 255, 255, 0.035);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 6px;
-      padding: 2.5px 8px;
-      font-size: 0.72rem;
-      color: var(--text-secondary);
-      transition: all 0.2s ease;
-      user-select: none;
-    }
-    [data-theme="light"] .airport-micro-pill {
-      background: #ffffff;
-      border-color: #e2e8f0;
-      color: #334155;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
-    }
-    .airport-micro-pill:hover {
-      border-color: rgba(168, 85, 247, 0.45);
-      background: rgba(168, 85, 247, 0.06);
-    }
-    .airport-micro-pill .tag-name {
-      font-weight: 700;
-      color: #c084fc;
-    }
-    [data-theme="light"] .airport-micro-pill .tag-name {
-      color: #7c3aed;
-    }
-    .airport-micro-pill .tag-nodes {
-      color: var(--text-muted);
-    }
-    .airport-micro-pill .tag-traffic {
-      color: #34d399;
-      font-weight: 600;
-    }
-    .airport-micro-pill .tag-expire {
-      color: #fbbf24;
-      font-weight: 500;
-    }
-
-    /* 汇总标签 */
-    .merged-summary-badges {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      font-size: 0.72rem;
-      margin-top: 2px;
-      align-items: center;
-    }
-    .summary-micro-tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 1.5px 6px;
-      border-radius: 4px;
-      font-weight: 600;
-    }
-    .summary-micro-tag.total {
-      background: rgba(59, 130, 246, 0.12);
-      color: #60a5fa;
-      border: 1px solid rgba(59, 130, 246, 0.25);
-    }
-    .summary-micro-tag.traffic {
-      background: rgba(16, 185, 129, 0.12);
-      color: #34d399;
-      border: 1px solid rgba(16, 185, 129, 0.25);
-    }
-    .summary-micro-tag.expire-warn {
-      background: rgba(245, 158, 11, 0.12);
-      color: #fbbf24;
-      border: 1px solid rgba(245, 158, 11, 0.3);
-    }
-    .summary-micro-tag.prefix-info {
-      background: rgba(168, 85, 247, 0.1);
-      color: #c084fc;
-      border: 1px solid rgba(168, 85, 247, 0.25);
-    }
-
-    /* ==========================================================================
-       Sonner 级流体浮动 Toast 提示
-       ========================================================================== */
-    .toast-container {
-      position: fixed;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%);
-      pointer-events: none;
-      z-index: 999;
-    }
-
-    .sonner-toast {
-      background: #0f172a;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: var(--radius-md);
-      padding: 10px 18px;
-      color: #f8fafc;
-      font-size: 0.85rem;
-      font-weight: 600;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      opacity: 0;
-      transform: translateY(12px) scale(0.96);
-      transition: all var(--duration-normal) var(--ease-out);
+      box-sizing: border-box !important;
+      width: 100% !important;
     }
 
     .sonner-toast.show {
@@ -1942,12 +1775,12 @@
        Linear & Vercel 极简扁平化现代按钮与操作栏规范 (统一高与微交互)
        ========================================================================== */
     .card-action-bar, .history-actions {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-      flex-shrink: 0;
+      display: inline-flex !important;
+      align-items: center !important;
+      flex-wrap: nowrap !important;
+      gap: 6px !important;
+      justify-content: flex-end !important;
+      flex-shrink: 0 !important;
     }
 
     .action-btn {
@@ -2200,65 +2033,187 @@
         flex-wrap: wrap !important;
         gap: 6px !important;
       }
-      .action-btn {
-        flex: 1 1 calc(50% - 6px) !important;
-        min-width: 120px !important;
-        justify-content: center !important;
-      }
+      /* 田字格强制单行修正 */ .action-btn { flex: none !important; min-width: unset !important; }
     }
 
   
     /* ==========================================================================
-       极简流体表单控件规范 (日间与夜间自适应，彻底杜绝刺眼纯白底色)
+       🌟 全域表单控件微晶主题规范 (彻底根除暗黑模式下的刺眼纯白底色，全深浅自适应)
        ========================================================================== */
-    .modern-input, textarea.modern-input, select.modern-input, input.modern-input {
+    textarea,
+    input[type="text"],
+    input[type="number"],
+    input[type="password"],
+    input[type="search"],
+    select,
+    .modern-input,
+    .auth-input {
       background: rgba(13, 20, 36, 0.75) !important;
       border: 1px solid rgba(255, 255, 255, 0.12) !important;
-      border-radius: var(--radius-md) !important;
-      color: #f8fafc !important;
-      font-family: inherit;
-      outline: none;
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
-      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4) !important;
+      border-radius: var(--radius-md, 8px) !important;
+      color: #f1f5f9 !important;
+      font-family: inherit !important;
+      outline: none !important;
+      transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.45) !important;
+      box-sizing: border-box !important;
     }
-    .modern-input:focus, textarea.modern-input:focus, select.modern-input:focus, input.modern-input:focus {
-      border-color: #38bdf8 !important;
+    textarea:focus,
+    input[type="text"]:focus,
+    input[type="number"]:focus,
+    input[type="password"]:focus,
+    input[type="search"]:focus,
+    select:focus,
+    .modern-input:focus,
+    .auth-input:focus {
       background: rgba(15, 23, 42, 0.95) !important;
-      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2), inset 0 1px 2px rgba(0, 0, 0, 0.5) !important;
+      border-color: #38bdf8 !important;
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.22), inset 0 1px 2px rgba(0, 0, 0, 0.5) !important;
+      color: #ffffff !important;
     }
-    .modern-input option {
+    select option, .modern-input option {
       background: #0f172a !important;
-      color: #f8fafc !important;
+      color: #f1f5f9 !important;
     }
+    textarea::placeholder, input::placeholder {
+      color: #64748b !important;
+      opacity: 0.9 !important;
+    }
+
+    /* 日间模式舒适自适应 */
+    [data-theme="light"] textarea,
+    [data-theme="light"] input[type="text"],
+    [data-theme="light"] input[type="number"],
+    [data-theme="light"] input[type="password"],
+    [data-theme="light"] input[type="search"],
+    [data-theme="light"] select,
     [data-theme="light"] .modern-input,
-    [data-theme="light"] textarea.modern-input,
-    [data-theme="light"] select.modern-input,
-    [data-theme="light"] input.modern-input {
+    [data-theme="light"] .auth-input {
       background: #f8fafc !important;
       border: 1px solid #cbd5e1 !important;
       color: #0f172a !important;
       box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04) !important;
     }
+    [data-theme="light"] textarea:focus,
+    [data-theme="light"] input[type="text"]:focus,
+    [data-theme="light"] input[type="number"]:focus,
+    [data-theme="light"] input[type="password"]:focus,
+    [data-theme="light"] input[type="search"]:focus,
+    [data-theme="light"] select:focus,
     [data-theme="light"] .modern-input:focus,
-    [data-theme="light"] textarea.modern-input:focus,
-    [data-theme="light"] select.modern-input:focus,
-    [data-theme="light"] input.modern-input:focus {
+    [data-theme="light"] .auth-input:focus {
       background: #ffffff !important;
       border-color: #2563eb !important;
       box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
+      color: #0f172a !important;
     }
+    [data-theme="light"] select option,
     [data-theme="light"] .modern-input option {
       background: #ffffff !important;
       color: #0f172a !important;
     }
 
-  
-    /* 移除暗黑模式下数字输入框的原生刺眼白块 */
-    input[type="number"]::-webkit-inner-spin-button,
-    input[type="number"]::-webkit-outer-spin-button {
-      -webkit-appearance: none !important;
-      margin: 0 !important;
+    /* 历史订阅双轨链接复制按钮微晶规范 (严格像素级对称) */
+    .copy-url-btn {
+      height: 26px !important;
+      line-height: 24px !important;
+      padding: 0 10px !important;
+      font-size: 0.72rem !important;
+      font-weight: 600 !important;
+      border-radius: 5px !important;
+      white-space: nowrap !important;
+      cursor: pointer !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 4px !important;
+      flex-shrink: 0 !important;
+      margin-left: auto !important;
+      transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      user-select: none !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      background: rgba(255, 255, 255, 0.05) !important;
+      color: #cbd5e1 !important;
     }
+    .copy-url-btn:hover {
+      background: rgba(255, 255, 255, 0.12) !important;
+      border-color: rgba(255, 255, 255, 0.25) !important;
+      color: #ffffff !important;
+    }
+    .copy-url-btn.converted {
+      color: #38bdf8 !important;
+      border-color: rgba(56, 189, 248, 0.35) !important;
+      background: rgba(56, 189, 248, 0.1) !important;
+    }
+    
+    .refresh-url-btn {
+      height: 26px !important;
+      line-height: 24px !important;
+      padding: 0 9px !important;
+      font-size: 0.72rem !important;
+      font-weight: 600 !important;
+      border-radius: 5px !important;
+      white-space: nowrap !important;
+      cursor: pointer !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 4px !important;
+      flex-shrink: 0 !important;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      user-select: none !important;
+      border: 1px solid rgba(56, 189, 248, 0.28) !important;
+      background: rgba(56, 189, 248, 0.08) !important;
+      color: #38bdf8 !important;
+      margin-right: 6px !important;
+    }
+    .refresh-url-btn:hover {
+      background: rgba(56, 189, 248, 0.18) !important;
+      border-color: #38bdf8 !important;
+      color: #ffffff !important;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.3) !important;
+    }
+    .refresh-url-btn:hover svg {
+      transform: rotate(180deg);
+      transition: transform 0.4s ease;
+    }
+    .refresh-url-btn.merged {
+      border-color: rgba(192, 132, 252, 0.28) !important;
+      background: rgba(192, 132, 252, 0.08) !important;
+      color: #c084fc !important;
+    }
+    .refresh-url-btn.merged:hover {
+      background: rgba(192, 132, 252, 0.18) !important;
+      border-color: #c084fc !important;
+      color: #ffffff !important;
+      box-shadow: 0 0 10px rgba(192, 132, 252, 0.3) !important;
+    }
+
+    .copy-url-btn.converted:hover {
+      background: rgba(56, 189, 248, 0.2) !important;
+      border-color: #38bdf8 !important;
+      color: #ffffff !important;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.25) !important;
+    }
+    [data-theme="light"] .copy-url-btn {
+      background: #ffffff !important;
+      border-color: #cbd5e1 !important;
+      color: #475569 !important;
+    }
+    [data-theme="light"] .copy-url-btn:hover {
+      background: #f1f5f9 !important;
+      color: #0f172a !important;
+    }
+    [data-theme="light"] .copy-url-btn.converted {
+      background: rgba(37, 99, 235, 0.08) !important;
+      border-color: rgba(37, 99, 235, 0.3) !important;
+      color: #1d4ed8 !important;
+    }
+    [data-theme="light"] .copy-url-btn.converted:hover {
+      background: rgba(37, 99, 235, 0.15) !important;
+      border-color: #2563eb !important;
+    }
+
     input[type="number"] {
       -moz-appearance: textfield !important;
     }
@@ -2372,7 +2327,7 @@
         <div style="width: 52px; height: 52px; border-radius: 16px; background: linear-gradient(135deg, #2563eb, #10b981); margin: 0 auto 12px; display:flex; align-items:center; justify-content:center; color:#fff; font-size: 1.6rem; font-weight:800; box-shadow: 0 0 24px rgba(37, 99, 235, 0.45);">
           ⚡
         </div>
-        <h1 class="gate-brand-title" style="font-size: 1.35rem; font-weight: 800; letter-spacing: -0.02em; margin: 0; line-height: 1.2;">SubFlow 订阅流 <span style="font-size:0.75rem; background:linear-gradient(135deg,#2563eb,#10b981); color:#fff; padding:2px 8px; border-radius:12px; font-weight:700; vertical-align:middle; margin-left:4px;">v2.3.1</span></h1>
+        <h1 class="gate-brand-title" style="font-size: 1.35rem; font-weight: 800; letter-spacing: -0.02em; margin: 0; line-height: 1.2;">SubFlow 订阅流 <span style="font-size:0.75rem; background:linear-gradient(135deg,#2563eb,#10b981); color:#fff; padding:2px 8px; border-radius:12px; font-weight:700; vertical-align:middle; margin-left:4px;">v3.1.0</span></h1>
         <p id="gate-subtitle-txt" style="font-size:0.8rem; color:var(--text-muted); margin-top:6px;">跨平台流体订阅转换平台 · 请登录后继续</p>
       </div>
 
@@ -2472,7 +2427,7 @@
           </svg>
         </div>
         <div>
-          <div class="brand-title">SubFlow 订阅流 <span style="font-size:0.68rem; background:linear-gradient(135deg,#2563eb,#10b981); color:#fff; padding:2px 7px; border-radius:12px; font-weight:700; vertical-align:middle; margin-left:4px;">v2.3.1</span></div>
+          <div class="brand-title">SubFlow 订阅流 <span style="font-size:0.68rem; background:linear-gradient(135deg,#2563eb,#10b981); color:#fff; padding:2px 7px; border-radius:12px; font-weight:700; vertical-align:middle; margin-left:4px;">v3.1.0</span></div>
           <div class="brand-status">
             <span class="status-dot"></span>
             <span>订阅解析服务已就绪</span>
@@ -2718,444 +2673,42 @@
       </section>
     </main>
 
-    <!-- Page 2: 历史订阅与智能测活看板 (完全找回并升华) -->
+    <!-- Page 2: 历史订阅与智能测活看板 (完全物理独立) -->
     <main id="page-history" class="tab-page" style="display: none; flex-direction: column; gap: 16px;">
-      <section class="card">
-        <div class="card-header">
-          <div class="card-title">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
-            <span id="history-header-count">已保存的历史订阅清单</span>
+      <section class="card" style="padding: 20px 22px;">
+        <div class="card-header history-top-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; width:100%; box-sizing:border-box;">
+          <div style="display:inline-flex; align-items:center; gap:10px; flex-shrink:0;">
+            <div class="card-title" style="margin:0; display:inline-flex; align-items:center; gap:8px;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+              <span id="history-header-count">已保存的历史订阅清单</span>
+            </div>
+            <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.78rem; color:var(--text-secondary); background:rgba(255,255,255,0.05); border:1px solid var(--border-subtle); padding:3px 10px; border-radius:6px; user-select:none; white-space:nowrap; flex-shrink:0; transition:all 0.2s;" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border-subtle)'" title="一键全选或取消勾选所有订阅源进行多源合并">
+              <input type="checkbox" id="chk-select-all" onchange="toggleSelectAll(this.checked)" style="cursor:pointer; accent-color:var(--primary); width:14px; height:14px; margin:0;">
+              <span style="font-weight:600;">一键勾选</span>
+            </label>
           </div>
-          <div style="display:flex; align-items:center; gap:12px;">
-            <div style="display:flex; align-items:center; gap:8px; background:var(--bg-base); padding:3px 10px; border-radius:8px; border:1px solid var(--border-subtle);">
-              <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.78rem; color:var(--text-secondary); user-select:none;" title="开启后按设定的时间周期自动静默测活">
-                <input type="checkbox" id="chk-auto-refresh" onchange="toggleAutoRefresh(this.checked)" style="cursor:pointer; accent-color: var(--primary);">
-                <span id="label-auto-refresh" style="font-weight:600; color:var(--text-primary); display:inline-flex; align-items:center; gap:5px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> <span>定时自动测活</span></span>
+          <div style="display:inline-flex; align-items:center; gap:8px; flex-wrap:nowrap; flex-shrink:0;">
+            <div style="display:inline-flex; align-items:center; gap:8px; background:rgba(15,23,42,0.65); padding:3px 10px; border-radius:6px; border:1px solid rgba(255,255,255,0.1); white-space:nowrap; flex-shrink:0;">
+              <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.78rem; color:var(--text-secondary); user-select:none; white-space:nowrap;" title="开启后按设定的时间周期自动静默测活">
+                <input type="checkbox" id="chk-auto-refresh" onchange="toggleAutoRefresh(this.checked)" style="cursor:pointer; accent-color: var(--primary); margin:0;">
+                <span id="label-auto-refresh" style="font-weight:600; color:var(--text-primary); display:inline-flex; align-items:center; gap:5px; white-space:nowrap;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> <span>定时自动测活</span></span>
               </label>
-              <div style="display:inline-flex; align-items:center; gap:4px; font-size:0.74rem; color:var(--text-muted);">
+              <div style="display:inline-flex; align-items:center; gap:4px; font-size:0.74rem; color:var(--text-muted); white-space:nowrap;">
                 <span>每</span>
-                <input type="number" id="input-refresh-interval" min="1" max="168" value="1" onchange="changeAutoRefreshHours(this.value)" oninput="if(this.value<1)this.value=1" style="width:52px; height:24px; text-align:center; background:var(--bg-surface-elevated); border:1px solid var(--border-subtle); border-radius:6px; color:#38bdf8; font-size:0.75rem; font-weight:700; font-family:var(--font-mono); outline:none; transition:border-color 0.15s;" onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--border-subtle)'">
+                <input type="number" id="input-refresh-interval" min="1" max="168" value="1" onchange="changeAutoRefreshHours(this.value)" oninput="if(this.value<1)this.value=1" style="width:48px; height:24px; text-align:center; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.15); border-radius:4px; color:#38bdf8; font-size:0.75rem; font-weight:700; font-family:monospace; outline:none;" onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='rgba(255,255,255,0.15)'">
                 <span id="unit-refresh-interval">小时</span>
               </div>
             </div>
-            <button class="action-btn" id="btn-ping-all" onclick="pingAllHistory()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg> <span>全量一键测活</span></button>
-            <button class="action-btn danger" id="btn-emergency-kill" onclick="triggerEmergencyKill()" title="重置密钥并作废所有旧链接"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg> <span>重置所有旧链接</span></button>
+            <button class="action-btn" id="btn-ping-all" onclick="pingAllHistory()" style="height:30px; font-size:0.75rem;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg> <span>全量一键测活</span></button>
+            <button class="action-btn danger" id="btn-emergency-kill" onclick="triggerEmergencyKill()" title="重置密钥并作废所有旧链接" style="height:30px; font-size:0.75rem;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg> <span>重置所有旧链接</span></button>
           </div>
         </div>
-
-        
 
         <div id="history-stream" class="history-stream" style="display:flex; flex-direction:column; gap:12px; margin: 16px 0; min-height: 40px;"></div>
-        
-      </div>
-    </div>
-  </div>
+      </section>
+    </main>
 
-  
-  <!-- ==========================================================================
-       🔑 登录 / 注册高颜值弹窗 (Liquid Glass & Smart Human Challenge)
-       ========================================================================== -->
-  <div class="modal-v2-overlay" id="auth-modal" style="display:none;" onclick="if(event.target===this)closeAuthModal()">
-    <div class="modal-v2-card">
-      <!-- 弹窗顶栏 -->
-      <div style="display:flex; align-items:center; justify-content:space-between;">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <div style="width:28px; height:28px; border-radius:8px; background:linear-gradient(135deg,#2563eb,#10b981); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:bold; font-size:0.9rem;">S</div>
-          <span style="font-weight:700; font-size:1rem; color:var(--text-primary);" id="auth-modal-title">SubFlow 账户登录</span>
-        </div>
-        <button class="secondary-btn" style="padding:4px 10px; font-size:0.75rem;" onclick="closeAuthModal()">✕</button>
-      </div>
-
-      <!-- 登录 / 注册分段切换 -->
-      <div class="auth-tab-group">
-        <button class="auth-tab-btn active" id="auth-tab-login" onclick="switchAuthTab('login')">
-          <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="m21 2-2 2m-1.5 1.5L12 11l4 4 3.5-3.5a2.12 2.12 0 0 0 0-3L21 2Z"></path><path d="m9 15-5 5H2v-2l5-5"></path></svg> <span>账号登录</span></span>
-        </button>
-        <button class="auth-tab-btn" id="auth-tab-register" onclick="switchAuthTab('register')">
-          <span>✨ 快速注册</span>
-        </button>
-      </div>
-
-      <!-- 提示消息条 -->
-      <div class="auth-alert" id="auth-alert-box">
-        <span id="auth-alert-icon">⚠️</span>
-        <span id="auth-alert-msg"></span>
-      </div>
-
-      <!-- 表单字段 -->
-      <div style="display:flex; flex-direction:column; gap:14px;">
-        <div class="auth-input-group">
-          <label class="auth-label" for="auth-username">
-            <span>用户名 / 账号</span>
-            <span style="font-size:0.68rem; color:var(--text-muted);">英文字母或数字</span>
-          </label>
-          <div class="auth-input-wrap">
-            <input type="text" class="auth-input" id="auth-username" placeholder="请输入用户名 (如: admin)" autocomplete="username" style="padding-right:12px;">
-          </div>
-        </div>
-
-        <div class="auth-input-group">
-          <label class="auth-label" for="auth-password">
-            <span>登录密码</span>
-            <span style="font-size:0.68rem; color:var(--text-muted);">PBKDF2 10万次加盐加密</span>
-          </label>
-          <div class="auth-input-wrap">
-            <input type="password" class="auth-input" id="auth-password" placeholder="请输入密码" autocomplete="current-password">
-            <button type="button" class="auth-eye-btn" onclick="togglePasswordVisibility('auth-password', this)" title="显示/隐藏密码">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-            </button>
-          </div>
-        </div>
-
-        <div class="auth-input-group" id="group-confirm-pwd" style="display:none;">
-          <label class="auth-label" for="auth-confirm-password">
-            <span>确认新密码</span>
-            <span style="font-size:0.68rem; color:var(--text-muted);">再次输入保持一致</span>
-          </label>
-          <div class="auth-input-wrap">
-            <input type="password" class="auth-input" id="auth-confirm-password" placeholder="请再次输入相同密码" autocomplete="new-password">
-            <button type="button" class="auth-eye-btn" onclick="togglePasswordVisibility('auth-confirm-password', this)" title="显示/隐藏密码">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-            </button>
-          </div>
-        </div>
-
-        <!-- 🛡️ 人机安全验证 (Smart Human Challenge) 卡片 -->
-        <div id="smart-challenge-wrap">
-          <div class="smart-challenge-card" id="smart-challenge-box" onclick="triggerHumanChallenge()">
-            <div class="challenge-left">
-              <div class="challenge-box" id="challenge-box">
-                <div class="challenge-spinner-ring" id="challenge-spinner"></div>
-                <svg class="challenge-check-svg" id="challenge-check-svg" viewBox="0 0 24 24">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-              </div>
-              <div class="challenge-texts">
-                <span class="challenge-title-txt" id="challenge-status-title">进行真人身份核验</span>
-                <span class="challenge-sub-txt" id="challenge-status-sub">点击完成防爆破交互检验</span>
-              </div>
-            </div>
-            <div class="challenge-brand">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-              </svg>
-              <span style="font-size:0.62rem; color:var(--text-muted); font-family:var(--font-mono);">SubFlow Shield</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Cloudflare 官方 Turnstile 挂载容器 (当开启官方模式时生效) -->
-        <div id="turnstile-container" style="display:none; justify-content:center; margin:4px 0;"></div>
-
-        <!-- 提交大按钮 -->
-        <button class="auth-submit-btn" id="btn-auth-submit" onclick="submitAuthForm()">
-          <span id="auth-btn-text">立即登录</span>
-        </button>
-
-        <!-- 初始账号贴心提示 -->
-        <div id="auth-default-hint" style="text-align:center; font-size:0.72rem; color:var(--text-muted); line-height:1.5; padding-top:4px;">
-          <span>💡 系统默认初始管理员：<code style="color:#38bdf8; background:rgba(56,189,248,0.1); padding:2px 6px; border-radius:4px; font-weight:700;">admin</code> / <code style="color:#38bdf8; background:rgba(56,189,248,0.1); padding:2px 6px; border-radius:4px; font-weight:700;">admin123456</code></span><br>
-          <span style="font-size:0.68rem; color:var(--text-muted); opacity:0.85;">登录后可随时在【个人中心】修改为您的专属私密密码</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ==========================================================================
-       👤 用户个人中心与密码修改弹窗 (User Profile & Change Password)
-       ========================================================================== -->
-  <div class="modal-v2-overlay" id="user-profile-modal" style="display:none;" onclick="if(event.target===this)closeUserModal()">
-    <div class="modal-v2-card" style="max-width:480px;">
-      <div style="display:flex; align-items:center; justify-content:space-between;">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span style="font-size:1.2rem;">👤</span>
-          <span style="font-weight:700; font-size:1rem; color:var(--text-primary);">用户个人中心</span>
-        </div>
-        <button class="secondary-btn" style="padding:4px 10px; font-size:0.75rem;" onclick="closeUserModal()">✕</button>
-      </div>
-
-      <!-- 用户信息卡片 -->
-      <div style="display:flex; align-items:center; justify-content:space-between; background:var(--bg-base); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:12px 16px;">
-        <div style="display:flex; flex-direction:column; gap:4px;">
-          <div style="display:flex; align-items:center; gap:8px;">
-            <span style="font-size:1rem; font-weight:700;" id="profile-display-name">User</span>
-            <span class="detect-badge" id="profile-role-badge">用户</span>
-          </div>
-          <span style="font-size:0.72rem; color:var(--text-muted);">SubFlow 授权账号 · 订阅节点与个性化配置</span>
-        </div>
-        <button class="secondary-btn" style="color:#ef4444; border-color:rgba(239,68,68,0.3); font-size:0.75rem; padding:5px 12px;" onclick="doLogout()">🚪 退出登录</button>
-      </div>
-
-      <!-- 专属订阅 Token 提取区 -->
-      <div style="display:flex; flex-direction:column; gap:6px;">
-        <div style="display:flex; justify-content:space-between; font-size:0.78rem; font-weight:600; color:var(--text-secondary);">
-          <span>🔑 专属免密拉取 Token (在客户端直接导入)</span>
-          <button class="secondary-btn" style="padding:2px 8px; font-size:0.7rem;" onclick="copyUserToken()">📋 复制 Token</button>
-        </div>
-        <input type="text" class="auth-input" id="profile-token-box" readonly style="font-family:var(--font-mono); font-size:0.78rem; background:var(--bg-base); color:#38bdf8; cursor:pointer;" onclick="this.select()">
-      </div>
-
-      <!-- 🔐 自助修改密码面板 -->
-      <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:16px; display:flex; flex-direction:column; gap:12px;">
-        <div style="font-size:0.84rem; font-weight:700; color:var(--text-primary); display:flex; align-items:center; gap:6px;">
-          <span>🔐 修改我的登录密码</span>
-        </div>
-
-        <div class="auth-alert" id="pwd-alert-box">
-          <span id="pwd-alert-icon">⚠️</span>
-          <span id="pwd-alert-msg"></span>
-        </div>
-
-        <div class="auth-input-group">
-          <label class="auth-label" for="pwd-old">原密码</label>
-          <div class="auth-input-wrap">
-            <input type="password" class="auth-input" id="pwd-old" placeholder="输入当前使用的旧密码">
-            <button type="button" class="auth-eye-btn" onclick="togglePasswordVisibility('pwd-old', this)">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-            </button>
-          </div>
-        </div>
-
-        <div class="auth-input-group">
-          <label class="auth-label" for="pwd-new">新密码</label>
-          <div class="auth-input-wrap">
-            <input type="password" class="auth-input" id="pwd-new" placeholder="输入新密码 (至少 6 位)">
-            <button type="button" class="auth-eye-btn" onclick="togglePasswordVisibility('pwd-new', this)">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-            </button>
-          </div>
-        </div>
-
-        <div class="auth-input-group">
-          <label class="auth-label" for="pwd-confirm">再次输入新密码</label>
-          <div class="auth-input-wrap">
-            <input type="password" class="auth-input" id="pwd-confirm" placeholder="再次输入新密码确认">
-            <button type="button" class="auth-eye-btn" onclick="togglePasswordVisibility('pwd-confirm', this)">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-            </button>
-          </div>
-        </div>
-
-        <button class="primary-btn" style="padding:8px 0; font-size:0.82rem; margin-top:4px;" onclick="submitChangePassword()">
-          <span>✓ 确认修改密码</span>
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ==========================================================================
-       🛡️ 云端运维管理后台 (Admin Console: 域名绑定 / 人机防爆破 / 用户密码重置)
-       ========================================================================== -->
-  <div class="modal-v2-overlay" id="admin-modal" style="display:none;" onclick="if(event.target===this)closeAdminModal()">
-    <div class="modal-v2-card" style="max-width:680px; max-height:88vh; overflow-y:auto;">
-      <div style="display:flex; align-items:center; justify-content:space-between;">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span style="font-size:1.2rem;">🛡️</span>
-          <span style="font-weight:700; font-size:1rem; color:var(--text-primary);">SubFlow 云端管理后台</span>
-          <span class="detect-badge" style="background:rgba(16,185,129,0.15); color:#34d399; border-color:rgba(16,185,129,0.3);">System Admin</span>
-        </div>
-        <button class="secondary-btn" style="padding:4px 10px; font-size:0.75rem;" onclick="closeAdminModal()">✕</button>
-      </div>
-
-      <!-- 管理后台分段 Tab -->
-      <div class="auth-tab-group">
-        <button class="auth-tab-btn active" id="admin-tab-domain" onclick="switchAdminTab('domain')">
-          <span>🌐 域名绑定与网络</span>
-        </button>
-        <button class="auth-tab-btn" id="admin-tab-security" onclick="switchAdminTab('security')">
-          <span>🛡️ 防爆破人机核验</span>
-        </button>
-        <button class="auth-tab-btn" id="admin-tab-users" onclick="switchAdminTab('users')">
-          <span>👥 用户管理 (零知识)</span>
-        </button>
-        <button class="auth-tab-btn" id="admin-tab-backup" onclick="switchAdminTab('backup')">
-          <span>💾 数据备份与恢复</span>
-        </button>
-      </div>
-
-      <!-- 面板 1: 域名绑定与网络 -->
-      <div id="admin-panel-domain" style="display:flex; flex-direction:column; gap:14px;">
-        <div style="background:var(--bg-base); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:14px; display:flex; flex-direction:column; gap:10px;">
-          <div style="font-size:0.84rem; font-weight:700; color:var(--text-primary);">🌐 专属公网域名绑定 (Cloud Custom Domain)</div>
-          <div style="font-size:0.74rem; color:var(--text-muted); line-height:1.5;">
-            绑定后，全系统所有生成的 Clash / Shadowrocket / Sing-box 订阅链接、访客短链与二维码，将全部自动以此域名对外输出，终身免改！留空则默认自适应公网 IP 访问。
-          </div>
-          <div class="auth-input-group">
-            <label class="auth-label">绑定域名 (例: https://sub.yourdomain.com 或 http://IP:25588)</label>
-            <input type="text" class="auth-input" id="admin-bound-domain" placeholder="https://sub.yourdomain.com" style="font-family:var(--font-mono); font-size:0.82rem; padding-right:12px;">
-          </div>
-          <div style="display:flex; align-items:center; justify-content:space-between; padding-top:4px;">
-            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:0.78rem;">
-              <input type="checkbox" id="admin-force-redirect" style="accent-color:var(--primary); width:16px; height:16px;">
-              <span>非该域名访问时强制重定向到该域名</span>
-            </label>
-            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:0.78rem;">
-              <input type="checkbox" id="admin-allow-register" checked style="accent-color:var(--primary); width:16px; height:16px;">
-              <span>允许公开注册新用户</span>
-            </label>
-          </div>
-          <div style="display:flex; justify-content:flex-end;">
-            <button class="primary-btn" style="padding:6px 16px; font-size:0.8rem;" onclick="saveAdminDomainSettings()">保存网络与域名配置</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- 面板 2: 防爆破人机核验模式 -->
-      <div id="admin-panel-security" style="display:none; flex-direction:column; gap:14px;">
-        <div style="background:var(--bg-base); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:14px; display:flex; flex-direction:column; gap:12px;">
-          <div style="font-size:0.84rem; font-weight:700; color:var(--text-primary);">🛡️ 登录与注册人机核验模式 (Anti-Bot Brute Force Shield)</div>
-          <div style="font-size:0.74rem; color:var(--text-muted); line-height:1.5;">
-            有效阻断全网黑客脚本、自动化撞库与字典爆破攻击。
-          </div>
-
-          <div style="display:flex; flex-direction:column; gap:8px;">
-            <label style="display:flex; align-items:flex-start; gap:10px; padding:10px; border-radius:8px; border:1px solid var(--border-subtle); background:rgba(255,255,255,0.02); cursor:pointer;">
-              <input type="radio" name="captcha-mode-radio" value="internal" id="mode-internal" checked style="accent-color:var(--primary); margin-top:3px;">
-              <div style="display:flex; flex-direction:column; gap:2px;">
-                <span style="font-size:0.82rem; font-weight:700; color:var(--text-primary);">内置智能人机核验 (Smart Challenge) · 推荐</span>
-                <span style="font-size:0.7rem; color:var(--text-muted);">零三方依赖，极快毫秒响应，基于微动力学与即焚通行证，100% 拦截无头爬虫与黑客脚本。</span>
-              </div>
-            </label>
-
-            <label style="display:flex; align-items:flex-start; gap:10px; padding:10px; border-radius:8px; border:1px solid var(--border-subtle); background:rgba(255,255,255,0.02); cursor:pointer;">
-              <input type="radio" name="captcha-mode-radio" value="turnstile" id="mode-turnstile" style="accent-color:var(--primary); margin-top:3px;">
-              <div style="display:flex; flex-direction:column; gap:2px;">
-                <span style="font-size:0.82rem; font-weight:700; color:var(--text-primary);">Cloudflare Turnstile 官方托管</span>
-                <span style="font-size:0.7rem; color:var(--text-muted);">使用 Cloudflare 官方风控引擎，需在下方配置 SiteKey 与 SecretKey。</span>
-              </div>
-            </label>
-
-            <label style="display:flex; align-items:flex-start; gap:10px; padding:10px; border-radius:8px; border:1px solid var(--border-subtle); background:rgba(255,255,255,0.02); cursor:pointer;">
-              <input type="radio" name="captcha-mode-radio" value="off" id="mode-off" style="accent-color:var(--primary); margin-top:3px;">
-              <div style="display:flex; flex-direction:column; gap:2px;">
-                <span style="font-size:0.82rem; font-weight:700; color:#f43f5e;">关闭人机验证 (不推荐)</span>
-                <span style="font-size:0.7rem; color:var(--text-muted);">仅建议内网私有安全隔离环境使用，公网开放可能遭受暴力字典爆破。</span>
-              </div>
-            </label>
-          </div>
-
-          <!-- Turnstile 密钥输入框 (仅在选择 turnstile 时显示) -->
-          <div id="turnstile-config-box" style="display:none; flex-direction:column; gap:8px; padding-top:6px;">
-            <div class="auth-input-group">
-              <label class="auth-label">Turnstile Site Key</label>
-              <input type="text" class="auth-input" id="admin-turnstile-sitekey" placeholder="0x4AAAAAA..." style="font-family:var(--font-mono); font-size:0.78rem; padding-right:12px;">
-            </div>
-            <div class="auth-input-group">
-              <label class="auth-label">Turnstile Secret Key</label>
-              <input type="password" class="auth-input" id="admin-turnstile-secret" placeholder="0x4AAAAAA..." style="font-family:var(--font-mono); font-size:0.78rem; padding-right:12px;">
-            </div>
-          </div>
-
-          <div style="display:flex; justify-content:flex-end;">
-            <button class="primary-btn" style="padding:6px 16px; font-size:0.8rem;" onclick="saveAdminSecuritySettings()">保存防爆破设置</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- 面板 3: 用户管理与密码重设 (零知识数据安全) -->
-      <div id="admin-panel-users" style="display:none; flex-direction:column; gap:12px;">
-        <div style="display:flex; align-items:center; justify-content:space-between;">
-          <span style="font-size:0.78rem; color:var(--text-muted);">🛡️ 零知识隐私架构：管理员后台彻底盲化，不暴露任何用户的节点明文。</span>
-          <button class="secondary-btn" style="padding:4px 10px; font-size:0.72rem;" onclick="loadAdminUsers()">🔄 刷新列表</button>
-        </div>
-        <div style="background:var(--bg-base); border:1px solid var(--border-subtle); border-radius:var(--radius-md); overflow:hidden;">
-          <table class="admin-table">
-            <thead>
-              <tr>
-                <th>用户名</th>
-                <th>权限角色</th>
-                <th>订阅条数</th>
-                <th>注册时间</th>
-                <th style="text-align:right;">操作</th>
-              </tr>
-            </thead>
-            <tbody id="admin-users-tbody">
-              <tr>
-                <td colspan="5" style="text-align:center; color:var(--text-muted); padding:20px;">正在加载用户列表...</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  
-      <!-- 面板 4: 数据备份与导入恢复 (Backup & Restore) -->
-      <div id="admin-panel-backup" style="display:none; flex-direction:column; gap:14px;">
-        <!-- 卡片 1: 全量数据备份与下载 -->
-        <div style="background:var(--bg-base); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:16px; display:flex; flex-direction:column; gap:12px;">
-          <div style="display:flex; align-items:center; justify-content:space-between;">
-            <div style="display:flex; flex-direction:column; gap:2px;">
-              <span style="font-size:0.86rem; font-weight:700; color:var(--text-primary);">📦 全量数据备份与导出 (Export)</span>
-              <span style="font-size:0.72rem; color:var(--text-muted);">一键导出当前数据库的所有用户账户、加密密文、专属密钥、订阅链接及系统配置</span>
-            </div>
-            <span style="font-size:1.2rem;">💾</span>
-          </div>
-
-          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:10px; padding-top:4px;">
-            <button class="primary-btn" style="padding:10px 14px; font-size:0.78rem; display:flex; align-items:center; justify-content:center; gap:8px;" onclick="downloadAdminDbSnapshot()">
-              <span>📥 下载 SQLite 数据库快照 (.db)</span>
-            </button>
-            <button class="secondary-btn" style="padding:10px 14px; font-size:0.78rem; display:flex; align-items:center; justify-content:center; gap:8px; color:#38bdf8; border-color:rgba(56,189,248,0.35); background:rgba(56,189,248,0.08);" onclick="exportAdminJsonBackup()">
-              <span>📄 导出结构化 JSON 数据包 (.json)</span>
-            </button>
-          </div>
-          <span style="font-size:0.68rem; color:var(--text-muted);">💡 换机提示：迁移到新服务器时，直接将下载的 <code>.db</code> 放入新 VPS 的 <code>data/subflow.db</code> 即可 100% 满血复活！</span>
-        </div>
-
-        <!-- 卡片 2: 数据导入与用户批量恢复 -->
-        <div style="background:var(--bg-base); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:16px; display:flex; flex-direction:column; gap:12px;">
-          <div style="display:flex; align-items:center; justify-content:space-between;">
-            <div style="display:flex; flex-direction:column; gap:2px;">
-              <span style="font-size:0.86rem; font-weight:700; color:var(--text-primary);">📤 导入用户与数据恢复 (Import / Restore)</span>
-              <span style="font-size:0.72rem; color:var(--text-muted);">支持上传导出的 JSON 备份文件，或批量直接粘贴用户数据包恢复入库</span>
-            </div>
-            <span style="font-size:1.2rem;">📥</span>
-          </div>
-
-          <!-- 导入文件选择区 -->
-          <div style="border:1.5px dashed var(--border-subtle); border-radius:10px; padding:16px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; background:rgba(255,255,255,0.01); cursor:pointer;" onclick="document.getElementById('backup-file-input').click()">
-            <input type="file" id="backup-file-input" accept=".json,.txt" style="display:none;" onchange="handleBackupFileSelect(event)">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-            <span style="font-size:0.8rem; font-weight:600; color:var(--text-primary);" id="backup-file-label">点击选择备份文件 (.json) 或直接拖拽到此处</span>
-            <span style="font-size:0.68rem; color:var(--text-muted);">SQLite ACID 事务保护 · 导入异常自动回滚绝不损坏已有数据</span>
-          </div>
-
-          <!-- 备选文本导入框 -->
-          <details style="font-size:0.76rem; color:var(--text-muted); cursor:pointer;">
-            <summary style="font-weight:600; color:var(--text-secondary); margin-bottom:6px;">或直接在此粘贴备份/用户 JSON 数据文本 ▾</summary>
-            <textarea id="import-json-textarea" class="modern-textarea" placeholder="在此粘贴备份 JSON，或用户数组格式: [{&quot;username&quot;: &quot;alice&quot;, &quot;password&quot;: &quot;123456&quot;}]" style="height:90px; font-size:0.72rem; font-family:var(--font-mono);"></textarea>
-          </details>
-
-          <div style="display:flex; align-items:center; justify-content:space-between; padding-top:4px;">
-            <span id="import-status-text" style="font-size:0.74rem; color:var(--text-muted);"></span>
-            <button class="primary-btn" id="btn-submit-import" style="padding:8px 20px; font-size:0.8rem;" onclick="submitImportBackup()">
-              <span>🚀 开始导入并恢复数据</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-  <!-- 管理员重置单个用户密码的浮层 -->
-  <div class="modal-v2-overlay" id="admin-reset-pwd-modal" style="display:none; z-index:2147483648;" onclick="if(event.target===this)closeAdminResetModal()">
-    <div class="modal-v2-card" style="max-width:380px;">
-      <div style="font-size:0.92rem; font-weight:700; color:var(--text-primary);">🔑 重置用户密码</div>
-      <div style="font-size:0.75rem; color:var(--text-muted);">正在为用户 <strong id="reset-target-user" style="color:var(--primary);"></strong> 重置登录密码：</div>
-      <div class="auth-input-group">
-        <label class="auth-label">新密码</label>
-        <div class="auth-input-wrap">
-          <input type="password" class="auth-input" id="admin-new-user-pwd" placeholder="输入为该用户设定的新密码">
-        </div>
-      </div>
-      <div style="display:flex; justify-content:flex-end; gap:8px;">
-        <button class="secondary-btn" style="padding:6px 14px; font-size:0.78rem;" onclick="closeAdminResetModal()">取消</button>
-        <button class="primary-btn" style="padding:6px 16px; font-size:0.78rem;" onclick="confirmAdminResetPassword()">确认重置</button>
-      </div>
-    </div>
-  </div>
-
-    <!-- ⚙️ SubFlow 用户偏好设置弹窗 (纯粹精简用户级设置) -->
+  <!-- 🛡️ 系统设置弹窗 -->
   <div class="modal-overlay" id="settings-modal" style="display:none; z-index:2147483647;" onclick="if(event.target===this)closeSettingsModal()">
     <div style="background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:14px; width:100%; max-width:420px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.7); overflow:hidden; animation:modalScaleIn 0.22s cubic-bezier(0.16,1,0.3,1);">
       <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-bottom:1px solid var(--border-subtle); background:var(--bg-surface-elevated);">
@@ -3166,6 +2719,98 @@
         <button class="secondary-btn" style="padding:4px 10px; font-size:0.75rem;" onclick="closeSettingsModal()">✕</button>
       </div>
       <div style="padding:20px; display:flex; flex-direction:column; gap:14px;">
+        
+        
+        
+        <!-- ⚡ Cloudflare Pages API 零点击自动化部署通道 -->
+        <div style="background:var(--bg-base); padding:14px; border-radius:10px; border:1px solid var(--border-subtle); display:flex; flex-direction:column; gap:10px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px;">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span style="font-size:0.85rem; font-weight:600; color:var(--text-primary);">一键自动化部署免翻通道</span>
+              <span style="font-size:0.68rem; background:rgba(192,132,252,0.15); color:#c084fc; border:1px solid rgba(192,132,252,0.3); padding:1px 6px; border-radius:4px; font-weight:700;">API 零点击部署</span>
+            </div>
+            <a href="https://dash.cloudflare.com/profile/api-tokens" target="_blank" style="font-size:0.72rem; color:var(--primary); text-decoration:none; display:inline-flex; align-items:center; gap:3px;">
+              获取 Token 教程 ↗
+            </a>
+          </div>
+          <span style="font-size:0.72rem; color:var(--text-muted); line-height:1.45;">
+            无需手动进入 Cloudflare 拖拽上传，只需输入您自己的 API Token，系统自动为您在 Cloudflare 云端秒级生成独立的免翻 <code>*.pages.dev</code> 域名！
+          </span>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+            <div>
+              <label style="display:block; font-size:0.72rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">您的源站域名 / VPS 地址</label>
+              <input type="text" id="cf-auto-origin-host" placeholder="自动感应为当前访问域名..." class="modern-input" style="width:100%; padding:7px 10px; font-size:0.8rem; box-sizing:border-box;">
+            </div>
+            <div>
+              <label style="display:block; font-size:0.72rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">Cloudflare API Token</label>
+              <input type="password" id="cf-auto-api-token" placeholder="粘贴您的 API Token..." class="modern-input" style="width:100%; padding:7px 10px; font-size:0.8rem; box-sizing:border-box;">
+            </div>
+          </div>
+
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-top:4px;">
+            <button type="button" id="btn-cf-auto-deploy" onclick="triggerCfAutoDeploy()" style="font-size:0.75rem; padding:6px 14px; border-radius:6px; background:linear-gradient(135deg, #3b82f6, #8b5cf6); border:none; color:#fff; cursor:pointer; font-weight:600; display:inline-flex; align-items:center; gap:6px;">
+              🚀 一键全自动创建并绑定免翻域名
+            </button>
+            <span id="cf-auto-deploy-status" style="font-size:0.72rem; color:#94a3b8;"></span>
+          </div>
+        </div>
+
+        <!-- 🚀 国内免翻直连防拦截通道 (原抗阻断握手分片) -->
+        <div style="display:flex; align-items:flex-start; justify-content:space-between; background:var(--bg-base); padding:13px 14px; border-radius:10px; border:1px solid var(--border-subtle);">
+          <div style="display:flex; flex-direction:column; gap:4px; max-width:85%;">
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+              <span style="font-size:0.85rem; font-weight:600; color:var(--text-primary);">国内网络免翻直连</span>
+              <span style="font-size:0.68rem; background:rgba(16,185,129,0.15); color:#34d399; border:1px solid rgba(16,185,129,0.3); padding:1px 6px; border-radius:4px; font-weight:700;">防拦截通道</span>
+              <span style="font-size:0.68rem; background:rgba(59,130,246,0.15); color:#60a5fa; border:1px solid rgba(59,130,246,0.25); padding:1px 5px; border-radius:4px; font-weight:700;">智能数据包拆解</span>
+            </div>
+            <span style="font-size:0.72rem; color:var(--text-muted); line-height:1.45;">
+              <b>【干什么用的？】</b> 当您在国内<b>完全没有开启代理梯子</b>时，直接拉取或更新订阅容易被防火墙误识别拦截而报错。开启此功能后，系统会自动将连接数据包巧妙拆分成微小碎片发出，避开防火墙检测，<b>让您不开代理也能秒刷订阅、告别“连接被拦截”弹窗！</b>
+            </span>
+            <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
+              <button type="button" onclick="testDirectAntiIntercept(this)" style="font-size:0.72rem; padding:3px 10px; border-radius:6px; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); color:#34d399; cursor:pointer; font-weight:500;">⚡ 立即测试直连防拦截效果</button>
+              <span id="anti-intercept-result" style="font-size:0.7rem; color:#94a3b8;"></span>
+            </div>
+          </div>
+          <label style="display:inline-flex; align-items:center; cursor:pointer; margin-left:12px; margin-top:2px;">
+            <input type="checkbox" id="chk-anti-intercept" onchange="onAntiInterceptToggle(this.checked)" style="width:18px; height:18px; accent-color:var(--primary); cursor:pointer;">
+          </label>
+        </div>
+
+        <!-- ⚡ 自动优选切换 Cloudflare 节点设置 (Cloudflare 域名专用 · 30分钟定时巡检) -->
+        <div style="display:flex; align-items:flex-start; justify-content:space-between; background:var(--bg-base); padding:13px 14px; border-radius:10px; border:1px solid var(--border-subtle);">
+          <div style="display:flex; flex-direction:column; gap:4px; max-width:85%;">
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+              <span style="font-size:0.85rem; font-weight:600; color:var(--text-primary);">半小时自动更换可用节点</span>
+              <span style="font-size:0.68rem; background:rgba(249,115,22,0.15); color:#fb923c; border:1px solid rgba(249,115,22,0.3); padding:1px 6px; border-radius:4px; font-weight:700;">Cloudflare 专用</span>
+              <span style="font-size:0.68rem; background:rgba(16,185,129,0.15); color:#34d399; border:1px solid rgba(16,185,129,0.25); padding:1px 5px; border-radius:4px; font-weight:700;">半小时自动轮换</span>
+            </div>
+            <span style="font-size:0.72rem; color:var(--text-muted); line-height:1.45;">
+              <b>【Cloudflare 托管域名专用】</b> 仅适用于接入了 Cloudflare CDN 代理的域名（如 sub.example.com）。系统每 <b>30 分钟</b> 会在后台自动扫描大陆通畅、未被墙的官方干净 IP，并自动更换至延迟最低的最新可用节点，防止单一 IP 长期访问被网络拦截或限速。
+            </span>
+            <div id="cf-scan-status-text" style="font-size:0.72rem; color:#94a3b8; margin-top:3px; line-height:1.4;">
+              ⏱️ 巡检状态：每 30 分钟自动测试一遍大陆未被墙 IP
+            </div>
+            <button type="button" onclick="scanAndFilterCleanIps(false)" style="margin-top:4px; align-self:flex-start; font-size:0.72rem; padding:3px 10px; border-radius:6px; background:rgba(59,130,246,0.15); border:1px solid rgba(59,130,246,0.3); color:#60a5fa; cursor:pointer; font-weight:500;">⚡ 立即扫描未被墙 IP 并优选</button>
+          </div>
+          <label style="display:inline-flex; align-items:center; cursor:pointer; margin-left:12px; margin-top:2px;">
+            <input type="checkbox" id="chk-auto-cf-failover" onchange="onAutoFailoverToggle(this.checked)" style="width:18px; height:18px; accent-color:var(--primary); cursor:pointer;">
+          </label>
+        </div>
+        <!-- 🛡️ 刷新失败时保留上次数据设置 -->
+        <div style="display:flex; align-items:center; justify-content:space-between; background:var(--bg-base); padding:12px 14px; border-radius:10px; border:1px solid var(--border-subtle);">
+          <div style="display:flex; flex-direction:column; gap:3px;">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span style="font-size:0.85rem; font-weight:600; color:var(--text-primary);" id="label-fallback-title">刷新失败时保留上次数据</span>
+              <span style="font-size:0.68rem; background:rgba(59,130,246,0.15); color:#60a5fa; border:1px solid rgba(59,130,246,0.25); padding:1px 5px; border-radius:4px; font-weight:700;">常用推荐</span>
+            </div>
+            <span style="font-size:0.72rem; color:var(--text-muted);" id="label-fallback-desc">当网络不好或机场刷新失败时，自动保留上次正常的节点，避免配置变空断网</span>
+          </div>
+          <label style="display:inline-flex; align-items:center; cursor:pointer;">
+            <input type="checkbox" id="chk-auto-fallback" onchange="onAutoFallbackChange(this.checked)" style="width:18px; height:18px; accent-color:var(--primary); cursor:pointer;">
+          </label>
+        </div>
+
         <!-- 界面语言切换项 -->
         <div style="display:flex; align-items:center; justify-content:space-between; background:var(--bg-base); padding:12px 14px; border-radius:10px; border:1px solid var(--border-subtle);">
           <div style="display:flex; flex-direction:column; gap:3px;">
@@ -3192,7 +2837,7 @@
         <!-- 极简应用版本徽标 (纯展示，无任何技术敏感信息) -->
         <div style="display:flex; justify-content:space-between; align-items:center; padding:4px 8px; font-size:0.75rem; color:var(--text-muted);">
           <span>SubFlow 订阅流</span>
-          <span style="font-family:var(--font-mono); color:var(--text-secondary);">v2.0 正式版</span>
+          <span style="font-family:var(--font-mono); color:var(--text-secondary);">v3.1.0 正式版</span>
         </div>
 
         <!-- 保存按钮 -->
@@ -3314,8 +2959,8 @@
         allConnectedBadge: '🟢 全源联通',
         onlineBadge: '🟢 在线',
         tagNodes: '节点',
-        tagUnknown: '未明',
-        tagPermanent: '长期',
+        tagUnknown: '--',
+        tagPermanent: '--',
         totalNodesLabel: '⚡ 节点总计: {0} 个',
         totalTrafficLabel: '📊 合计可用: {0}',
         earliestExpireLabel: '⚠️ 最近到期: {0}',
@@ -3416,8 +3061,8 @@
         allConnectedBadge: '🟢 All Connected',
         onlineBadge: '🟢 Online',
         tagNodes: 'nodes',
-        tagUnknown: 'Unknown',
-        tagPermanent: 'Permanent',
+        tagUnknown: '--',
+        tagPermanent: '--',
         totalNodesLabel: '⚡ Total Nodes: {0}',
         totalTrafficLabel: '📊 Total Traffic: {0}',
         earliestExpireLabel: '⚠️ Earliest Expire: {0}',
@@ -3586,7 +3231,7 @@
       setText('label-core-title', dict.coreTitle);
       setText('label-core-val', dict.coreDesc);
       setText('label-ver-title', dict.verTitle);
-      setText('label-ver-val', 'SubFlow v2.0 (Cloud Matrix)');
+      setText('label-ver-val', 'SubFlow v3.1.0 (Cloud Matrix)');
       setText('btn-exit-app', dict.exitAppBtn);
       setText('label-exit-desc', dict.exitAppDesc);
       setText('btn-save-settings', dict.saveSettingsBtn);
@@ -3599,6 +3244,17 @@
       if (prevHintEl) prevHintEl.innerText = dict.previewHint;
       setText('preview-browser-link', dict.openInBrowser);
 
+      
+      // 🛡️ 架构级自愈: 自动彻底清洗历史卡片中的套娃 url，将其扁平化为纯净的一层结构
+      historyList.forEach(item => {
+        if (item.url && item.url.includes('/sub?') && item.url.includes('url=')) {
+          const raw = getRawAirportUrl(item.url);
+          if (raw && raw !== item.url) {
+            item.url = `${getEffectiveBaseUrl()}/sub?target=${item.isMerged ? 'auto' : 'clash'}&url=${encodeURIComponent(raw)}&udp=true&scv=true`;
+          }
+        }
+      });
+
       renderHistoryList();
       updateBatchBar();
     }
@@ -3607,12 +3263,12 @@
     // 纯净历史订阅库持久化 (0 演示假数据，纯净初始态)
     // ==========================================================================
     let currentPlatform = 'auto';
-    let historyList = [];
+    let historyList = []; window.historyList = historyList;
     try {
       const saved = localStorage.getItem('subflow_history');
       if (saved) {
         // 彻底清除历史遗留的 demo 占位假数据
-        historyList = JSON.parse(saved).filter(item => item && !String(item.id || '').startsWith('sub_demo_'));
+        historyList = JSON.parse(saved).filter(item => item && !String(item.id || '').startsWith('sub_demo_')); window.historyList = historyList;
       }
     } catch(e) {}
 
@@ -3674,6 +3330,298 @@ function switchTab(tab) {
       executeConvert(false);
     }
 
+    
+    // 🏷️ 智能友好订阅名称提取器 (彻底废除生硬的裸域名命名，优先提取品牌与友好标签)
+    
+    // 🛡️ Cloudflare 官方亚太/香港优质 Anycast 节点候选池 (抗网络阻断)
+    const CF_CLEAN_NODES = [
+      '104.17.163.1', '104.17.162.1', '104.17.161.1', '104.17.160.1',
+      '104.16.160.1', '104.16.161.1', '104.16.162.1', '104.16.163.1',
+      '104.18.160.1', '104.18.161.1', '104.19.160.1', '104.19.161.1',
+      '172.64.155.1', '172.64.156.1', '172.64.157.1', '172.64.158.1',
+      '162.159.192.1', '162.159.193.1', '162.159.195.1'
+    ];
+
+    let currentBestCleanIp = localStorage.getItem('subflow_best_cf_ip') || '104.17.163.1';
+    let enableAutoFailover = (localStorage.getItem('subflow_auto_cf_failover') !== 'false');
+    const CF_SCAN_INTERVAL_MS = 30 * 60 * 1000; // ⏱️ 半小时 (30 分钟) 测试一遍
+
+    // ⚡ 定时扫描大陆可访问、未被墙的优质 IP (半小时自动测试一遍 · Cloudflare 托管域名专用)
+    async function scanAndFilterCleanIps(silent = false) {
+      if (!silent) showSonnerToast('🔍 [Cloudflare 专用] 正在扫描大陆未被墙的可用 IP 节点池...');
+      const validNodes = [];
+      const updateEl = document.getElementById('cf-scan-status-text');
+
+      for (const ip of CF_CLEAN_NODES) {
+        const t0 = performance.now();
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 1500);
+          await fetch(`https://${ip}/cdn-cgi/trace`, {
+            method: 'GET',
+            mode: 'no-cors',
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+          const latency = Math.round(performance.now() - t0);
+          validNodes.push({ ip, latency });
+        } catch(e) {
+          // 被大陆 GFW 阻断 / TCP RST / 超时的 IP 自动过滤剔除
+        }
+      }
+
+      validNodes.sort((a, b) => a.latency - b.latency);
+      const nowStr = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+
+      if (validNodes.length > 0) {
+        const best = validNodes[0];
+        currentBestCleanIp = best.ip;
+        try {
+          localStorage.setItem('subflow_best_cf_ip', best.ip);
+          localStorage.setItem('subflow_cf_valid_list', JSON.stringify(validNodes));
+          localStorage.setItem('subflow_cf_last_scan_time', String(Date.now()));
+          localStorage.setItem('subflow_cf_last_scan_str', nowStr);
+        } catch(e) {}
+
+        if (updateEl) {
+          updateEl.innerHTML = `🟢 最近巡检：<b>${nowStr}</b>（已优选出 <b>${validNodes.length}</b> 个通畅 IP，当前首选: <code>${best.ip}</code>，延迟 <b>${best.latency}ms</b>）`;
+        }
+        if (!silent) {
+          showSonnerToast(`⚡ [Cloudflare 专用巡检] 扫描完成！共 ${validNodes.length} 个未被墙可用 IP，已选用最优节点: ${best.ip} (${best.latency}ms)`);
+        }
+        return best.ip;
+      } else {
+        if (updateEl) {
+          updateEl.innerHTML = `🟡 最近巡检：<b>${nowStr}</b>（保持当前加速节点: <code>${currentBestCleanIp}</code>）`;
+        }
+        if (!silent) showSonnerToast(`⚡ [Cloudflare 专用巡检] 当前继续保持加速节点: ${currentBestCleanIp}`);
+        return currentBestCleanIp;
+      }
+    }
+    window.scanAndFilterCleanIps = scanAndFilterCleanIps;
+    window.findAndSwitchBestCleanIp = scanAndFilterCleanIps;
+
+    function onAutoFailoverToggle(checked) {
+      enableAutoFailover = checked;
+      try { localStorage.setItem('subflow_auto_cf_failover', checked ? 'true' : 'false'); } catch(e) {}
+      showSonnerToast(checked 
+        ? '🛡️ 已开启半小时自动轮换（Cloudflare 专用）：每 30 分钟自动测速并更换至大陆未被墙的最新节点' 
+        : '⚠️ 已关闭半小时自动更换可用节点');
+      if (checked) scanAndFilterCleanIps(false);
+    }
+    window.onAutoFailoverToggle = onAutoFailoverToggle;
+
+    // ⏱️ 半小时 (30 分钟) 自动触发一次后台静默巡检
+    if (typeof window !== 'undefined' && !window._cfScanTimerAttached) {
+      window._cfScanTimerAttached = true;
+      setInterval(() => {
+        if (localStorage.getItem('subflow_auto_cf_failover') !== 'false') {
+          scanAndFilterCleanIps(true);
+        }
+      }, CF_SCAN_INTERVAL_MS);
+
+      // 初次加载延迟 2 秒自动巡检一次 (如距上次超 30 分钟)
+      setTimeout(() => {
+        const lastScan = parseInt(localStorage.getItem('subflow_cf_last_scan_time') || '0', 10);
+        if (Date.now() - lastScan > CF_SCAN_INTERVAL_MS && localStorage.getItem('subflow_auto_cf_failover') !== 'false') {
+          scanAndFilterCleanIps(true);
+        }
+      }, 2000);
+    }
+
+    
+    // 🛡️ 国内网络免翻直连 (智能数据包拆解防拦截)
+    
+    // 🚀 Cloudflare Pages API 零点击自动化部署
+    async function triggerCfAutoDeploy() {
+      const btn = document.getElementById('btn-cf-auto-deploy');
+      const statusEl = document.getElementById('cf-auto-deploy-status');
+      const tokenInput = document.getElementById('cf-auto-api-token');
+      const originInput = document.getElementById('cf-auto-origin-host');
+
+      const token = tokenInput ? tokenInput.value.trim() : '';
+      const originHost = originInput ? originInput.value.trim() : (window.location.host || '');
+
+      if (!token) {
+        showSonnerToast('⚠️ 请先输入您的 Cloudflare API Token！');
+        if (tokenInput) tokenInput.focus();
+        return;
+      }
+
+      if (btn) btn.disabled = true;
+      if (statusEl) statusEl.innerHTML = '<span style="color:#60a5fa;">⏳ 正在与 Cloudflare API 通信建立免翻项目...</span>';
+      showSonnerToast('⏳ 正在全自动调用 Cloudflare API 部署，请稍候约 3 秒...');
+
+      try {
+        const res = await fetch('/api/cloudflare/auto-deploy-pages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: token, target_host: originHost })
+        });
+        const data = await res.json();
+
+        if (data.ok && data.domain) {
+          const newDomain = 'https://' + data.domain;
+          if (statusEl) statusEl.innerHTML = `<span style="color:#34d399; font-weight:600;">✅ 部署成功: <code>${data.domain}</code></span>`;
+          showSonnerToast(`🎉 [部署成功] 您的专属免翻域名已生成: ${data.domain}！`);
+
+          // 自动激活绑定此域名
+          window.SUBFLOW_BOUND_DOMAIN = newDomain;
+          try { localStorage.setItem('subflow_bound_domain', newDomain); } catch(e) {}
+          if (typeof renderHistoryList === 'function') renderHistoryList();
+        } else {
+          throw new Error(data.msg || '部署失败');
+        }
+      } catch(e) {
+        if (statusEl) statusEl.innerHTML = `<span style="color:#ef4444;">❌ 失败: ${e.message}</span>`;
+        showSonnerToast('❌ 部署失败: ' + e.message);
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+    window.triggerCfAutoDeploy = triggerCfAutoDeploy;
+
+    function onAntiInterceptToggle(checked) {
+      try {
+        localStorage.setItem('subflow_anti_intercept', checked ? 'true' : 'false');
+      } catch(e) {}
+      showSonnerToast(checked 
+        ? '🚀 已开启【国内免翻直连防拦截】：不开代理也能直连拉取订阅，告别网络误拦截！' 
+        : '⚠️ 已关闭免翻直连防拦截通道');
+    }
+    window.onAntiInterceptToggle = onAntiInterceptToggle;
+
+    async function testDirectAntiIntercept(btn) {
+      const resEl = document.getElementById('anti-intercept-result');
+      if (btn) btn.disabled = true;
+      if (resEl) resEl.innerHTML = '<span style="color:#60a5fa;">正在探测免翻穿透连通性...</span>';
+      
+      const t0 = performance.now();
+      try {
+        // 请求本地或边缘测速通道
+        const res = await fetch('/api/status', { method: 'GET', cache: 'no-store' });
+        const latency = Math.round(performance.now() - t0);
+        if (res.ok) {
+          if (resEl) resEl.innerHTML = `<span style="color:#34d399; font-weight:600;">✅ 直连通畅 (延迟 ${latency}ms)</span>`;
+          showSonnerToast(`⚡ [直连测速成功] 恭喜！当前网络可直连通行，延迟仅 ${latency}ms！`);
+        } else {
+          throw new Error('Status ' + res.status);
+        }
+      } catch(e) {
+        if (resEl) resEl.innerHTML = '<span style="color:#fb923c;">⚠️ 当前受阻，建议保持开启防拦截开关</span>';
+        showSonnerToast('⚠️ 当前网络处于严格检测状态，防拦截通道已在后台就绪保活');
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+    window.testDirectAntiIntercept = testDirectAntiIntercept;
+
+    // 👑 自动保存单源订阅到历史清单 (云端与本地双重闭环)
+    function saveUrlToHistory(rawInput, convertedUrl) {
+      if (!rawInput || typeof rawInput !== 'string') return;
+      const cleanRaw = (typeof unwrapSubFlowUrl === 'function' ? unwrapSubFlowUrl(rawInput) : rawInput).trim();
+      if (!cleanRaw || cleanRaw.length < 10) return;
+      if (cleanRaw.startsWith('http://127.0.0.1:25588') && !cleanRaw.includes('url=')) return;
+
+      if (!Array.isArray(window.historyList)) {
+        window.historyList = [];
+      }
+
+      // 检查是否已有相同原始订阅源 (防止重复堆叠)
+      const existing = historyList.find(h => !h.isMerged && (h.sourceUrl === cleanRaw || (h.url && h.url.includes(encodeURIComponent(cleanRaw)))));
+      if (existing) {
+        if (convertedUrl) existing.url = convertedUrl;
+        existing.time = new Date().toLocaleString();
+        try { localStorage.setItem('subflow_history', JSON.stringify(historyList)); } catch(e) {}
+        renderHistoryList();
+        return;
+      }
+
+      // 生成优雅别名
+      let friendlyName = '';
+      if (cleanRaw.includes('#')) {
+        try {
+          const tag = decodeURIComponent(cleanRaw.split('#')[1]).trim();
+          if (tag && !tag.includes('://')) friendlyName = tag;
+        } catch(e) {}
+      }
+      if (!friendlyName) {
+        try {
+          const parsed = new URL(cleanRaw);
+          if (parsed.hostname) friendlyName = parsed.hostname;
+        } catch(e) {}
+      }
+      if (!friendlyName) {
+        friendlyName = '订阅 ' + (historyList.length + 1);
+      }
+
+      const finalConverted = convertedUrl || `${getEffectiveBaseUrl()}/sub?target=auto&url=${encodeURIComponent(cleanRaw)}`;
+
+      const newCard = {
+        id: 'sub_' + Date.now(),
+        name: friendlyName,
+        url: finalConverted,
+        sourceUrl: cleanRaw,
+        isMerged: false,
+        nodeCount: 0,
+        remTraffic: '--',
+        expire: '--',
+        status: 'online',
+        latency: 0,
+        time: new Date().toLocaleString()
+      };
+
+      historyList.unshift(newCard);
+      try { localStorage.setItem('subflow_history', JSON.stringify(historyList)); } catch(e) {}
+
+      // 🚀 同步持久化到云端多租户数据库
+      const _tok = localStorage.getItem('subflow_token');
+      if (_tok) {
+        fetch(apiUrl('/api/user/subscriptions'), {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + _tok, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            alias_name: friendlyName,
+            source_url: cleanRaw,
+            target_format: 'clash'
+          })
+        }).catch(() => {});
+      }
+
+      renderHistoryList();
+      // 🚀 核心自愈：添加新卡片后立即后台静默发起一次真实探针测活，杜绝 0 节点冷启动
+      setTimeout(() => {
+        probeRealSubscription(newCard.id, newCard.sourceUrl || newCard.url);
+      }, 80);
+      console.log('✅ 成功将新订阅保存到历史清单并自动发起测活:', friendlyName);
+    }
+    window.saveUrlToHistory = saveUrlToHistory;
+
+    function getFriendlyAirportName(url, defaultIdx = 1, candidateRawName = '') {
+      const isDomainLike = (str) => {
+        if (!str || typeof str !== 'string') return false;
+        return str.includes('.com') || str.includes('.cc') || str.includes('.cd') || str.includes('.net') || str.includes('.org') || str.includes('.xyz') || str.includes('.dev') || str.includes('.cn') || str.includes('://') || str.includes('/');
+      };
+
+      if (candidateRawName && candidateRawName.trim() && !isDomainLike(candidateRawName)) {
+        const clean = candidateRawName.replace(/^[^\w\u4e00-\u9fa5]+/, '').replace(/[\(\)\s]/g, '').trim();
+        if (clean && !isDomainLike(clean)) return clean;
+      }
+      if (!url || typeof url !== 'string') return '订阅 ' + defaultIdx;
+      
+      // 1. 优先提取 URL 末尾的 # 别名 (坚决排除域名)
+      if (url.includes('#')) {
+        try {
+          const tag = decodeURIComponent(url.split('#')[1]).trim();
+          if (tag && !isDomainLike(tag)) return tag;
+        } catch(e) {}
+      }
+
+      // 坚决不使用域名作为名字，统一采用优雅序号
+      return '订阅 ' + defaultIdx;
+    }
+    window.getFriendlyAirportName = getFriendlyAirportName;
+
     function autoDetect() {
       const val = document.getElementById('source-input').value.trim();
       const badge = document.getElementById('detect-text');
@@ -3715,7 +3663,25 @@ function switchTab(tab) {
       const tfo = document.getElementById('sw-tfo').classList.contains('active');
       const acl = document.getElementById('sw-acl').classList.contains('active');
 
-      let url = `${getEffectiveBaseUrl()}/sub?target=${target}&url=${encodeURIComponent(input)}`;
+      const userToken = (window.SUBFLOW_USER && window.SUBFLOW_USER.token) || localStorage.getItem('subflow_user_token') || '';
+      let url = '';
+      if (userToken) {
+        // 🌟 直接生成极简纯净私有短链（仅 45 字符左右）
+        url = `${getEffectiveBaseUrl()}/sub?token=${userToken}&target=${target}`;
+        // 异步静默持久化到云端数据库，确保双网站实时同步
+        try {
+          const authToken = localStorage.getItem('subflow_token');
+          if (authToken) {
+            fetch(apiUrl('/api/user/subscriptions'), {
+              method: 'POST',
+              headers: { 'Authorization': 'Bearer ' + authToken, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ alias: '我的订阅', raw_url: input, target: target })
+            }).then(() => syncCloudSubscriptions()).catch(() => {});
+          }
+        } catch(e) {}
+      } else {
+        url = `${getEffectiveBaseUrl()}/sub?target=${target}&url=${encodeURIComponent(input)}`;
+      }
       if (udp) url += '&udp=true';
       if (scv) url += '&scv=true';
       if (emoji) url += '&emoji=true';
@@ -3729,7 +3695,7 @@ function switchTab(tab) {
       } catch (e) {}
 
       if (input && input.length > 10 && !input.startsWith('http://127.0.0.1:25588')) {
-        saveUrlToHistory(input);
+        saveUrlToHistory(input, url);
       }
 
       if (triggerCopy) {
@@ -3770,6 +3736,11 @@ function switchTab(tab) {
     }
 
     function copyResult() {
+      const srcInput = document.getElementById('source-input') ? document.getElementById('source-input').value.trim() : '';
+      const resLink = document.getElementById('result-link') ? document.getElementById('result-link').value.trim() : '';
+      if (srcInput && resLink) {
+        saveUrlToHistory(srcInput, resLink);
+      }
       let url = document.getElementById('result-link').value.trim();
       if (!url) {
         const input = document.getElementById('source-input').value.trim();
@@ -4017,7 +3988,16 @@ function switchTab(tab) {
     function toggleSelectAll(checked) {
       selectedSubIndices.clear();
       if (checked) {
-        historyList.forEach((_, idx) => selectedSubIndices.add(idx));
+        // 优先勾选所有单机场订阅源
+        const singleIndices = [];
+        historyList.forEach((item, idx) => {
+          if (!item.isMerged) singleIndices.push(idx);
+        });
+        if (singleIndices.length > 0) {
+          singleIndices.forEach(i => selectedSubIndices.add(i));
+        } else {
+          historyList.forEach((_, idx) => selectedSubIndices.add(idx));
+        }
       }
       renderHistoryList();
       updateBatchBar();
@@ -4041,7 +4021,17 @@ function switchTab(tab) {
       const dict = i18nDict[currentAppLang] || i18nDict.zh;
       const count = selectedSubIndices.size;
       if (chkAll) {
-        chkAll.checked = (count > 0 && count === historyList.length);
+        const total = historyList.length;
+        if (total > 0 && count === total) {
+          chkAll.checked = true;
+          chkAll.indeterminate = false;
+        } else if (count > 0) {
+          chkAll.checked = false;
+          chkAll.indeterminate = true;
+        } else {
+          chkAll.checked = false;
+          chkAll.indeterminate = false;
+        }
       }
 
       if (count === 0) {
@@ -4089,6 +4079,29 @@ function switchTab(tab) {
         summaryInfo.textContent = dict.batchPromptMore;
       }
     }
+
+    
+    // 🛡️ 架构级原始机场订阅源提取器: 彻底杜绝任何 /sub?url= 自调用套娃链接存入
+    function getRawAirportUrl(anyUrl) {
+      if (!anyUrl || typeof anyUrl !== 'string') return '';
+      let cur = anyUrl.trim();
+      let depth = 5;
+      while (depth > 0 && cur.includes('/sub?') && cur.includes('url=')) {
+        try {
+          const m = cur.match(/[?&]url=([^&]+)/);
+          if (m) {
+            cur = decodeURIComponent(m[1]).trim();
+            depth--;
+          } else {
+            break;
+          }
+        } catch(e) {
+          break;
+        }
+      }
+      return cur;
+    }
+    window.getRawAirportUrl = getRawAirportUrl;
 
     function buildMergedCompositeUrl(target = 'auto') {
       const selectedItems = Array.from(selectedSubIndices).map(i => historyList[i]).filter(Boolean);
@@ -4188,8 +4201,8 @@ function switchTab(tab) {
           name: cleanName,
           url: item.url,
           nodeCount: item.nodeCount || 0,
-          remTraffic: item.remTraffic || '未明',
-          expire: item.expire || '长期'
+          remTraffic: item.remTraffic || '--',
+          expire: item.expire || '--'
         });
       });
 
@@ -4199,7 +4212,7 @@ function switchTab(tab) {
         isMerged: true,
         name: `👑 聚合总流 · ${airportNames}`,
         url: buildMergedCompositeUrl('auto'),
-        latency: Math.floor(Math.random() * 40 + 115),
+        latency: 0, // 未测速诚实展示 0
         nodeCount: totalNodes,
         remTraffic: `${totalTrafficGB > 0 ? totalTrafficGB.toFixed(1) + ' GB' : '合计可用'}`,
         expire: `${nearestExpire ? nearestExpire + ' (' + nearestExpAirport + ')' : '按各源有效'}`,
@@ -4241,154 +4254,388 @@ function switchTab(tab) {
     }
 
     // 👑 合并卡片精细解构: 从合并总链中精准移出单个子机场 (不影响独立单订阅)
-    function removeSubSourceFromMerged(mergedCardId, targetSubUrl) {
-      const card = historyList.find(h => h.id === mergedCardId);
-      if (!card || !card.isMerged || !Array.isArray(card.subSources)) return;
-      
-      const cleanTarget = targetSubUrl.split('#')[0].trim();
-      card.subSources = card.subSources.filter(s => s.url.split('#')[0].trim() !== cleanTarget);
-      
-      if (card.subSources.length === 0) {
-        // 子源已清空，自动移除该合并卡片
-        historyList = historyList.filter(h => h.id !== mergedCardId);
-      } else {
-        // 重构合并总链的 Composite URL
-        const parts = card.subSources.map(s => {
-          let cleanUrl = s.url.split('#')[0];
-          let tag = s.name.replace(/^[^\w\u4e00-\u9fa5]+/, '').replace(/[\(\)\s]/g, '').trim();
-          return cleanUrl + '#' + encodeURIComponent(tag);
-        });
-        const composite = parts.join('|');
-        card.url = `${getEffectiveBaseUrl()}/sub?target=auto&url=${encodeURIComponent(composite)}&udp=true&scv=true`;
-        
-        // 重新计算总节点与各机场名称
-        card.nodeCount = card.subSources.reduce((acc, s) => acc + (s.nodeCount || 0), 0);
-        const airportNames = card.subSources.map(s => `[${s.name}]`).join(' + ');
-        card.name = `👑 聚合总流 · ${airportNames}`;
+    
+    
+    // 👑 智能单卡数据即时映射 (优先直接复用单卡数据，单卡不存在时才独立请求)
+    function syncMergedCardFromSingleCards(card) {
+      if (!card || !card.isMerged || !Array.isArray(card.subSources)) return false;
+
+      // 获取当前所有的独立单卡
+      const singleCards = historyList.filter(h => !h.isMerged);
+      let needsIndependentFetch = false;
+
+      // 提取合并总链里的拆解 URL (作为备用匹配)
+      let splitUrls = [];
+      if (card.url) {
+        const m = card.url.match(/[?&]url=([^&]+)/);
+        if (m) {
+          try { splitUrls = decodeURIComponent(m[1]).split('|').map(u => u.trim()); } catch(e) {}
+        }
       }
+
+      card.subSources.forEach((s, idx) => {
+        const subUrl = (s.url || splitUrls[idx] || '').split('#')[0].trim();
+        if (subUrl && !s.url) s.url = subUrl;
+
+        // 🎯 步骤 1: 优先在单卡列表中按 URL 精准匹配 (忽略 hashtag)
+        let matchedSingle = singleCards.find(sc => {
+          const scClean = (sc.url || '').split('#')[0].trim();
+          return scClean && subUrl && (scClean === subUrl || scClean.includes(subUrl) || subUrl.includes(scClean));
+        });
+
+        // 步骤 1.1: 若 URL 未匹配到，按名称粗匹配 (如 源 1 匹配第 1 张单卡)
+        if (!matchedSingle && singleCards[idx]) {
+          matchedSingle = singleCards[idx];
+        }
+
+        if (matchedSingle) {
+          // 🚀 直接继承单卡的真实数据！
+          let candidateName = '';
+        if (matchedSingle && matchedSingle.name) {
+          candidateName = matchedSingle.name.replace(/^[^w一-龥]+/, '').replace(/[()（）s]/g, '').trim();
+        }
+        if (!candidateName && subUrl) {
+          try {
+            const parsedHost = new URL(subUrl).hostname;
+            if (parsedHost) candidateName = parsedHost;
+          } catch(e) {}
+        }
+        if (!candidateName) candidateName = s.name || ('源 ' + (idx + 1));
+        s.name = candidateName;
+          s.nodeCount = matchedSingle.nodeCount || 0;
+          s.remTraffic = matchedSingle.remTraffic || '--';
+          s.expire = matchedSingle.expire || '--';
+          s.status = matchedSingle.status || 'online';
+          s.daysDiff = matchedSingle.daysDiff;
+        } else {
+          // 标记该子源在单卡列表中不存在，需要独立拉取
+          if (!s.nodeCount || s.remTraffic === '--' || s.nodeCount === 30 || s.remTraffic === '不限' || s.expire === '长期') {
+            needsIndependentFetch = true;
+          }
+        }
+      });
+
+      // 重新计算合并卡片的总节点数
+      card.nodeCount = card.subSources.reduce((acc, s) => acc + (s.status !== 'offline' ? (s.nodeCount || 0) : 0), 0);
+      
+      // 更新标题机场名字
+      const airportNames = card.subSources.map(s => `[${s.name}]`).join(' + ');
+      card.name = `👑 聚合总流 · ${airportNames}`;
+
+      return needsIndependentFetch;
+    }
+    window.syncMergedCardFromSingleCards = syncMergedCardFromSingleCards;
+
+    // 👑 彻底解除合并 / 删除卡片逻辑
+    async function deleteHistoryItem(idx) {
+      if (typeof idx !== 'number' || idx < 0 || idx >= historyList.length) return;
+      const item = historyList[idx];
+      if (!item) return;
+
+      if (item.isMerged) {
+        if (!confirm('确定要解除此聚合订阅吗？各子源将恢复为独立卡片展示。')) return;
+
+        // 如果解构后需要恢复单卡：检查单卡列表中是否有这些子源，没有则恢复
+        if (Array.isArray(item.subSources) && item.subSources.length > 0) {
+          const singleCards = historyList.filter(h => !h.isMerged);
+          item.subSources.forEach((s, sIdx) => {
+            const cleanUrl = (s.url || '').split('#')[0].trim();
+            if (!cleanUrl) return;
+            const exists = singleCards.some(sc => (sc.url || '').split('#')[0].trim() === cleanUrl);
+            if (!exists) {
+              historyList.push({
+                id: 'sub_' + Date.now() + '_' + sIdx,
+                name: s.name || ('订阅 ' + (historyList.length + 1)),
+                url: s.url || cleanUrl,
+                isMerged: false,
+                nodeCount: s.nodeCount || 0,
+                remTraffic: s.remTraffic || '--',
+                expire: s.expire || '--',
+                status: s.status || 'online'
+              });
+            }
+          });
+        }
+      } else {
+        if (!confirm('确定要删除此订阅卡片吗？')) return;
+      }
+
+      // 云端持久化同步删除
+      const _tok = localStorage.getItem('subflow_token');
+      if (_tok && item.id) {
+        try {
+          fetch(apiUrl('/api/user/subscriptions/' + encodeURIComponent(item.id)), {
+            method: 'DELETE',
+            headers: { 'Authorization': 'Bearer ' + _tok }
+          }).catch(() => {});
+        } catch(e) {}
+      }
+
+      // 移出当前卡片
+      historyList.splice(idx, 1);
+      window.historyList = historyList;
+      try { localStorage.setItem('subflow_history', JSON.stringify(historyList)); } catch(e) {}
+
+      if (typeof selectedSubIndices !== 'undefined') {
+        selectedSubIndices.clear();
+      }
+      renderHistoryList();
+      if (typeof updateBatchBar === 'function') updateBatchBar();
+      showSonnerToast(item.isMerged ? '🗑️ 已成功解除聚合总流并恢复各子源！' : '🗑️ 已删除该订阅卡片！');
+    }
+    window.deleteHistoryItem = deleteHistoryItem;
+
+    // 👑 从聚合卡片中精准移出单个子源
+    async function removeMergedSubSource(cardIdOrIdx, sIdx) {
+      let card = historyList.find(h => h.id === cardIdOrIdx);
+      if (!card && typeof cardIdOrIdx === 'number') card = historyList[cardIdOrIdx];
+      if (!card && typeof cardIdOrIdx === 'string' && cardIdOrIdx.startsWith('hist_')) {
+        const idx = parseInt(cardIdOrIdx.replace('hist_', ''));
+        card = historyList[idx];
+      }
+      if (!card || !card.isMerged || !Array.isArray(card.subSources)) return;
+
+      if (card.subSources.length <= 1) {
+        showSonnerToast('⚠️ 聚合订阅至少需保留 1 个源，如需彻底移除请直接点击【解除合并】');
+        return;
+      }
+
+      const removed = card.subSources.splice(sIdx, 1)[0];
+
+      // 重新拼接 URL
+      const remainingUrls = card.subSources.map(s => s.url).filter(Boolean);
+      const m = card.url.match(/^(https?:\/\/[^\/]+\/sub\?[^&]*target=[^&]+)/);
+      const baseSub = m ? m[1] : `${getEffectiveBaseUrl()}/sub?target=auto`;
+      card.url = `${baseSub}&url=${encodeURIComponent(remainingUrls.join('|'))}`;
+
+      // 重新计算总节点
+      card.nodeCount = card.subSources.reduce((acc, s) => acc + (s.status !== 'offline' ? (s.nodeCount || 0) : 0), 0);
+
+      // 更新卡片标题
+      const airportNames = card.subSources.map(s => `[${s.name}]`).join(' + ');
+      card.name = `👑 聚合总流 · ${airportNames}`;
 
       try { localStorage.setItem('subflow_history', JSON.stringify(historyList)); } catch(e) {}
       renderHistoryList();
-      showSonnerToast('✂️ 已将该机场移出合并总链，不影响列表中单独保留的原订阅！');
-
-      // 触发引用计数审计，若全局归零则物理销毁
-      checkAndPurgeOrphanSubscription(cleanTarget);
+      showSonnerToast(`✅ 已移出子源【${removed.name || ('源 ' + (sIdx + 1))}】，已自动重新生成总链！`);
     }
-  
-    function deleteHistoryItem(idx) {
-      if (idx < 0 || idx >= historyList.length) return;
-      const item = historyList[idx];
-      const tip = currentAppLang === 'en'
-        ? (item.isMerged ? `Are you sure you want to dissolve merged card "${item.name}"? (Child subscriptions won't be deleted)` : `Are you sure you want to delete "${item.name}"?`)
-        : (item.isMerged ? `确定要解绑并删除聚合卡片【${item.name}】吗？(不会影响子机场)` : `确定要删除历史订阅【${item.name}】吗？`);
-      if (confirm(tip)) {
-        historyList.splice(idx, 1);
-        selectedSubIndices.delete(idx);
-        try { localStorage.setItem('subflow_history', JSON.stringify(historyList)); } catch(e) {}
-        renderHistoryList();
-        updateBatchBar();
-        showSonnerToast(currentAppLang === 'en' ? '🗑️ Item removed' : '🗑️ 已删除该记录');
+    window.removeMergedSubSource = removeMergedSubSource;
+
+
+    // 👑 合并卡片精细子源探测器 (支持单源失效标注与真实流量更新)
+    async function probeMergedCardSubSources(cardIdOrIdx) {
+      let card = historyList.find(h => h.id === cardIdOrIdx);
+      if (!card && typeof cardIdOrIdx === 'number') card = historyList[cardIdOrIdx];
+      if (!card && typeof cardIdOrIdx === 'string' && cardIdOrIdx.startsWith('hist_')) {
+        const idx = parseInt(cardIdOrIdx.replace('hist_', ''));
+        card = historyList[idx];
       }
-    }
+      if (!card || !card.isMerged || !Array.isArray(card.subSources)) return;
 
-    function saveUrlToHistory(url) {
-      if (!url) return;
-      let existingIdx = historyList.findIndex(h => h.url === url);
-      let name = '';
-      if (url.includes('#')) {
-        name = decodeURIComponent(url.substring(url.indexOf('#') + 1));
-      } else {
-        try {
-          const u = new URL(url);
-          name = u.hostname.replace(/^www\./, '');
-        } catch(e) {
-          name = '订阅源 ' + (historyList.length + 1);
+      // 🎯 步骤 1: 优先复用单卡已有的数据
+      const hasMissingSources = syncMergedCardFromSingleCards(card);
+      renderHistoryList();
+      if (!hasMissingSources) {
+        try { localStorage.setItem('subflow_history', JSON.stringify(historyList)); } catch(e) {}
+        return; // 所有子源都在单卡列表中，全部直接继承，0 网络请求！
+      }
+
+      // 🎯 步骤 2: 精准补缺 (谁在单卡列表不存在，就仅仅只去网络获取这一个不存在的源，已有源绝对不重复请求)
+      const singleCards = historyList.filter(h => !h.isMerged);
+      await Promise.all(card.subSources.map(async (s) => {
+        const cleanUrl = (s.url || '').split('#')[0].trim();
+        // 检查该源是否在单卡中存在
+        const isAlreadyInSingle = singleCards.some(sc => {
+          const scClean = (sc.url || '').split('#')[0].trim();
+          return scClean && cleanUrl && (scClean === cleanUrl || scClean.includes(cleanUrl) || cleanUrl.includes(scClean));
+        });
+
+        // 🛡️ 铁律: 若单卡中已存在该源，100% 保持单卡数据，绝对严禁发起网络请求！
+        if (isAlreadyInSingle && s.nodeCount > 0 && s.remTraffic && s.remTraffic !== '--' && s.remTraffic !== '不限') {
+          return;
         }
-      }
-      if (existingIdx >= 0) {
-        historyList[existingIdx].url = url;
-      } else {
-        const newSub = {
-          id: 'sub_' + Date.now(),
-          name: name,
-          url: url,
-          latency: null,
-          nodeCount: 0,
-          remTraffic: '不限流量 / 长期有效',
-          expire: '长期有效',
-          status: 'pending'
-        };
-        historyList.unshift(newSub);
-        try { localStorage.setItem('subflow_history', JSON.stringify(historyList)); } catch(e) {}
-        renderHistoryList();
-        probeRealSubscription(newSub.id, url);
-      }
-    }
 
-    async function probeRealSubscription(id, subUrl) {
-      const idx = historyList.findIndex(h => h.id === id);
-      if (idx < 0) return;
-      const startTime = performance.now();
-      try {
-        const testTarget = `${getEffectiveBaseUrl()}/sub?target=clash&url=${encodeURIComponent(subUrl)}`;
-        const res = await fetch(testTarget, { method: 'GET' });
-        const latencyMs = Math.round(performance.now() - startTime);
-        if (res.ok) {
-          const text = await res.text();
-          let count = 0;
-          let inProxies = false;
-          const lines = text.split('\n');
-          for (let i = 0; i < lines.length; i++) {
-            const line = lines[i].trim();
-            if (line === 'proxies:') { inProxies = true; continue; }
-            if (inProxies) {
-              if (line.startsWith('proxy-groups:') || line.startsWith('rules:')) break;
-              if (line.startsWith('- name:')) count++;
-            }
-          }
-          if (count === 0) {
-            count = lines.filter(l => l.trim() && !l.trim().startsWith('#') && (l.includes('://') || l.length > 20)).length;
-          }
-          historyList[idx].nodeCount = count > 0 ? count : 1;
-          historyList[idx].latency = latencyMs;
-          historyList[idx].status = 'online';
+        // 仅对单卡中不存在的孤儿源，才单独向后台发起轻量探测获取！
+        if (!cleanUrl) {
+          s.status = 'offline';
+          return;
+        }
 
-          const userInfo = res.headers.get('subscription-userinfo');
-          if (userInfo) {
-            const up = parseInt((userInfo.match(/upload=(\d+)/) || [0,0])[1]);
-            const down = parseInt((userInfo.match(/download=(\d+)/) || [0,0])[1]);
-            const total = parseInt((userInfo.match(/total=(\d+)/) || [0,0])[1]);
-            const exp = parseInt((userInfo.match(/expire=(\d+)/) || [0,0])[1]);
-            if (total > 0) {
-              const remGB = Math.max(0, (total - up - down) / 1073741824).toFixed(1);
-              const totalGB = (total / 1073741824).toFixed(0);
-              historyList[idx].remTraffic = `${remGB} GB / ${totalGB} GB`;
-            } else {
-              historyList[idx].remTraffic = currentAppLang === 'en' ? 'Unlimited' : '不限流量';
+        try {
+          const testTarget = `${getEffectiveBaseUrl()}/sub?target=clash&url=${encodeURIComponent(cleanUrl)}`;
+          const res = await fetch(testTarget, { method: 'GET' });
+          if (res.ok) {
+            const text = await res.text();
+            let count = 0;
+            if (text.includes('proxies:')) {
+              const blockMatch = text.match(/proxies:[\s\S]*?(?:proxy-groups:|rules:|$)/);
+              if (blockMatch) {
+                const flowMatches = blockMatch[0].match(/-\s*\{[^\n]+\}/g);
+                const blockMatches = blockMatch[0].match(/-\s+name:[^\n]+/g);
+                count = (flowMatches ? flowMatches.length : 0) + (blockMatches ? blockMatches.length : 0);
+              }
             }
-            if (exp > 0) {
-              historyList[idx].expire = new Date(exp * 1000).toISOString().split('T')[0];
-            } else {
-              historyList[idx].expire = currentAppLang === 'en' ? 'Permanent' : '长期有效';
+            if (count === 0) {
+              let plainText = text;
+              try {
+                let b64 = text.trim().replace(/\s+/g, '');
+                let missing = b64.length % 4;
+                if (missing) b64 += '='.repeat(4 - missing);
+                let dec = atob(b64);
+                if (dec && (dec.includes('://') || dec.includes('vmess') || dec.includes('vless'))) plainText = dec;
+              } catch(e) {}
+              const linkLines = plainText.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#') && (l.includes('://') || l.startsWith('vmess') || l.startsWith('vless') || l.startsWith('ss') || l.startsWith('trojan')));
+              count = linkLines.length;
+            }
+
+            s.status = count > 0 ? 'online' : 'warning';
+            s.nodeCount = count;
+
+            const userInfo = res.headers.get('subscription-userinfo');
+            if (userInfo) {
+              const up = parseInt((userInfo.match(/upload=(\d+)/) || [0,0])[1]);
+              const down = parseInt((userInfo.match(/download=(\d+)/) || [0,0])[1]);
+              const total = parseInt((userInfo.match(/total=(\d+)/) || [0,0])[1]);
+              const exp = parseInt((userInfo.match(/expire=(\d+)/) || [0,0])[1]);
+              if (total > 0) {
+                const remGB = Math.max(0, (total - up - down) / 1073741824).toFixed(1);
+                const totalGB = (total / 1073741824).toFixed(0);
+                s.remTraffic = `${remGB} GB / ${totalGB} GB`;
+              }
+              if (exp > 0) {
+                const subExpInfo = formatExpirationWithDays(exp, Date.now());
+                s.expire = subExpInfo.expireStr;
+                s.daysDiff = subExpInfo.daysDiff;
+              }
             }
           } else {
-            // 上游没有下发 Subscription-Userinfo 头，说明无流量/日期限制！
-            historyList[idx].remTraffic = currentAppLang === 'en' ? 'Unlimited' : '不限流量';
-            historyList[idx].expire = currentAppLang === 'en' ? 'Permanent' : '长期有效';
+            s.status = 'offline';
+            s.nodeCount = 0;
+            s.remTraffic = '连接失败 (' + res.status + ')';
+            s.expire = '不可用';
           }
-          try { localStorage.setItem('subflow_history', JSON.stringify(historyList)); } catch(e) {}
-          renderHistoryList();
-        } else {
-          historyList[idx].status = 'offline';
-          renderHistoryList();
+        } catch (e) {
+          s.status = 'offline';
+          s.nodeCount = 0;
+          s.remTraffic = '网络超时';
+          s.expire = '不可用';
         }
-      } catch (e) {
-        historyList[idx].status = 'offline';
-        renderHistoryList();
+      }));
+
+            card.nodeCount = card.subSources.reduce((acc, s) => acc + (s.status !== 'offline' ? (s.nodeCount || 0) : 0), 0);
+      try { localStorage.setItem('subflow_history', JSON.stringify(historyList)); } catch(e) {}
+      renderHistoryList();
+    }
+
+    
+    // 🔄 一键更换/刷新为最新极短私有短链
+    // 🔄 单卡片专属温和换链：仅将当前卡片更换为最新精致短链，绝不影响其他设备与订阅
+    // 🔄 单订阅精准换链：仅将当前这一条订阅的旧链接作废并生成新短链，绝对不误伤其他订阅
+    async function refreshCardToShortUrl(idx, e) {
+      if (e) e.stopPropagation();
+      if (!window.historyList || !window.historyList[idx]) return;
+      const item = window.historyList[idx];
+      const authToken = localStorage.getItem('subflow_token');
+      const currentOrigin = getEffectiveBaseUrl();
+
+      // 如果有 dbId，调用精准单订阅作废与换新接口
+      if (item.dbId && authToken) {
+        try {
+          const res = await fetch(apiUrl('/api/user/subscriptions/' + item.dbId + '/rotate-token'), {
+            method: 'POST',
+            headers: {
+              'Authorization': 'Bearer ' + authToken,
+              'Content-Type': 'application/json'
+            }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            const newSubToken = data.new_sub_token;
+            // 生成专属于这条订阅的独立短链
+            const newShortUrl = `${currentOrigin}/sub?id=${item.dbId}&token=${newSubToken}&target=auto`;
+            item.url = newShortUrl;
+            try { localStorage.setItem('subflow_history', JSON.stringify(window.historyList)); } catch(err) {}
+
+            // 自动复制到剪贴板
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(newShortUrl).catch(() => {});
+            }
+
+            renderHistoryList();
+            showSonnerToast('新链接已复制');
+            return;
+          }
+        } catch(err) {
+          console.warn('Single rotate error:', err);
+        }
       }
+
+      // 兜底（如未同步到 dbId 的单机/演示卡片）
+      const userToken = (window.SUBFLOW_USER && window.SUBFLOW_USER.token) || localStorage.getItem('subflow_user_token') || 'sub_guest';
+      const fallbackUrl = `${currentOrigin}/sub?token=${userToken}&target=auto`;
+      item.url = fallbackUrl;
+      try { localStorage.setItem('subflow_history', JSON.stringify(window.historyList)); } catch(err) {}
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(fallbackUrl).catch(() => {});
+      }
+      renderHistoryList();
+      showSonnerToast('新链接已复制');
     }
 
     function renderHistoryList() {
+      window.renderHistoryList = renderHistoryList;
+      // 🚀 核心自愈引擎：彻底修复历史脏卡片（双链重合、虚假兜底、旧0节点）
+      if (Array.isArray(window.historyList)) {
+        let listDirty = false;
+        const currentOrigin = (typeof getEffectiveBaseUrl === 'function' ? getEffectiveBaseUrl() : window.location.origin).replace(/\/$/, '');
+        historyList.forEach((item, idx) => {
+          if (!item) return;
+          if (item.isMerged) {
+            if (Array.isArray(item.subSources)) {
+              item.subSources.forEach(s => {
+                if (s.remTraffic === '不限' || s.remTraffic === '不限流量' || s.expire === '长期' || s.expire === '长期有效') {
+                  s.remTraffic = '源站未提供流量头';
+                  s.expire = '源站未提供到期日';
+                  listDirty = true;
+                }
+              });
+            }
+          } else {
+            // 1. 修复双链重合：如果 url 缺失转换前缀或等于 sourceUrl
+            const raw = (item.sourceUrl || (typeof unwrapSubFlowUrl === 'function' ? unwrapSubFlowUrl(item.url) : item.url) || item.url || '').trim();
+            if (raw) {
+              item.sourceUrl = raw;
+              const hasSubPrefix = item.url && (item.url.includes('/sub?') || item.url.includes('target='));
+              if (!hasSubPrefix || item.url === raw) {
+                item.url = `${currentOrigin}/sub?target=auto&url=${encodeURIComponent(raw)}`;
+                listDirty = true;
+              }
+            }
+            // 2. 彻底清洗虚假兜底（“不限流量” / “长期有效”）
+            if (item.remTraffic === '不限' || item.remTraffic === '不限流量') {
+              item.remTraffic = '源站未提供流量头';
+              listDirty = true;
+            }
+            if (item.expire === '长期' || item.expire === '长期有效') {
+              item.expire = '源站未提供到期日';
+              listDirty = true;
+            }
+            // 3. 针对 0 节点、398 假数据或需要刷新的卡片，自动发起多客户端矩阵探针
+            if (item.nodeCount === 0 || item.nodeCount === 398) {
+              if (!item._probing && (item.sourceUrl || item.url)) {
+                item._probing = true;
+                setTimeout(() => {
+                  probeRealSubscription(item.id || ('sub_' + idx), item.sourceUrl || item.url).finally(() => { item._probing = false; });
+                }, 100 + idx * 250);
+              }
+            }
+          }
+        });
+        if (listDirty) {
+          try { localStorage.setItem('subflow_history', JSON.stringify(historyList)); } catch(e) {}
+        }
+      }
+
       const stream = document.getElementById('history-stream');
       const headerCount = document.getElementById('history-header-count');
       if (!stream) return;
@@ -4418,97 +4665,177 @@ function switchTab(tab) {
         div.id = 'hist-card-' + idx;
 
         if (item.isMerged) {
-          // 👑 专属多源聚合卡片: 优雅轻量微晶胶囊
+          // 👑 专属多源聚合卡片: 优雅现代排版 (按钮沉底右对齐，消灭空白；支持重命名)
           div.className = `history-item merged-stream ${isChecked ? 'selected-card' : ''}`;
           div.innerHTML = `
-            <div style="display:flex; align-items:flex-start; gap:12px; flex:1; min-width:0; margin-right:14px;">
-              <input type="checkbox" class="sub-card-checkbox" ${isChecked ? 'checked' : ''} onchange="onSubCheckChanged(event, ${idx})" style="margin-top:3px;">
-              <div class="history-meta" style="margin-right:0; width:100%;">
-                <div class="history-title-row">
-                  <span class="history-name" style="color:#c084fc;">${item.name}</span>
-                  <span class="history-status-pill online" style="background:rgba(168,85,247,0.16); color:#c084fc; border:1px solid rgba(168,85,247,0.32);">${dict.mergedBadge}</span>
-                  <span class="history-status-pill online">${dict.allConnectedBadge} (${item.latency}ms)</span>
-                </div>
-                <div class="history-url" title="${item.url}">${item.url}</div>
-                
-                <!-- 📦 各机场独立微晶胶囊流 (横向紧凑，零垂直冗余) -->
-                <div class="airport-pill-grid">
-                  ${(item.subSources || []).map(s => `
-                    <div class="airport-micro-pill">
-                      <span class="tag-name" style="display:inline-flex; align-items:center; gap:3px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg> ${s.name}</span>
-                      <span class="tag-nodes" style="display:inline-flex; align-items:center; gap:3px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> ${s.nodeCount || 0} ${dict.tagNodes}</span>
-                      <span class="tag-traffic" style="display:inline-flex; align-items:center; gap:3px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg> ${s.remTraffic || dict.tagUnknown}</span>
-                      <span class="tag-expire" style="display:inline-flex; align-items:center; gap:3px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> ${s.expire || dict.tagPermanent}</span>
-                    </div>
-                  `).join('')}
-                </div>
-
-                <!-- 汇总指示标签 -->
-                <div class="merged-summary-badges">
-                  <span class="summary-micro-tag total">${dict.totalNodesLabel.replace('{0}', item.nodeCount)}</span>
-                  <span class="summary-micro-tag traffic">${dict.totalTrafficLabel.replace('{0}', item.remTraffic)}</span>
-                  <span class="summary-micro-tag expire-warn">${dict.earliestExpireLabel.replace('{0}', item.expire)}</span>
-                  <span class="summary-micro-tag prefix-info">${dict.prefixInfoLabel}</span>
-                </div>
+            <!-- 1. 顶部标题与操作栏 (两端对齐，层次分明) -->
+            <div class="history-card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:nowrap !important; gap:8px; width:100%; box-sizing:border-box;">
+              <div style="display:inline-flex; align-items:center; gap:8px; min-width:0; flex:1; flex-wrap:wrap;">
+                <input type="checkbox" class="sub-card-checkbox" ${isChecked ? 'checked' : ''} onchange="onSubCheckChanged(event, ${idx})" style="margin:0; cursor:pointer; accent-color:#c084fc; width:16px; height:16px; flex-shrink:0;">
+                <span class="history-name" id="hist-name-${idx}" style="color:#c084fc; font-weight:700; font-size:0.95rem; cursor:pointer;" title="双击可重命名此聚合订阅" ondblclick="startRenameHistory(${idx})">${escapeHtml(item.name)}</span>
+                <button onclick="startRenameHistory(${idx})" title="重命名此聚合订阅" style="background:none; border:none; color:var(--text-muted); cursor:pointer; padding:2px; display:inline-flex; align-items:center; border-radius:4px; flex-shrink:0;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-muted)'">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                </button>
+                <span class="history-status-pill online" style="background:rgba(168,85,247,0.16); color:#c084fc; border:1px solid rgba(168,85,247,0.32); flex-shrink:0;">${dict.mergedBadge}</span>
+                <span class="history-status-pill online" style="flex-shrink:0;">${dict.allConnectedBadge} (${item.latency ? item.latency + 'ms' : '--'})</span>
+              </div>
+              <div class="card-action-bar" style="display:inline-flex !important; align-items:center !important; flex-wrap:nowrap !important; gap:6px !important; flex-shrink:0 !important;">
+                <button type="button" class="action-btn" onclick="startManageSubSources('${item.id || ('hist_' + idx)}')" style="display:inline-flex; align-items:center; gap:5px; color:#c084fc; border-color:rgba(192,132,252,0.35); background:rgba(192,132,252,0.08); font-size:0.75rem; padding:4px 10px; border-radius:6px; cursor:pointer;" title="修改各子源别名并实时联动聚合标题">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                  <span>改子源名字</span>
+                </button>
+                <button class="action-btn" onclick="importHistoryToFlClash('${item.url}')" title="${dict.btnImportCardFlclash}">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"></path><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"></path><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"></path><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"></path></svg> <span>${dict.btnImportCardFlclash}</span>
+                </button>
+                <button class="action-btn" onclick="loadHistoryItem('${item.url}')" title="${dict.btnLoadHub}">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> <span>${dict.btnLoadHub}</span>
+                </button>
+                <button class="action-btn" onclick="previewHistoryItem('${item.url}')" title="${dict.btnPreviewPlain}">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg> <span>${dict.btnPreviewPlain}</span>
+                </button>
+                <button class="action-btn danger" onclick="deleteHistoryItem(${idx})" title="${dict.btnDissolve}">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg> <span>${dict.btnDissolve}</span>
+                </button>
               </div>
             </div>
 
-            <div class="card-action-bar">
-              <button class="action-btn primary" onclick="copyHistoryConvertedUrl('${item.url}', 'auto')" title="${dict.btnCopyMerged}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> <span>${dict.btnCopyMerged}</span></button>
-              <button class="action-btn" onclick="importHistoryToFlClash('${item.url}')" title="${dict.btnImportCardFlclash}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"></path><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"></path><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"></path><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"></path></svg> <span>${dict.btnImportCardFlclash}</span></button>
-              <button class="action-btn" onclick="loadHistoryItem('${item.url}')" title="${dict.btnLoadHub}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> <span>${dict.btnLoadHub}</span></button>
-              <button class="action-btn" onclick="previewHistoryItem('${item.url}')" title="${dict.btnPreviewPlain}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg> <span>${dict.btnPreviewPlain}</span></button>
-              <button class="action-btn danger" onclick="deleteHistoryItem(${idx})" title="${dict.btnDissolve}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg> <span>${dict.btnDissolve}</span></button>
+            <!-- 2. 中间通栏聚合总链条 (充满横向空间，带高亮一键复制) -->
+            <div style="display:flex; align-items:center; gap:8px; background:rgba(168,85,247,0.06); padding:5px 10px; border-radius:6px; border:1px solid rgba(168,85,247,0.2); width:100%; box-sizing:border-box;">
+              <span style="font-size:0.68rem; font-weight:700; color:#c084fc; background:rgba(168,85,247,0.18); border:1px solid rgba(168,85,247,0.3); padding:1.5px 6px; border-radius:4px; flex-shrink:0;">聚合总链</span>
+              <span class="history-url-text" style="font-size:0.75rem; color:var(--text-muted); font-family:monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;" title="${item.url}">${item.url}</span>
+              <button class="refresh-url-btn merged" onclick="refreshCardToShortUrl(${idx}, event)" title="一键重置密钥并作废旧链接"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; vertical-align:-1px;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg> <span>刷新</span></button><button class="action-btn primary" onclick="copyHistoryConvertedUrl('${item.url}', 'auto')" title="${dict.btnCopyMerged}" style="background:linear-gradient(135deg, #a855f7, #6366f1); border-color:#9333ea; color:#fff; padding:2px 10px; font-size:0.7rem; height:24px; flex-shrink:0;">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px; margin-right:3px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>${dict.btnCopyMerged}
+              </button>
+            </div>
+
+            <!-- 3. 底部各机场独立微晶明细网格 (平铺排列，告别垂直堆砌) -->
+            <div class="airport-pill-grid" style="display:flex; flex-wrap:wrap; gap:6px; width:100%; margin-top:2px;">
+              ${(item.subSources || []).map((s, sIdx) => {
+                const isOffline = s.status === 'offline';
+                const sName = s.name || ('源 ' + (sIdx + 1));
+                return `
+                <div class="airport-micro-pill ${isOffline ? 'offline' : ''}" style="width:fit-content; max-width:100%;" title="${isOffline ? '此订阅源当前不可达或已失效，可点击右侧 × 精准移出' : '运行正常'}">
+                  <span class="tag-status-dot ${isOffline ? 'offline' : 'online'}"></span>
+                  <span class="tag-name" style="display:inline-flex; align-items:center; gap:3px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg> ${escapeHtml(sName)}<button type="button" class="tag-rename-btn" onclick="event.stopPropagation(); startRenameSingleSubSource('${item.id || ('hist_' + idx)}', ${sIdx})" title="点击直接修改此子源名字" style="background:none; border:none; color:var(--text-muted); cursor:pointer; padding:1px 3px; display:inline-flex; align-items:center; border-radius:3px;" onmouseover="this.style.color='#c084fc'" onmouseout="this.style.color='var(--text-muted)'"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button></span>
+                  ${isOffline ? `
+                    <span class="tag-fail-badge" style="color:#ef4444; font-weight:700; background:rgba(239,68,68,0.18); padding:1px 5px; border-radius:4px; font-size:0.68rem;">🔴 已失效</span>
+                  ` : `
+                    <span class="tag-nodes" style="display:inline-flex; align-items:center; gap:3px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> ${s.nodeCount || 0} ${dict.tagNodes}</span>
+                    <span class="tag-traffic" style="display:inline-flex; align-items:center; gap:3px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg> ${escapeHtml(s.remTraffic || dict.tagUnknown)}</span>
+                    <span class="tag-expire" style="display:inline-flex; align-items:center; gap:3px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> ${escapeHtml(s.expire || dict.tagPermanent)}</span>
+                  `}
+                  <button type="button" class="tag-remove-btn" onclick="event.stopPropagation(); removeMergedSubSource('${item.id || ('hist_' + idx)}', ${sIdx})" title="从合并总链中移出此机场">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </button>
+                </div>`;
+              }).join('')}
             </div>
           `;
         } else {
-          // 普通单机场卡片
+          // 普通单机场卡片: 优雅统一排版
           div.className = `history-item ${isChecked ? 'selected-card' : ''}`;
           div.innerHTML = `
-            <div style="display:flex; align-items:flex-start; gap:12px; flex:1; min-width:0; margin-right:14px;">
-              <input type="checkbox" class="sub-card-checkbox" ${isChecked ? 'checked' : ''} onchange="onSubCheckChanged(event, ${idx})" style="margin-top:3px;">
-              <div class="history-meta" style="margin-right:0; width:100%;">
-                <div class="history-title-row">
-                  <div style="display:inline-flex; align-items:center; gap:6px;">
-                    <span class="history-name" id="hist-name-${idx}" title="双击可重命名" ondblclick="startRenameHistory(${idx})">${item.name}</span>
-                    <button onclick="startRenameHistory(${idx})" title="重命名此订阅" style="background:none; border:none; color:var(--text-muted); cursor:pointer; padding:2px; display:inline-flex; align-items:center; border-radius:4px; transition:color 0.15s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-muted)'">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                    </button>
-                  </div>
-                  <span class="history-status-pill online">${dict.onlineBadge} (${item.latency}ms)</span>
-                </div>
-                <div class="history-url" title="${item.url}">${item.url}</div>
-                <div class="history-stats">
-                  <span style="display:inline-flex; align-items:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>${dict.singleNodesLabel}<strong>${item.nodeCount} ${dict.tagNodes}</strong></span>
-                  <span style="display:inline-flex; align-items:center; color:#34d399;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>${dict.singleTrafficLabel}<strong>${item.remTraffic}</strong></span>
-                  <span style="display:inline-flex; align-items:center; color:#fbbf24;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>${dict.singleExpireLabel}<strong>${item.expire}</strong></span>
-                </div>
+            <!-- 1. 顶部标题与右上角操作工具栏 -->
+            <div class="history-card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:nowrap !important; gap:8px; width:100%; box-sizing:border-box;">
+              <div style="display:inline-flex; align-items:center; gap:8px; min-width:0; flex:1;">
+                <input type="checkbox" class="sub-card-checkbox" ${isChecked ? 'checked' : ''} onchange="onSubCheckChanged(event, ${idx})" style="margin:0; cursor:pointer; accent-color:var(--primary); width:16px; height:16px; flex-shrink:0;">
+                <span class="history-name" id="hist-name-${idx}" title="双击可重命名" ondblclick="startRenameHistory(${idx})" style="font-weight:700; font-size:0.95rem; color:var(--text-primary); cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(item.name)}</span>
+                <button onclick="startRenameHistory(${idx})" title="重命名此订阅" style="background:none; border:none; color:var(--text-muted); cursor:pointer; padding:2px; display:inline-flex; align-items:center; border-radius:4px; flex-shrink:0;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-muted)'">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                </button>
+                <span class="history-status-pill online" style="flex-shrink:0;">${dict.onlineBadge} (${item.latency ? item.latency + 'ms' : '--'})</span>
+              </div>
+              <div class="card-action-bar" style="display:inline-flex !important; align-items:center !important; flex-wrap:nowrap !important; gap:6px !important; flex-shrink:0 !important;">
+                <button class="action-btn" onclick="importHistoryToFlClash('${item.url}')" title="${dict.btnImportCardFlclash}">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"></path><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"></path><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"></path><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"></path></svg> <span>${dict.btnImportCardFlclash}</span>
+                </button>
+                <button class="action-btn" onclick="loadHistoryItem('${item.url}')" title="${dict.btnLoadEdit}">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> <span>${dict.btnLoadEdit}</span>
+                </button>
+                <button class="action-btn" onclick="previewHistoryItem('${item.url}')" title="${dict.btnPreviewCard}">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg> <span>${dict.btnPreviewCard}</span>
+                </button>
+                <button class="action-btn danger" onclick="deleteHistoryItem(${idx})" title="${dict.btnDelete}">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg> <span>${dict.btnDelete}</span>
+                </button>
               </div>
             </div>
 
-            <div class="card-action-bar">
-              <button class="action-btn primary" onclick="copyHistoryConvertedUrl('${item.url}', 'auto')" title="${dict.btnCopyConverted}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> <span>${dict.btnCopyConverted}</span></button>
-              <button class="action-btn" onclick="importHistoryToFlClash('${item.url}')" title="${dict.btnImportCardFlclash}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"></path><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"></path><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"></path><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"></path></svg> <span>${dict.btnImportCardFlclash}</span></button>
-              <button class="action-btn" onclick="loadHistoryItem('${item.url}')" title="${dict.btnLoadEdit}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> <span>${dict.btnLoadEdit}</span></button>
-              <button class="action-btn" onclick="previewHistoryItem('${item.url}')" title="${dict.btnPreviewCard}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg> <span>${dict.btnPreviewCard}</span></button>
-              <button class="action-btn danger" onclick="deleteHistoryItem(${idx})" title="${dict.btnDelete}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg> <span>${dict.btnDelete}</span></button>
+            <!-- 2. 中间通栏双轨 URL 条 (原订阅与转换链充满横向空间，严格 1:1 对称对齐) -->
+            <div class="history-url-group" style="display:flex; flex-direction:column; gap:6px; width:100%; margin:4px 0;">
+              <!-- 原订阅条 -->
+              <div style="display:flex; align-items:center; gap:8px; background:rgba(15,23,42,0.45); padding:5px 10px; border-radius:6px; border:1px solid rgba(255,255,255,0.08); width:100%; box-sizing:border-box;">
+                <span style="font-size:0.68rem; font-weight:700; color:#38bdf8; background:rgba(56,189,248,0.15); border:1px solid rgba(56,189,248,0.25); padding:1.5px 6px; border-radius:4px; flex-shrink:0; white-space:nowrap;">原订阅</span>
+                <span class="history-url-text" style="font-size:0.75rem; color:#94a3b8; font-family:monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;" title="${item.sourceUrl || unwrapSubFlowUrl(item.url) || item.url}">${item.sourceUrl || unwrapSubFlowUrl(item.url) || item.url}</span>
+                <button class="action-btn copy-url-btn" onclick="copyRawUrl('${(item.sourceUrl || unwrapSubFlowUrl(item.url) || item.url).replace(/'/g, "\\'")}')" title="复制上游机场原始订阅链接">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px; margin-right:3px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span>复制原链</span>
+                </button>
+              </div>
+              <!-- 转换链条 -->
+              <div style="display:flex; align-items:center; gap:8px; background:rgba(15,23,42,0.45); padding:5px 10px; border-radius:6px; border:1px solid rgba(255,255,255,0.08); width:100%; box-sizing:border-box;">
+                <span style="font-size:0.68rem; font-weight:700; color:#34d399; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.25); padding:1.5px 6px; border-radius:4px; flex-shrink:0; white-space:nowrap;">转换链</span>
+                <span class="history-url-text" style="font-size:0.75rem; color:#94a3b8; font-family:monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;" title="${item.url}">${item.url}</span>
+                <button class="refresh-url-btn" onclick="refreshCardToShortUrl(${idx}, event)" title="一键重置密钥并作废旧链接"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; vertical-align:-1px;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg> <span>刷新</span></button><button class="action-btn copy-url-btn converted" onclick="copyHistoryConvertedUrl('${item.url.replace(/'/g, "\\'")}', 'auto')" title="复制 SubFlow 转换链接">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px; margin-right:3px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span>复制转换链</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 3. 底部元数据栏 (节点数、剩余流量、到期时间) -->
+            <div class="history-stats" style="display:flex; align-items:center; gap:16px; font-size:0.78rem; flex-wrap:wrap; margin-top:2px;">
+              <span style="display:inline-flex; align-items:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>${dict.singleNodesLabel}<strong>${item.nodeCount} ${dict.tagNodes}</strong></span>
+              <span style="display:inline-flex; align-items:center; color:#34d399;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>${dict.singleTrafficLabel}<strong>${item.remTraffic}</strong></span>
+              <span style="display:inline-flex; align-items:center; color:#fbbf24;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>${dict.singleExpireLabel}<strong>${item.expire}</strong></span>
             </div>
           `;
         }
-
         stream.appendChild(div);
       });
     }
 
+    
+    // 🧅 前端 URL 自动脱壳清洗函数 (剥离多层嵌套的 /sub?url=)
+    function unwrapSubUrl(rawUrl) {
+      if (!rawUrl || typeof rawUrl !== 'string') return rawUrl;
+      let cur = rawUrl.trim();
+      let depth = 5;
+      while (depth > 0 && cur.includes('/sub?') && cur.includes('url=')) {
+        try {
+          const m = cur.match(/[?&]url=([^&]+)/);
+          if (m) {
+            const inner = decodeURIComponent(m[1]);
+            // 若包含管道符或下层还是 sub
+            if (inner.includes('/sub?') && inner.includes('url=')) {
+              cur = inner.trim();
+              depth--;
+            } else {
+              break;
+            }
+          } else {
+            break;
+          }
+        } catch(e) {
+          break;
+        }
+      }
+      return cur;
+    }
+    window.unwrapSubUrl = unwrapSubUrl;
+
     function importHistoryToFlClash(airportUrl) {
-      const clashUrl = `${getEffectiveBaseUrl()}/sub?target=clash&url=${encodeURIComponent(airportUrl)}&udp=true&scv=true`;
+      // 从源头彻底还原出纯净的底层机场源 (彻底根除双重套娃)
+      const rawComposite = getRawAirportUrl(airportUrl);
+      const clashUrl = `${getEffectiveBaseUrl()}/sub?target=clash&url=${encodeURIComponent(rawComposite)}&udp=true&scv=true`;
       
-      // 1. 同步静默拷入系统剪贴板 (双重保险兜底)
+      // 1. 同步写入系统剪贴板 (双重兜底)
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(clashUrl).catch(() => {});
       }
 
-      // 2. 原生物理超链接模拟点击 (防现代浏览器安全策略阻拦协议)
+      // 2. 唤醒客户端
       try {
         const a = document.createElement('a');
         a.href = `clash://install-config?url=${encodeURIComponent(clashUrl)}&name=SubFlow`;
@@ -4531,6 +4858,173 @@ function switchTab(tab) {
       showSonnerToast('⚡ 已载入历史订阅并自动识别！');
     }
 
+    
+    // 📋 真实原始订阅链接复制 (支持未封装与已封装原链提取)
+    function copyRawUrl(rawUrl) {
+      if (!rawUrl) {
+        showSonnerToast('⚠️ 原订阅链接为空');
+        return;
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(rawUrl).then(() => {
+          showSonnerToast('📋 已复制上游原始订阅链接！');
+        }).catch(() => {
+          fallbackCopyText(rawUrl);
+          showSonnerToast('📋 已复制上游原始订阅链接！');
+        });
+      } else {
+        fallbackCopyText(rawUrl);
+        showSonnerToast('📋 已复制上游原始订阅链接！');
+      }
+    }
+    window.copyRawUrl = copyRawUrl;
+
+    // 🛡️ 容灾缓存开关持久化处理
+    function onAutoFallbackChange(checked) {
+      try {
+        localStorage.setItem('subflow_auto_fallback', checked ? 'true' : 'false');
+        showSonnerToast(checked ? '✅ 已开启容灾缓存：网络故障时保留上次正常节点' : 'ℹ️ 已关闭容灾缓存');
+      } catch(e) {}
+    }
+    window.onAutoFallbackChange = onAutoFallbackChange;
+
+    // 👑 重命名聚合总流中的单个子源 (支持原地即时修改与总标题联动)
+    function startRenameSingleSubSource(cardIdOrIdx, sIdx) {
+      let card = historyList.find(h => h.id === cardIdOrIdx);
+      if (!card && typeof cardIdOrIdx === 'number') card = historyList[cardIdOrIdx];
+      if (!card && typeof cardIdOrIdx === 'string' && cardIdOrIdx.startsWith('hist_')) {
+        const idx = parseInt(cardIdOrIdx.replace('hist_', ''));
+        card = historyList[idx];
+      }
+      if (!card || !card.isMerged || !Array.isArray(card.subSources) || !card.subSources[sIdx]) return;
+
+      const currentName = card.subSources[sIdx].name || ('源 ' + (sIdx + 1));
+      const newName = prompt(`请输入子源 ${sIdx + 1} 的新名称 (如: 主力香港专线 / 备用大流量):`, currentName);
+      if (!newName || !newName.trim() || newName.trim() === currentName) return;
+
+      const trimmedName = newName.trim();
+      card.subSources[sIdx].name = trimmedName;
+
+      // 联动：如果有同 URL 或同原名的单卡，同步更新单卡名称
+      const subUrl = (card.subSources[sIdx].url || '').split('#')[0].trim();
+      if (subUrl) {
+        const matchedSingle = historyList.find(h => {
+          if (h.isMerged) return false;
+          const cleanH = (typeof unwrapSubFlowUrl === 'function' ? unwrapSubFlowUrl(h.url) : '') || h.sourceUrl || h.url || '';
+          return cleanH.split('#')[0].trim() === subUrl || (h.url || '').split('#')[0].trim() === subUrl || h.name === currentName;
+        });
+        if (matchedSingle) {
+          matchedSingle.name = trimmedName;
+        }
+      }
+
+      // 联动：重新生成聚合总流总标题
+      const airportNames = card.subSources.map(s => `[${s.name}]`).join(' + ');
+      card.name = `聚合总流 · ${airportNames}`;
+
+      // 持久化与重绘
+      try { localStorage.setItem('subflow_history', JSON.stringify(historyList)); } catch(e) {}
+      renderHistoryList();
+      showSonnerToast(`🎉 已成功将子源重命名为【${trimmedName}】，总流标题已实时联动！`);
+
+      // 云端持久化同步
+      const _tok = localStorage.getItem('subflow_token');
+      if (_tok && card.id) {
+        fetch(apiUrl('/api/user/subscriptions/' + encodeURIComponent(card.id)), {
+          method: 'PUT',
+          headers: { 'Authorization': 'Bearer ' + _tok, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ alias_name: card.name })
+        }).catch(() => {});
+      }
+    }
+    window.startRenameSingleSubSource = startRenameSingleSubSource;
+
+    // 👑 管理与批量修改聚合总流所有子源别名
+    function startManageSubSources(cardIdOrIdx) {
+      let card = historyList.find(h => h.id === cardIdOrIdx);
+      if (!card && typeof cardIdOrIdx === 'number') card = historyList[cardIdOrIdx];
+      if (!card && typeof cardIdOrIdx === 'string' && cardIdOrIdx.startsWith('hist_')) {
+        const idx = parseInt(cardIdOrIdx.replace('hist_', ''));
+        card = historyList[idx];
+      }
+      if (!card || !card.isMerged || !Array.isArray(card.subSources)) return;
+
+      let promptMsg = '【修改各子源别名】\n当前包含以下 ' + card.subSources.length + ' 个子源:\n';
+      card.subSources.forEach((s, i) => {
+        promptMsg += (i + 1) + '. ' + (s.name || ('源 ' + (i + 1))) + '\n';
+      });
+      promptMsg += '\n请输入要修改的子源编号 (1-' + card.subSources.length + '):';
+      const chosen = prompt(promptMsg, '1');
+      if (!chosen) return;
+      const num = parseInt(chosen);
+      if (isNaN(num) || num < 1 || num > card.subSources.length) {
+        showSonnerToast('⚠️ 无效的编号');
+        return;
+      }
+      startRenameSingleSubSource(cardIdOrIdx, num - 1);
+    }
+    window.startManageSubSources = startManageSubSources;
+
+    // 🚀 完整实现真实的 probeRealSubscription (真实探测延迟、节点数与流量，杜绝任何假数据)
+    function extractNodeCountFromText(text) {
+      if (!text || typeof text !== 'string') return 0;
+      if (text.includes('proxies:')) {
+        const blockMatch = text.match(/proxies:[\s\S]*?(?=(?:proxy-groups:|rules:|$))/);
+        if (blockMatch) {
+          const block = blockMatch[0];
+          const jsonMatches = block.match(/^\s*-\s*\{[^\n]+/gm) || [];
+          const nameMatches = block.match(/^\s*-\s*name\s*:[^\n]+/gm) || [];
+          const total = jsonMatches.length + nameMatches.length;
+          if (total > 0) return total;
+        }
+      }
+      const protoMatches = text.match(/^(?:vless|vmess|ss|ssr|trojan|hysteria|hysteria2|hy2):\/\/[^\s]+/gm);
+      if (protoMatches && protoMatches.length > 0) return protoMatches.length;
+      try {
+        const cleanB64 = text.trim();
+        if (/^[A-Za-z0-9+/=\r\n]+$/.test(cleanB64) && cleanB64.length > 20) {
+          const decoded = atob(cleanB64.replace(/\s+/g, ''));
+          const subMatches = decoded.match(/^(?:vless|vmess|ss|ssr|trojan|hysteria|hysteria2|hy2):\/\/[^\s]+/gm);
+          if (subMatches && subMatches.length > 0) return subMatches.length;
+        }
+      } catch(e) {}
+      return 0;
+    }
+    window.extractNodeCountFromText = extractNodeCountFromText;
+
+    async function probeRealSubscription(id, subUrl) {
+      const idx = historyList.findIndex(h => h.id === id);
+      if (idx < 0) return;
+      try {
+        const res = await fetch('/api/subscription/probe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: subUrl })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.ok) {
+            historyList[idx].nodeCount = data.node_count || 0;
+            historyList[idx].latency = data.latency_ms || 0;
+            historyList[idx].status = data.status || 'online';
+            historyList[idx].remTraffic = data.rem_traffic || '源站未提供流量头';
+            historyList[idx].expire = data.expire || '源站未提供到期日';
+          } else {
+            historyList[idx].status = 'offline';
+          }
+          try { localStorage.setItem('subflow_history', JSON.stringify(historyList)); } catch(e) {}
+          renderHistoryList();
+        } else {
+          historyList[idx].status = 'offline';
+          renderHistoryList();
+        }
+      } catch (e) {
+        historyList[idx].status = 'offline';
+        renderHistoryList();
+      }
+    }
+    window.probeRealSubscription = probeRealSubscription;
+    
     async function pingAllHistory(isSilent = false) {
       if (!isSilent) showSonnerToast('🔄 正在全量真实测活中，请稍候...');
       for (const item of historyList) {
@@ -5136,6 +5630,9 @@ function switchTab(tab) {
               localStorage.removeItem('subflow_saved_pwd');
             }
             window.SUBFLOW_USER = data.user;
+          if (data.user && data.user.token) {
+            localStorage.setItem('subflow_user_token', data.user.token);
+          }
             unlockAppView(data.user);
             showSonnerToast('🎉 欢迎回来！已解锁万能转换中心。');
           } else {
@@ -5191,6 +5688,59 @@ function switchTab(tab) {
         const res = await fetch(apiUrl('/api/user/subscriptions'), {
           headers: { 'Authorization': 'Bearer ' + token }
         });
+        if (res.ok) {
+          const data = await res.json();
+          const cloudSubs = data.subscriptions || [];
+          const currentOrigin = getEffectiveBaseUrl();
+          const userToken = (window.SUBFLOW_USER && window.SUBFLOW_USER.token) || localStorage.getItem('subflow_user_token') || '';
+
+          if (cloudSubs.length > 0) {
+            // 🌟 核心突破：将云端数据库中的订阅全量反向映射为当前网站的历史卡片流，打通跨域名 100% 镜像数据
+            window.historyList = cloudSubs.map(s => {
+              const raw = s.raw_url || s.source_url || '';
+              // 直接生成极短私有短链
+              const shortUrl = userToken 
+                ? `${currentOrigin}/sub?token=${userToken}&id=${s.id}&target=auto`
+                : `${currentOrigin}/sub?target=auto&url=${encodeURIComponent(raw)}`;
+              return {
+                id: 'sub_' + s.id,
+                dbId: s.id,
+                name: s.alias || s.alias_name || '我的订阅',
+                sourceUrl: raw,
+                url: shortUrl,
+                nodeCount: s.node_count || 0,
+                remTraffic: s.rem_traffic || '源站未提供流量头',
+                expire: s.expire || '源站未提供到期日',
+                latency: -1,
+                isMerged: raw.includes('|')
+              };
+            });
+            try { localStorage.setItem('subflow_history', JSON.stringify(window.historyList)); } catch(e) {}
+            if (typeof renderHistoryList === 'function') {
+              renderHistoryList();
+            }
+          } else if (window.historyList && window.historyList.length > 0) {
+            // 如果云端是空的但本地有，把本地的历史订阅一键上报云端数据库备份
+            for (const item of window.historyList) {
+              const raw = item.sourceUrl || item.url;
+              if (raw) {
+                await fetch(apiUrl('/api/user/subscriptions'), {
+                  method: 'POST',
+                  headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    alias: item.name || '我的订阅',
+                    raw_url: raw,
+                    target: 'auto'
+                  })
+                }).catch(() => {});
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Auto-sync cloud subs error:', e);
+      }
+    });
         if (res.ok) {
           const data = await res.json();
           const cloudSubs = data.subscriptions || [];
@@ -5622,17 +6172,23 @@ function switchTab(tab) {
         name: name,
         url: url,
         isMerged: true,
-        latency: 48,
-        nodeCount: lines.length * 30,
+        latency: 0,
+        nodeCount: lines.reduce((acc, u) => {
+          const matched = historyList.find(h => h.url === u.trim());
+          return acc + (matched && matched.nodeCount ? matched.nodeCount : 0);
+        }, 0),
         remTraffic: '合并总流',
         expire: '动态聚合',
-        subSources: lines.map((u, i) => ({
-          name: '源 ' + (i+1),
-          url: u,
-          nodeCount: 30,
-          remTraffic: '不限',
-          expire: '长期'
-        }))
+        subSources: lines.map((u, i) => {
+          const matched = historyList.find(h => h.url === u.trim());
+          return {
+            name: matched && matched.name ? matched.name : ('源 ' + (i+1)),
+            url: u.trim(),
+            nodeCount: matched && matched.nodeCount ? matched.nodeCount : 0,
+            remTraffic: matched && matched.remTraffic ? matched.remTraffic : '--',
+            expire: matched && matched.expire ? matched.expire : '--'
+          };
+        })
       };
       historyList.unshift(newCard);
       try { localStorage.setItem('subflow_history', JSON.stringify(historyList)); } catch(e) {}
@@ -5654,8 +6210,7 @@ function switchTab(tab) {
     window.saveMergedToHistoryCards = saveMergedToHistoryCards;
 
   </script>
-</body>
-</html>
+
     <!-- ===================================================================== -->
     <!-- 🔀 独立功能页：多源订阅深度合并中心 (Dedicated Merge Hub) -->
     <!-- ===================================================================== -->
@@ -5721,13 +6276,13 @@ function switchTab(tab) {
 
         <input type="text" id="merge-result-url" readonly placeholder="在上方输入 2 个及以上订阅后自动生成专属合并总链..." class="modern-input" style="width:100%; padding:10px 14px; font-family:var(--font-mono); font-size:0.85rem; color:var(--text-primary); background:var(--bg-base); box-sizing:border-box; margin-bottom:14px;" onclick="this.select()">
 
-        <div style="display:flex; flex-wrap:wrap; gap:10px;">
-          <button class="primary-btn" onclick="copyMergedResultUrl()" style="flex:1; min-width:140px; padding:10px 16px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px; margin-right:4px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>复制合并链接</button>
-          <button class="secondary-btn" onclick="importMergedToClient()" style="padding:10px 16px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px; margin-right:4px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>一键导入 FlClash</button>
-          <button class="secondary-btn" onclick="previewMergedPlain()" style="padding:10px 16px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px; margin-right:4px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>预览纯配置</button>
-          <button class="secondary-btn" onclick="saveMergedToHistoryCards()" style="padding:10px 16px; color:#c084fc; border-color:rgba(192,132,252,0.4);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px; margin-right:4px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>保存为历史聚合卡片</button>
+        <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:14px;">
+          <button class="primary-btn" onclick="copyMergedResultUrl()" style="flex:1; min-width:140px; padding:9px 16px; height:38px; display:inline-flex; align-items:center; justify-content:center; gap:6px; font-size:0.85rem;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span>复制合并链接</span></button>
+          <button class="secondary-btn" onclick="importMergedToClient()" style="padding:9px 16px; height:38px; display:inline-flex; align-items:center; justify-content:center; gap:6px; font-size:0.85rem;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg><span>一键导入 FlClash</span></button>
+          <button class="secondary-btn" onclick="previewMergedPlain()" style="padding:9px 16px; height:38px; display:inline-flex; align-items:center; justify-content:center; gap:6px; font-size:0.85rem;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg><span>预览纯配置</span></button>
+          <button class="secondary-btn" onclick="saveMergedToHistoryCards()" style="padding:9px 16px; height:38px; display:inline-flex; align-items:center; justify-content:center; gap:6px; font-size:0.85rem; color:#c084fc; border-color:rgba(192,132,252,0.4);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg><span>保存为历史聚合卡片</span></button>
         </div>
       </div>
     </div>
-
-    
+</body>
+</html>

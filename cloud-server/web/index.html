@@ -13,7 +13,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>SubFlow v3.1.0 · 现代订阅流中心</title>
+  <title>SubFlow v3.2.0 · 现代订阅流中心</title>
   <script>
     // 🌐 智能动态 BaseURL 解析引擎 (第一优先级：当前访问域名/IP；第二优先级：后台绑定域名)
     window.SUBFLOW_BOUND_DOMAIN = '';
@@ -2317,7 +2317,7 @@
   <!-- ==========================================================================
        🔒 全屏独立现代化 2026 Liquid Glass 登录门禁 (未登录 100% 物理拦截转换页)
        ========================================================================== -->
-  <div id="login-gate-screen" class="login-gate-overlay" style="display:none;">
+  <div id="login-gate-screen" class="login-gate-overlay" style="display:flex;">
     <!-- 动态环境光束与微光极光粒子球 -->
     <div class="ambient-beam"></div>
     <div class="aurora-glow-sphere glow-sphere-1"></div>
@@ -2334,8 +2334,8 @@
         <div style="width: 52px; height: 52px; border-radius: 16px; background: linear-gradient(135deg, #2563eb, #10b981); margin: 0 auto 12px; display:flex; align-items:center; justify-content:center; color:#fff; font-size: 1.6rem; font-weight:800; box-shadow: 0 0 24px rgba(37, 99, 235, 0.45);">
           ⚡
         </div>
-        <h1 class="gate-brand-title" style="font-size: 1.35rem; font-weight: 800; letter-spacing: -0.02em; margin: 0; line-height: 1.2;">SubFlow 订阅流 <span style="font-size:0.75rem; background:linear-gradient(135deg,#2563eb,#10b981); color:#fff; padding:2px 8px; border-radius:12px; font-weight:700; vertical-align:middle; margin-left:4px;">v3.1.0</span></h1>
-        <p id="gate-subtitle-txt" style="font-size:0.8rem; color:var(--text-muted); margin-top:6px;">跨平台流体订阅转换平台 · 请登录后继续</p>
+        <h1 class="gate-brand-title" style="font-size: 1.35rem; font-weight: 800; letter-spacing: -0.02em; margin: 0; line-height: 1.2;">SubFlow 订阅流 <span style="font-size:0.75rem; background:linear-gradient(135deg,#2563eb,#10b981); color:#fff; padding:2px 8px; border-radius:12px; font-weight:700; vertical-align:middle; margin-left:4px;">v3.2.0</span></h1>
+        <p id="gate-subtitle-txt" style="font-size:0.8rem; color:var(--text-muted); margin-top:6px;">SubFlow 云端订阅中枢 · 请登录后继续</p>
       </div>
 
       <!-- 选项卡切换: 登录 / 注册 -->
@@ -2424,7 +2424,7 @@
     </div>
   </div>
 
-  <div class="app-container" id="main-app-container" style="display:block;">
+  <div class="app-container" id="main-app-container" style="display:none;">
     <!-- Header -->
     <header class="header">
       <div class="brand">
@@ -2434,7 +2434,7 @@
           </svg>
         </div>
         <div>
-          <div class="brand-title">SubFlow 订阅流 <span style="font-size:0.68rem; background:linear-gradient(135deg,#2563eb,#10b981); color:#fff; padding:2px 7px; border-radius:12px; font-weight:700; vertical-align:middle; margin-left:4px;">v3.1.0</span></div>
+          <div class="brand-title">SubFlow 订阅流 <span style="font-size:0.68rem; background:linear-gradient(135deg,#2563eb,#10b981); color:#fff; padding:2px 7px; border-radius:12px; font-weight:700; vertical-align:middle; margin-left:4px;">v3.2.0</span></div>
           <div class="brand-status">
             <span class="status-dot"></span>
             <span>订阅解析服务已就绪</span>
@@ -2664,7 +2664,7 @@
       <section class="card">
         <div class="card-title">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
-          <span id="label-result-title">专属本地订阅链接 (实时自动生成，支持多端随时拉取)</span>
+          <span id="label-result-title">专属云端私有订阅链接 (实时自动生成，支持多端随时拉取)</span>
         </div>
 
         <div class="result-box">
@@ -2870,7 +2870,7 @@
         swSort: '节点按名称排序',
         swTfo: '开启 TCP Fast Open',
         swAcl: '启用 ACL4SSR 分流规则',
-        resultTitle: '专属本地订阅链接 (实时自动生成，支持多端随时拉取)',
+        resultTitle: '专属云端私有订阅链接 (实时自动生成，支持多端随时拉取)',
         resultPlaceholder: '在上方粘贴订阅后即可实时生成专属链接...',
         btnCopyResult: '复制订阅链接',
         btnImportFlclash: '一键导入 FlClash / Clash',
@@ -3170,7 +3170,7 @@
       setText('label-core-title', dict.coreTitle);
       setText('label-core-val', dict.coreDesc);
       setText('label-ver-title', dict.verTitle);
-      setText('label-ver-val', 'SubFlow v3.1.0 (Cloud Matrix)');
+      setText('label-ver-val', 'SubFlow v3.2.0 (Cloud Matrix)');
       setText('btn-exit-app', dict.exitAppBtn);
       setText('label-exit-desc', dict.exitAppDesc);
       setText('btn-save-settings', dict.saveSettingsBtn);
@@ -5640,7 +5640,7 @@ function switchTab(tab) {
         } else {
           if (invGroup) invGroup.style.display = 'none';
           if (inviteInput) inviteInput.required = false;
-          if (subtitleEl) subtitleEl.innerText = '跨平台流体订阅转换平台 · 请登录后继续';
+          if (subtitleEl) subtitleEl.innerText = 'SubFlow 云端订阅中枢 · 请登录后继续';
         }
       }
 

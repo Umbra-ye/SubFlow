@@ -4300,11 +4300,10 @@ function switchTab(tab) {
     function syncMergedCardFromSingleCards(card) {
       if (!card || !card.isMerged || !Array.isArray(card.subSources)) return false;
 
-      // 获取当前所有的独立单卡
       const singleCards = historyList.filter(h => !h.isMerged);
       let needsIndependentFetch = false;
 
-      // 提取合并总链里的拆解 URL (作为备用匹配)
+      // 提取合并总链里的拆解 URL
       let splitUrls = [];
       if (card.url) {
         const m = card.url.match(/[?&]url=([^&]+)/);
@@ -4317,51 +4316,49 @@ function switchTab(tab) {
         const subUrl = (s.url || splitUrls[idx] || '').split('#')[0].trim();
         if (subUrl && !s.url) s.url = subUrl;
 
-        // 🎯 步骤 1: 优先在单卡列表中按 URL 精准匹配 (忽略 hashtag)
+        // 提取 subUrl 主域名
+        let subHost = '';
+        try { subHost = new URL(subUrl).hostname.replace(/^www\./, ''); } catch(e) {}
+
+        // 1. 优先按 URL 或主域名精准匹配单卡
         let matchedSingle = singleCards.find(sc => {
-          const scClean = (sc.url || '').split('#')[0].trim();
-          return scClean && subUrl && (scClean === subUrl || scClean.includes(subUrl) || subUrl.includes(scClean));
+          const scUrl = (sc.sourceUrl || sc.raw_url || sc.url || '').split('#')[0].trim();
+          if (scUrl && subUrl && (scUrl === subUrl || scUrl.includes(subUrl) || subUrl.includes(scUrl))) return true;
+          try {
+            const scHost = new URL(scUrl).hostname.replace(/^www\./, '');
+            if (scHost && subHost && scHost === subHost) return true;
+          } catch(e) {}
+          return false;
         });
 
-        // 步骤 1.1: 若 URL 未匹配到，按名称粗匹配 (如 源 1 匹配第 1 张单卡)
+        // 2. 备选：若只有一个或顺序对应，按索引匹配
         if (!matchedSingle && singleCards[idx]) {
           matchedSingle = singleCards[idx];
         }
 
-        if (matchedSingle) {
-          // 🚀 直接继承单卡的真实数据！
-          let candidateName = '';
+        // 3. 智能名字：若单卡有名字用单卡名字，否则用域名
+        let candidateName = '';
         if (matchedSingle && matchedSingle.name) {
-          candidateName = matchedSingle.name.replace(/^[^w一-龥]+/, '').replace(/[()（）s]/g, '').trim();
+          candidateName = matchedSingle.name.replace(/^[👑🔗⚡s]+/, '').trim();
         }
-        if (!candidateName && subUrl) {
-          try {
-            const parsedHost = new URL(subUrl).hostname;
-            if (parsedHost) candidateName = parsedHost;
-          } catch(e) {}
+        if (!candidateName && subHost) {
+          candidateName = subHost;
         }
         if (!candidateName) candidateName = s.name || ('源 ' + (idx + 1));
         s.name = candidateName;
+
+        // 4. 继承单卡真实测活数据（99 节点、35 节点、流量等）
+        if (matchedSingle) {
           s.nodeCount = matchedSingle.nodeCount || 0;
           s.remTraffic = matchedSingle.remTraffic || '--';
           s.expire = matchedSingle.expire || '--';
           s.status = matchedSingle.status || 'online';
           s.daysDiff = matchedSingle.daysDiff;
-        } else {
-          // 标记该子源在单卡列表中不存在，需要独立拉取
-          if (!s.nodeCount || s.remTraffic === '--' || s.nodeCount === 30 || s.remTraffic === '不限' || s.expire === '长期') {
-            needsIndependentFetch = true;
-          }
         }
       });
 
       // 重新计算合并卡片的总节点数
       card.nodeCount = card.subSources.reduce((acc, s) => acc + (s.status !== 'offline' ? (s.nodeCount || 0) : 0), 0);
-      
-      // 更新标题机场名字
-      const airportNames = card.subSources.map(s => `[${s.name}]`).join(' + ');
-      card.name = `👑 聚合总流 · ${airportNames}`;
-
       return needsIndependentFetch;
     }
     window.syncMergedCardFromSingleCards = syncMergedCardFromSingleCards;
@@ -4746,6 +4743,10 @@ function switchTab(tab) {
         historyList.forEach((item, idx) => {
           if (!item) return;
           if (item.isMerged) {
+            // 🚀 核心自愈：自动同步继承单卡测活与名称
+            if (typeof syncMergedCardFromSingleCards === 'function') {
+              syncMergedCardFromSingleCards(item);
+            }
             if (Array.isArray(item.subSources)) {
               item.subSources.forEach(s => {
                 if (s.remTraffic === '不限' || s.remTraffic === '不限流量' || s.expire === '长期' || s.expire === '长期有效') {
@@ -5914,7 +5915,16 @@ function switchTab(tab) {
                 subSources = parts.map((p, pIdx) => {
                   const segs = p.split('#');
                   const u = segs[0].trim();
-                  const n = segs[1] ? decodeURIComponent(segs[1]) : ('源 ' + (pIdx + 1));
+                  let n = '';
+                  if (segs[1]) {
+                    n = decodeURIComponent(segs[1]);
+                  } else {
+                    try {
+                      const h = new URL(u).hostname.replace(/^www\./, '');
+                      if (h) n = h;
+                    } catch(e) {}
+                  }
+                  if (!n) n = '源 ' + (pIdx + 1);
                   return { name: n, url: u, nodeCount: 0, remTraffic: '--', expire: '--' };
                 });
               }

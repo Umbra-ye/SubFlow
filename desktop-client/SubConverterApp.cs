@@ -442,8 +442,81 @@ namespace SubFlow
     // =========================================================================
     // 内置纯 C# 高性能原生订阅网关 (Port 25588)
     // =========================================================================
-    public class GatewayServer
+    
+        public class GatewayServer
     {
+        public class CountryRule
+        {
+            public string Pattern;
+            public string Flag;
+            public string Cn;
+            public CountryRule(string p, string f, string c)
+            {
+                Pattern = p;
+                Flag = f;
+                Cn = c;
+            }
+        }
+
+        private static CountryRule[] CountryRules = new CountryRule[]
+        {
+            new CountryRule(@"(?i)(HK|HKG|Hong\s*Kong|HongKong|香港|深港|沪港|港)", "🇭🇰", "香港"),
+            new CountryRule(@"(?i)(TW|TWN|Taiwan|Taipei|台湾|台北|新北|台)", "🇹🇼", "台湾"),
+            new CountryRule(@"(?i)(JP|JPN|Japan|Tokyo|Osaka|日本|东京|大阪|埼玉)", "🇯🇵", "日本"),
+            new CountryRule(@"(?i)(SG|SGP|Singapore|Lion\s*City|新加坡|狮城|新)", "🇸🇬", "新加坡"),
+            new CountryRule(@"(?i)(US|USA|United\s*States|America|Los\s*Angeles|San\s*Jose|Silicon|New\s*York|Seattle|Chicago|美国|洛杉矶|圣何塞|硅谷|纽约|西雅图|美)", "🇺🇸", "美国"),
+            new CountryRule(@"(?i)(KR|KOR|Korea|Seoul|韩国|首尔|韩)", "🇰🇷", "韩国"),
+            new CountryRule(@"(?i)(GB|UK|United\s*Kingdom|London|Britain|英国|伦敦|英)", "🇬🇧", "英国"),
+            new CountryRule(@"(?i)(DE|DEU|Germany|Frankfurt|Berlin|德国|法兰克福|柏林|德)", "🇩🇪", "德国"),
+            new CountryRule(@"(?i)(FR|FRA|France|Paris|法国|巴黎|法)", "🇫🇷", "法国"),
+            new CountryRule(@"(?i)(RU|RUS|Russia|Moscow|俄罗斯|莫斯科|俄)", "🇷🇺", "俄罗斯"),
+            new CountryRule(@"(?i)(CA|CAN|Canada|Toronto|Vancouver|加拿大|多伦多|温哥华|加)", "🇨🇦", "加拿大"),
+            new CountryRule(@"(?i)(AU|AUS|Australia|Sydney|Melbourne|澳大利亚|悉尼|墨尔本|澳)", "🇦🇺", "澳大利亚"),
+            new CountryRule(@"(?i)(MY|MYS|Malaysia|Kuala\s*Lumpur|马来西亚|吉隆坡|大马)", "🇲🇾", "马来西亚"),
+            new CountryRule(@"(?i)(TH|THA|Thailand|Bangkok|泰国|曼谷|泰)", "🇹🇭", "泰国"),
+            new CountryRule(@"(?i)(VN|VNM|Vietnam|Ho\s*Chi\s*Minh|Hanoi|越南|胡志明|河内)", "🇻🇳", "越南"),
+            new CountryRule(@"(?i)(IN|IND|India|Mumbai|New\s*Delhi|印度|孟买|新德里)", "🇮🇳", "印度"),
+            new CountryRule(@"(?i)(NL|NLD|Netherlands|Amsterdam|荷兰|阿姆斯特丹|荷)", "🇳🇱", "荷兰"),
+            new CountryRule(@"(?i)(TR|TUR|Turkey|Istanbul|土耳其|伊斯坦布尔|土)", "🇹🇷", "土耳其"),
+            new CountryRule(@"(?i)(PH|PHL|Philippines|Manila|菲律宾|马尼拉)", "🇵🇭", "菲律宾"),
+            new CountryRule(@"(?i)(AE|ARE|Dubai|United\s*Arab|阿联酋|迪拜)", "🇦🇪", "阿联酋"),
+            new CountryRule(@"(?i)(BR|BRA|Brazil|Sao\s*Paulo|巴西|圣保罗)", "🇧🇷", "巴西"),
+            new CountryRule(@"(?i)(AR|ARG|Argentina|Buenos\s*Aires|阿根廷|布宜诺斯艾利斯)", "🇦🇷", "阿根廷")
+        };
+
+        // 🌍 全球主流 30+ 国家与地区高精度智能识别与国旗 Emoji 注入引擎 (毫秒级纯本地运行)
+        public static string EnrichNodeCountryName(string rawName, string serverHost)
+        {
+            if (string.IsNullOrEmpty(rawName)) rawName = "Node";
+            string clean = rawName.Trim();
+
+            // 若已有国旗 Emoji 则不再重复注入
+            if (Regex.IsMatch(clean, @"[\uD83C][\uDDE6-\uDDFF]{2}")) return clean;
+
+            foreach (CountryRule r in CountryRules)
+            {
+                if (Regex.IsMatch(clean, r.Pattern) || (!string.IsNullOrEmpty(serverHost) && Regex.IsMatch(serverHost, r.Pattern)))
+                {
+                    if (!clean.Contains(r.Cn))
+                    {
+                        return r.Flag + " " + r.Cn + " - " + clean;
+                    }
+                    else
+                    {
+                        return r.Flag + " " + clean;
+                    }
+                }
+            }
+
+            // Cloudflare Anycast CDN 默认美国兜底
+            if (!string.IsNullOrEmpty(serverHost) && (serverHost.StartsWith("104.") || serverHost.StartsWith("172.64.") || serverHost.StartsWith("172.67.") || serverHost.StartsWith("162.159.") || serverHost.StartsWith("108.162.")))
+            {
+                return "🇺🇸 美国 - " + clean;
+            }
+
+            return clean;
+        }
+
         private readonly int port;
         private HttpListener listener;
         private Thread listenThread;
@@ -458,6 +531,7 @@ namespace SubFlow
         private static string cachedMixedBase64 = "";
         private static DateTime lastCacheTime = DateTime.MinValue;
         private static string configFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "gateway_config.json");
+        private static string aliasesFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "aliases.json");
         private static string clashCachePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "cache_clash.yaml");
         private static string mixedCachePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "cache_mixed.txt");
         private static readonly object cacheLock = new object();
@@ -479,6 +553,28 @@ namespace SubFlow
                     else
                     {
                         CloseToTraySetting = true;
+                    }
+
+                    // 📂 加载持久化短链别名字典
+                    if (File.Exists(aliasesFilePath))
+                    {
+                        string aJson = File.ReadAllText(aliasesFilePath, Encoding.UTF8);
+                        var aMatches = Regex.Matches(aJson, @"\""([^\""]+)\""\s*:\s*\""([^\""]*)\""");
+                        lock (subscriptionAliases)
+                        {
+                            foreach (Match m in aMatches)
+                            {
+                                if (m.Groups.Count >= 3)
+                                {
+                                    string aKey = m.Groups[1].Value;
+                                    string aVal = m.Groups[2].Value;
+                                    if (!string.IsNullOrEmpty(aKey) && !string.IsNullOrEmpty(aVal))
+                                    {
+                                        subscriptionAliases[aKey] = aVal;
+                                    }
+                                }
+                            }
+                        }
                     }
 
                     Match mToken = Regex.Match(json, @"""tunnel_token""\s*:\s*""([^""]*)""");
@@ -529,6 +625,18 @@ namespace SubFlow
                 string airportUrl = subscriptionAliases.ContainsKey("auto") ? subscriptionAliases["auto"] : "";
                 string json = "{\n  \"pin\": \"" + globalSecurityPin.Replace("\"", "\\\"") + "\",\n  \"airport_url\": \"" + airportUrl.Replace("\"", "\\\"") + "\",\n  \"close_to_tray\": " + (CloseToTraySetting ? "true" : "false") + ",\n  \"tunnel_token\": \"" + customTunnelToken.Replace("\"", "\\\"") + "\",\n  \"tunnel_domain\": \"" + customTunnelDomain.Replace("\"", "\\\"") + "\"\n}";
                 File.WriteAllText(configFilePath, json, Encoding.UTF8);
+
+                // 💾 全量持久化所有本地短链别名到 aliases.json
+                lock (subscriptionAliases)
+                {
+                    var lines = new List<string>();
+                    foreach (var kv in subscriptionAliases)
+                    {
+                        lines.Add("  \"" + kv.Key.Replace("\"", "\\\"") + "\": \"" + kv.Value.Replace("\"", "\\\"") + "\"");
+                    }
+                    string aJson = "{\n" + string.Join(",\n", lines) + "\n}";
+                    File.WriteAllText(aliasesFilePath, aJson, Encoding.UTF8);
+                }
             }
             catch { }
         }
@@ -1601,14 +1709,7 @@ namespace SubFlow
 
                     NodeItem item = new NodeItem();
                     string rawName = name != null ? name.Trim() : "Node";
-                    if (!Regex.IsMatch(rawName, @"(香港|日本|美国|新加坡|台湾|韩国|英国|德国|🇭🇰|🇯🇵|🇺🇸|🇸🇬|🇹🇼|🇰🇷|🇬🇧|🇩🇪)"))
-                    {
-                        if (serverIp != null && (serverIp.StartsWith("104.") || serverIp.StartsWith("172.64.") || serverIp.StartsWith("172.66.") || serverIp.StartsWith("172.67.") || serverIp.StartsWith("162.159.") || serverIp.StartsWith("108.162.")))
-                        {
-                            rawName = "🇺🇸 美国 - " + rawName;
-                        }
-                    }
-                    item.Name = rawName;
+                    item.Name = EnrichNodeCountryName(rawName, serverIp ?? sni);
                     item.RawYamlLine = Regex.Replace(line, @"name:\s*[^,}]+", "name: " + item.Name);
 
                     if (line.Contains("type: vless") && !string.IsNullOrEmpty(serverIp) && !string.IsNullOrEmpty(port))

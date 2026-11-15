@@ -4074,15 +4074,17 @@ function switchTab(tab) {
         status: 'online'
       };
 
-      // 🌟 核心突破：如果已登录，立即后台自动落库建档生成专属短链，彻底告别几百字符的超长明文！
-      const _tok = localStorage.getItem('subflow_token');
-      if (_tok) {
-        const rawUrls = subSources.map(s => {
-          let u = s.url || s.sourceUrl || '';
-          if (typeof getRawAirportUrl === 'function') u = getRawAirportUrl(u);
-          return u;
-        }).filter(Boolean).join('|');
+      // 🌟 核心突破：多源合并短链化 (打通云端数据库与本地 C# 别名网关，100% 告别超长明文！)
+      const rawUrls = subSources.map(s => {
+        let u = s.url || s.sourceUrl || '';
+        if (typeof getRawAirportUrl === 'function') u = getRawAirportUrl(u);
+        return u;
+      }).filter(Boolean).join('|');
 
+      const _tok = localStorage.getItem('subflow_token');
+      const isCloud = Boolean(_tok) && !window.location.origin.includes('127.0.0.1') && !window.location.origin.startsWith('file://');
+
+      if (isCloud) {
         fetch(apiUrl('/api/user/subscriptions'), {
           method: 'POST',
           headers: { 'Authorization': 'Bearer ' + _tok, 'Content-Type': 'application/json' },
@@ -4102,6 +4104,15 @@ function switchTab(tab) {
             try { localStorage.setItem('subflow_history', JSON.stringify(historyList)); } catch(e) {}
           }
         }).catch(() => {});
+      } else {
+        // 本地单机离线模式：立即注册本地 C# 别名短链
+        const randTag = Math.random().toString(36).substring(2, 8);
+        const shortMergedId = 'merged_' + (historyList.length + 1) + '_' + randTag;
+        mergedCard.shortAlias = shortMergedId;
+        mergedCard.url = `${getEffectiveBaseUrl()}/sub?id=${shortMergedId}&target=auto`;
+        try {
+          fetch(apiUrl('/api/save-alias?id=' + encodeURIComponent(shortMergedId) + '&url=' + encodeURIComponent(rawUrls))).catch(() => {});
+        } catch(e) {}
       }
 
       historyList.unshift(mergedCard);
@@ -4419,12 +4430,12 @@ function switchTab(tab) {
       const item = window.historyList[idx];
       const authToken = localStorage.getItem('subflow_token');
       const currentOrigin = (typeof getEffectiveBaseUrl === 'function' ? getEffectiveBaseUrl() : window.location.origin).replace(/\/$/, '');
+      const isCloudAuth = Boolean(authToken) && !window.location.origin.includes('127.0.0.1') && !window.location.origin.startsWith('file://');
 
       // 视觉微光反馈辅助函数：精准靶向【转换链】与【聚合总链】，绝对不碰上排【原订阅】！
       const triggerGlowFeedback = (newUrl) => {
         let urlEl = null;
         if (e && e.target) {
-          // 优先在【刷新】按钮同行的 div 容器内提取对应文本 span
           const rowDiv = e.target.closest('div');
           if (rowDiv) {
             urlEl = rowDiv.querySelector('.converted-url-text') || 
@@ -4466,103 +4477,100 @@ function switchTab(tab) {
         }
       };
 
-      // 🎯 步骤 1: 智能自愈落库 (若当前卡片尚未在数据库建档，现场自动注册获取真实 dbId 与 sub_token)
-      if (!item.dbId && authToken) {
-        try {
-          let rawToSave = '';
-          if (item.isMerged) {
-            if (Array.isArray(item.subSources) && item.subSources.length > 0) {
-              rawToSave = item.subSources.map(s => {
-                let u = s.url || s.sourceUrl || '';
-                if (typeof getRawAirportUrl === 'function') u = getRawAirportUrl(u);
-                return u;
-              }).filter(Boolean).join('|');
-            } else {
-              rawToSave = item.sourceUrl || item.url;
-            }
-          } else {
-            rawToSave = (typeof getRawAirportUrl === 'function' ? getRawAirportUrl(item.sourceUrl || item.url) : (item.sourceUrl || item.url));
-          }
+      // 提取纯净真实的上游原始链接
+      let rawToSave = '';
+      if (item.isMerged) {
+        if (Array.isArray(item.subSources) && item.subSources.length > 0) {
+          rawToSave = item.subSources.map(s => {
+            let u = s.url || s.sourceUrl || '';
+            if (typeof getRawAirportUrl === 'function') u = getRawAirportUrl(u);
+            return u;
+          }).filter(Boolean).join('|');
+        } else {
+          rawToSave = item.sourceUrl || item.url;
+        }
+      } else {
+        rawToSave = (typeof getRawAirportUrl === 'function' ? getRawAirportUrl(item.sourceUrl || item.url) : (item.sourceUrl || item.url));
+      }
 
-          const createRes = await fetch(apiUrl('/api/user/subscriptions'), {
-            method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + authToken, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              alias_name: item.name || (item.isMerged ? '我的聚合总流' : '我的订阅'),
-              source_url: rawToSave,
-              target_format: 'clash'
-            })
-          });
-          if (createRes.ok) {
-            const createData = await createRes.json();
-            if (createData && createData.id) {
-              item.dbId = createData.id;
-              if (createData.sub_token) {
-                item.sub_token = createData.sub_token;
+      // 🛡️ 永远保持真实原订阅地址不被短链污染
+      if (rawToSave && (!item.sourceUrl || item.sourceUrl.includes('/sub?id='))) {
+        item.sourceUrl = rawToSave;
+      }
+
+      // 🎯 分支 A: 云端多用户模式 (已登录且非纯单机环境)
+      if (isCloudAuth) {
+        if (!item.dbId) {
+          try {
+            const createRes = await fetch(apiUrl('/api/user/subscriptions'), {
+              method: 'POST',
+              headers: { 'Authorization': 'Bearer ' + authToken, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                alias_name: item.name || (item.isMerged ? '我的聚合总流' : '我的订阅'),
+                source_url: rawToSave,
+                target_format: 'clash'
+              })
+            });
+            if (createRes.ok) {
+              const createData = await createRes.json();
+              if (createData && createData.id) {
+                item.dbId = createData.id;
+                if (createData.sub_token) item.sub_token = createData.sub_token;
               }
             }
-          }
-        } catch(err) {
-          console.warn('Auto-persist on refresh error:', err);
+          } catch(err) { console.warn('Cloud auto-persist error:', err); }
         }
-      }
 
-      // 🎯 步骤 2: 拥有正式 dbId 时，调用单订阅精准轮转密钥与旧链作废接口
-      if (item.dbId && authToken) {
-        try {
-          const res = await fetch(apiUrl('/api/user/subscriptions/' + item.dbId + '/rotate-token'), {
-            method: 'POST',
-            headers: {
-              'Authorization': 'Bearer ' + authToken,
-              'Content-Type': 'application/json'
+        if (item.dbId) {
+          try {
+            const res = await fetch(apiUrl('/api/user/subscriptions/' + item.dbId + '/rotate-token'), {
+              method: 'POST',
+              headers: { 'Authorization': 'Bearer ' + authToken, 'Content-Type': 'application/json' }
+            });
+            if (res.ok) {
+              const data = await res.json();
+              const newSubToken = data.new_sub_token;
+              const newShortUrl = currentOrigin + '/sub?id=' + item.dbId + '&token=' + newSubToken + '&target=auto';
+              item.sub_token = newSubToken;
+              item.url = newShortUrl;
+              try { localStorage.setItem('subflow_history', JSON.stringify(window.historyList)); } catch(err) {}
+
+              triggerGlowFeedback(newShortUrl);
+              if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(newShortUrl).catch(() => {});
+              renderHistoryList();
+              triggerGlowFeedback(newShortUrl);
+              showSonnerToast('新链接已复制');
+              return;
             }
-          });
-          if (res.ok) {
-            const data = await res.json();
-            const newSubToken = data.new_sub_token;
-            // 组装专属于该订阅的全新独立高可用短链
-            const newShortUrl = currentOrigin + '/sub?id=' + item.dbId + '&token=' + newSubToken + '&target=auto';
-            item.sub_token = newSubToken;
-            item.url = newShortUrl;
-            try { localStorage.setItem('subflow_history', JSON.stringify(window.historyList)); } catch(err) {}
-
-            triggerGlowFeedback(newShortUrl);
-
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-              navigator.clipboard.writeText(newShortUrl).catch(() => {});
-            }
-
-            renderHistoryList();
-            triggerGlowFeedback(newShortUrl);
-            showSonnerToast('新链接已复制');
-            return;
-          }
-        } catch(err) {
-          console.warn('Single rotate error:', err);
+          } catch(err) { console.warn('Cloud single rotate error:', err); }
         }
       }
 
-      // 🎯 步骤 3: 离线/未登录模式安全兜底 (严禁使用假兜底数据，100% 保留真实节点并附加防缓存时间戳)
-      let realUrl = item.url || (item.sourceUrl ? (currentOrigin + '/sub?target=auto&url=' + encodeURIComponent(item.sourceUrl)) : '');
-      if (realUrl) {
-        try {
-          const u = new URL(realUrl, currentOrigin);
-          u.searchParams.set('_t', Date.now().toString());
-          realUrl = u.toString();
-        } catch(e) {
-          realUrl = realUrl + (realUrl.includes('?') ? '&' : '?') + '_t=' + Date.now();
-        }
+      // 🎯 分支 B: 本地桌面单机极速短链模式 (利用 C# Gateway 别名持久化引擎，毫秒级直出短链！)
+      const baseTag = (item.id || ('sub_' + idx)).toString().replace(/[^a-zA-Z0-9_]/g, '');
+      const randTag = Math.random().toString(36).substring(2, 8);
+      const shortAlias = baseTag + '_' + randTag;
+
+      try {
+        await fetch(apiUrl('/api/save-alias?id=' + encodeURIComponent(shortAlias) + '&url=' + encodeURIComponent(rawToSave)));
+      } catch(err) {
+        console.warn('Local save-alias call error:', err);
       }
-      item.url = realUrl;
+
+      // 组装清晰、极短的本地高可用独立短链 (如 http://127.0.0.1:25588/sub?id=1_7k9a&target=auto)
+      const newLocalShortUrl = currentOrigin + '/sub?id=' + encodeURIComponent(shortAlias) + '&target=auto';
+      item.url = newLocalShortUrl;
+      item.shortAlias = shortAlias;
       try { localStorage.setItem('subflow_history', JSON.stringify(window.historyList)); } catch(err) {}
-      
-      triggerGlowFeedback(realUrl);
+
+      // 原地极速更新展示，绝不让用户看到一模一样的长链接！
+      triggerGlowFeedback(newLocalShortUrl);
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(realUrl).catch(() => {});
+        navigator.clipboard.writeText(newLocalShortUrl).catch(() => {});
       }
       renderHistoryList();
-      triggerGlowFeedback(realUrl);
-      showSonnerToast('新链接已复制');
+      triggerGlowFeedback(newLocalShortUrl);
+      showSonnerToast('✨ 新短链已生成并复制到剪贴板！');
     }
 
     function renderHistoryList() {

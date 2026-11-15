@@ -4390,24 +4390,44 @@ function switchTab(tab) {
       const authToken = localStorage.getItem('subflow_token');
       const currentOrigin = (typeof getEffectiveBaseUrl === 'function' ? getEffectiveBaseUrl() : window.location.origin).replace(/\/$/, '');
 
-      // 视觉微光反馈辅助函数
+      // 视觉微光反馈辅助函数：精准靶向【转换链】(converted-url-text)，绝对不碰【原订阅】！
       const triggerGlowFeedback = (newUrl) => {
-        // 查找卡片根容器
+        let urlEl = null;
+        if (e && e.target) {
+          // 优先在【刷新】按钮同行的 div 容器内提取对应的转换链 span
+          const rowDiv = e.target.closest('div');
+          if (rowDiv) urlEl = rowDiv.querySelector('.history-url-text');
+        }
+        if (!urlEl) {
+          const cardEl = document.getElementById('hist-card-' + idx);
+          if (cardEl) {
+            // 优先查找 converted-url-text，若无则取卡片内最后一个 history-url-text (单卡最后一排必为转换链)
+            urlEl = cardEl.querySelector('.converted-url-text');
+            if (!urlEl) {
+              const allSpans = cardEl.querySelectorAll('.history-url-text');
+              if (allSpans.length > 0) urlEl = allSpans[allSpans.length - 1];
+            }
+          }
+        }
+        if (urlEl) {
+          urlEl.textContent = newUrl;
+          urlEl.setAttribute('title', newUrl);
+          urlEl.style.transition = 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
+          urlEl.style.color = '#34d399';
+          urlEl.style.fontWeight = '700';
+          urlEl.style.textShadow = '0 0 14px rgba(52, 211, 153, 0.7)';
+          setTimeout(() => {
+            urlEl.style.color = '';
+            urlEl.style.fontWeight = '';
+            urlEl.style.textShadow = '';
+          }, 1800);
+        }
+        // 同步更新同一排的复制按钮 onclick 属性
         const cardEl = document.getElementById('hist-card-' + idx) || (e && e.target ? e.target.closest('.history-item') : null);
         if (cardEl) {
-          const urlEl = cardEl.querySelector('.history-url-text');
-          if (urlEl) {
-            urlEl.textContent = newUrl;
-            urlEl.setAttribute('title', newUrl);
-            urlEl.style.transition = 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
-            urlEl.style.color = '#38bdf8';
-            urlEl.style.fontWeight = '700';
-            urlEl.style.textShadow = '0 0 12px rgba(56, 189, 248, 0.6)';
-            setTimeout(() => {
-              urlEl.style.color = '';
-              urlEl.style.fontWeight = '';
-              urlEl.style.textShadow = '';
-            }, 1800);
+          const copyBtn = cardEl.querySelector('.copy-url-btn.primary, .copy-converted-btn');
+          if (copyBtn) {
+            copyBtn.setAttribute('onclick', `copyConvertedUrl('${newUrl}')`);
           }
         }
       };
@@ -4653,7 +4673,7 @@ function switchTab(tab) {
               <!-- 原订阅条 -->
               <div style="display:flex; align-items:center; gap:8px; background:rgba(15,23,42,0.45); padding:5px 10px; border-radius:6px; border:1px solid rgba(255,255,255,0.08); width:100%; box-sizing:border-box;">
                 <span style="font-size:0.68rem; font-weight:700; color:#38bdf8; background:rgba(56,189,248,0.15); border:1px solid rgba(56,189,248,0.25); padding:1.5px 6px; border-radius:4px; flex-shrink:0; white-space:nowrap;">原订阅</span>
-                <span class="history-url-text" style="font-size:0.75rem; color:#94a3b8; font-family:monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;" title="${item.sourceUrl || unwrapSubFlowUrl(item.url) || item.url}">${item.sourceUrl || unwrapSubFlowUrl(item.url) || item.url}</span>
+                <span class="history-url-text raw-url-text" style="font-size:0.75rem; color:#94a3b8; font-family:monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;" title="${item.sourceUrl || unwrapSubFlowUrl(item.url) || item.url}">${item.sourceUrl || unwrapSubFlowUrl(item.url) || item.url}</span>
                 <button class="action-btn copy-url-btn" onclick="copyRawUrl('${(item.sourceUrl || unwrapSubFlowUrl(item.url) || item.url).replace(/'/g, "\\'")}')" title="复制上游机场原始订阅链接">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px; margin-right:3px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span>复制原链</span>
                 </button>
@@ -4661,7 +4681,7 @@ function switchTab(tab) {
               <!-- 转换链条 -->
               <div style="display:flex; align-items:center; gap:8px; background:rgba(15,23,42,0.45); padding:5px 10px; border-radius:6px; border:1px solid rgba(255,255,255,0.08); width:100%; box-sizing:border-box;">
                 <span style="font-size:0.68rem; font-weight:700; color:#34d399; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.25); padding:1.5px 6px; border-radius:4px; flex-shrink:0; white-space:nowrap;">转换链</span>
-                <span class="history-url-text" style="font-size:0.75rem; color:#94a3b8; font-family:monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;" title="${item.url}">${item.url}</span>
+                <span class="history-url-text converted-url-text" style="font-size:0.75rem; color:#94a3b8; font-family:monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;" title="${item.url}">${item.url}</span>
                 <button class="refresh-url-btn" onclick="refreshCardToShortUrl(${idx}, event)" title="一键重置密钥并作废旧链接"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; vertical-align:-1px;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg> <span>刷新</span></button><button class="action-btn copy-url-btn converted" onclick="copyHistoryConvertedUrl('${item.url.replace(/'/g, "\\'")}', 'auto')" title="复制 SubFlow 转换链接">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px; margin-right:3px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span>复制转换链</span>
                 </button>

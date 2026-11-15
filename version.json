@@ -2,6 +2,6 @@
   "version": "3.2.1",
   "build": "20261115-R3",
   "name": "SubFlow 订阅流",
-  "description": "2026 工业级全能跨平台订阅转换与管理系统 (彻底解决多协议节点丢损 Bug：全矩阵覆盖 10 大主流客户端，支持 VMess/VLESS/Trojan/SS/Hysteria2 100% 满额 0 丢失直出)",
+  "description": "2026 工业级全能跨平台订阅转换与管理系统 (微晶毛玻璃二级设置菜单、单订阅独立轮转作废、短链实时双向同步)",
   "release_date": "2026-11-15"
 }

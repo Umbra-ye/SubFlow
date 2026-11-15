@@ -2709,143 +2709,75 @@
     </main>
 
   <!-- 🛡️ 系统设置弹窗 -->
-  <div class="modal-overlay" id="settings-modal" style="display:none; z-index:2147483647;" onclick="if(event.target===this)closeSettingsModal()">
-    <div style="background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:14px; width:100%; max-width:420px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.7); overflow:hidden; animation:modalScaleIn 0.22s cubic-bezier(0.16,1,0.3,1);">
-      <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-bottom:1px solid var(--border-subtle); background:var(--bg-surface-elevated);">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-          <span style="font-weight:700; font-size:0.95rem; color:var(--text-primary);" id="settings-modal-title">SubFlow 偏好设置</span>
+    <!-- 🛡️ SubFlow 现代微晶二级设置弹窗 (Liquid Glass Edition) -->
+  <div class="modal-overlay" id="settings-modal" style="display:none; z-index:2147483647; backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); background:rgba(3,7,18,0.72);" onclick="if(event.target===this)closeSettingsModal()">
+    <div style="background:rgba(15,23,42,0.85); backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px); border:1px solid rgba(255,255,255,0.12); border-radius:18px; width:100%; max-width:440px; box-shadow:0 30px 60px -12px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.05); overflow:hidden; animation:modalScaleIn 0.2s cubic-bezier(0.16,1,0.3,1);">
+      
+      <!-- 弹窗顶栏 Header -->
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 22px; border-bottom:1px solid rgba(255,255,255,0.08); background:linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0) 100%);">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="width:30px; height:30px; border-radius:10px; background:linear-gradient(135deg, rgba(56,189,248,0.2) 0%, rgba(37,99,235,0.2) 100%); border:1px solid rgba(56,189,248,0.3); display:flex; align-items:center; justify-content:center;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          </div>
+          <div>
+            <div style="font-weight:700; font-size:0.95rem; color:#f8fafc; letter-spacing:-0.2px;">偏好与核心设置</div>
+            <div style="font-size:0.7rem; color:#64748b;">SubFlow Preferences & Resilience</div>
+          </div>
         </div>
-        <button class="secondary-btn" style="padding:4px 10px; font-size:0.75rem;" onclick="closeSettingsModal()">✕</button>
+        <button class="secondary-btn" style="width:28px; height:28px; padding:0; display:flex; align-items:center; justify-content:center; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.04); color:#94a3b8; cursor:pointer; transition:all 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.1)';this.style.color='#f8fafc';" onmouseout="this.style.background='rgba(255,255,255,0.04)';this.style.color='#94a3b8';" onclick="closeSettingsModal()">✕</button>
       </div>
-      <div style="padding:20px; display:flex; flex-direction:column; gap:14px;">
+
+      <!-- 弹窗主体 Body -->
+      <div style="padding:22px; display:flex; flex-direction:column; gap:16px;">
         
-        
-        
-        <!-- ⚡ Cloudflare Pages API 零点击自动化部署通道 -->
-        <div style="background:var(--bg-base); padding:14px; border-radius:10px; border:1px solid var(--border-subtle); display:flex; flex-direction:column; gap:10px;">
-          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px;">
-            <div style="display:flex; align-items:center; gap:6px;">
-              <span style="font-size:0.85rem; font-weight:600; color:var(--text-primary);">一键自动化部署免翻通道</span>
-              <span style="font-size:0.68rem; background:rgba(192,132,252,0.15); color:#c084fc; border:1px solid rgba(192,132,252,0.3); padding:1px 6px; border-radius:4px; font-weight:700;">API 零点击部署</span>
+        <!-- 二级分组 1: 网络容灾保护 (Network Resilience) -->
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:#64748b; padding-left:2px;">网络容灾与稳定性</div>
+          <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(0,0,0,0.25); padding:14px 16px; border-radius:12px; border:1px solid rgba(255,255,255,0.07); transition:border-color 0.2s;" onmouseover="this.style.borderColor='rgba(56,189,248,0.25)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.07)'">
+            <div style="display:flex; flex-direction:column; gap:4px; max-width:82%;">
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span style="font-size:0.86rem; font-weight:600; color:#f1f5f9;">刷新失败时保留上次数据</span>
+                <span style="font-size:0.65rem; background:rgba(56,189,248,0.12); color:#38bdf8; border:1px solid rgba(56,189,248,0.25); padding:1px 6px; border-radius:4px; font-weight:700;">常用推荐</span>
+              </div>
+              <span style="font-size:0.72rem; color:#64748b; line-height:1.45;">上游机场偶发网络抖动时，自动保留上次可用节点，保障网络不断流</span>
             </div>
-            <a href="https://dash.cloudflare.com/profile/api-tokens" target="_blank" style="font-size:0.72rem; color:var(--primary); text-decoration:none; display:inline-flex; align-items:center; gap:3px;">
-              获取 Token 教程 ↗
-            </a>
-          </div>
-          <span style="font-size:0.72rem; color:var(--text-muted); line-height:1.45;">
-            无需手动进入 Cloudflare 拖拽上传，只需输入您自己的 API Token，系统自动为您在 Cloudflare 云端秒级生成独立的免翻 <code>*.pages.dev</code> 域名！
-          </span>
-
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-            <div>
-              <label style="display:block; font-size:0.72rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">您的源站域名 / VPS 地址</label>
-              <input type="text" id="cf-auto-origin-host" placeholder="自动感应为当前访问域名..." class="modern-input" style="width:100%; padding:7px 10px; font-size:0.8rem; box-sizing:border-box;">
-            </div>
-            <div>
-              <label style="display:block; font-size:0.72rem; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">Cloudflare API Token</label>
-              <input type="password" id="cf-auto-api-token" placeholder="粘贴您的 API Token..." class="modern-input" style="width:100%; padding:7px 10px; font-size:0.8rem; box-sizing:border-box;">
-            </div>
-          </div>
-
-          <div style="display:flex; align-items:center; justify-content:space-between; margin-top:4px;">
-            <button type="button" id="btn-cf-auto-deploy" onclick="triggerCfAutoDeploy()" style="font-size:0.75rem; padding:6px 14px; border-radius:6px; background:linear-gradient(135deg, #3b82f6, #8b5cf6); border:none; color:#fff; cursor:pointer; font-weight:600; display:inline-flex; align-items:center; gap:6px;">
-              🚀 一键全自动创建并绑定免翻域名
-            </button>
-            <span id="cf-auto-deploy-status" style="font-size:0.72rem; color:#94a3b8;"></span>
+            <label style="position:relative; display:inline-block; width:44px; height:24px; cursor:pointer; flex-shrink:0;">
+              <input type="checkbox" id="chk-auto-fallback" onchange="onAutoFallbackChange(this.checked)" style="opacity:0; width:0; height:0;">
+              <span id="slider-auto-fallback" style="position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background:rgba(255,255,255,0.15); transition:0.25s cubic-bezier(0.16,1,0.3,1); border-radius:24px;"></span>
+              <span id="knob-auto-fallback" style="position:absolute; content:''; height:18px; width:18px; left:3px; bottom:3px; background:#ffffff; transition:0.25s cubic-bezier(0.16,1,0.3,1); border-radius:50%; box-shadow:0 2px 4px rgba(0,0,0,0.3);"></span>
+            </label>
           </div>
         </div>
 
-        <!-- 🚀 国内免翻直连防拦截通道 (原抗阻断握手分片) -->
-        <div style="display:flex; align-items:flex-start; justify-content:space-between; background:var(--bg-base); padding:13px 14px; border-radius:10px; border:1px solid var(--border-subtle);">
-          <div style="display:flex; flex-direction:column; gap:4px; max-width:85%;">
-            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-              <span style="font-size:0.85rem; font-weight:600; color:var(--text-primary);">国内网络免翻直连</span>
-              <span style="font-size:0.68rem; background:rgba(16,185,129,0.15); color:#34d399; border:1px solid rgba(16,185,129,0.3); padding:1px 6px; border-radius:4px; font-weight:700;">防拦截通道</span>
-              <span style="font-size:0.68rem; background:rgba(59,130,246,0.15); color:#60a5fa; border:1px solid rgba(59,130,246,0.25); padding:1px 5px; border-radius:4px; font-weight:700;">智能数据包拆解</span>
+        <!-- 二级分组 2: 界面语言偏好 (Language) -->
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:#64748b; padding-left:2px;">通用偏好</div>
+          <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(0,0,0,0.25); padding:12px 16px; border-radius:12px; border:1px solid rgba(255,255,255,0.07); transition:border-color 0.2s;" onmouseover="this.style.borderColor='rgba(56,189,248,0.25)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.07)'">
+            <div style="display:flex; flex-direction:column; gap:3px;">
+              <span style="font-size:0.86rem; font-weight:600; color:#f1f5f9;">界面语言 / Language</span>
+              <span style="font-size:0.72rem; color:#64748b;">设置默认显示文案 (默认简体中文)</span>
             </div>
-            <span style="font-size:0.72rem; color:var(--text-muted); line-height:1.45;">
-              <b>【干什么用的？】</b> 当您在国内<b>完全没有开启代理梯子</b>时，直接拉取或更新订阅容易被防火墙误识别拦截而报错。开启此功能后，系统会自动将连接数据包巧妙拆分成微小碎片发出，避开防火墙检测，<b>让您不开代理也能秒刷订阅、告别“连接被拦截”弹窗！</b>
-            </span>
-            <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
-              <button type="button" onclick="testDirectAntiIntercept(this)" style="font-size:0.72rem; padding:3px 10px; border-radius:6px; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); color:#34d399; cursor:pointer; font-weight:500;">⚡ 立即测试直连防拦截效果</button>
-              <span id="anti-intercept-result" style="font-size:0.7rem; color:#94a3b8;"></span>
+            <div style="display:flex; background:rgba(255,255,255,0.06); padding:3px; border-radius:9px; border:1px solid rgba(255,255,255,0.08); gap:3px;">
+              <button id="btn-lang-zh" onclick="setAppLanguage('zh')" style="border:none; padding:5px 14px; border-radius:7px; font-size:0.75rem; font-weight:700; cursor:pointer; transition:all 0.2s cubic-bezier(0.16,1,0.3,1); background:linear-gradient(135deg,#0284c7,#2563eb); color:#ffffff; box-shadow:0 2px 8px rgba(37,99,235,0.35);">中文</button>
+              <button id="btn-lang-en" onclick="setAppLanguage('en')" style="border:none; padding:5px 14px; border-radius:7px; font-size:0.75rem; font-weight:600; cursor:pointer; transition:all 0.2s cubic-bezier(0.16,1,0.3,1); background:transparent; color:#94a3b8;">English</button>
             </div>
-          </div>
-          <label style="display:inline-flex; align-items:center; cursor:pointer; margin-left:12px; margin-top:2px;">
-            <input type="checkbox" id="chk-anti-intercept" onchange="onAntiInterceptToggle(this.checked)" style="width:18px; height:18px; accent-color:var(--primary); cursor:pointer;">
-          </label>
-        </div>
-
-        <!-- ⚡ 自动优选切换 Cloudflare 节点设置 (Cloudflare 域名专用 · 30分钟定时巡检) -->
-        <div style="display:flex; align-items:flex-start; justify-content:space-between; background:var(--bg-base); padding:13px 14px; border-radius:10px; border:1px solid var(--border-subtle);">
-          <div style="display:flex; flex-direction:column; gap:4px; max-width:85%;">
-            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-              <span style="font-size:0.85rem; font-weight:600; color:var(--text-primary);">半小时自动更换可用节点</span>
-              <span style="font-size:0.68rem; background:rgba(249,115,22,0.15); color:#fb923c; border:1px solid rgba(249,115,22,0.3); padding:1px 6px; border-radius:4px; font-weight:700;">Cloudflare 专用</span>
-              <span style="font-size:0.68rem; background:rgba(16,185,129,0.15); color:#34d399; border:1px solid rgba(16,185,129,0.25); padding:1px 5px; border-radius:4px; font-weight:700;">半小时自动轮换</span>
-            </div>
-            <span style="font-size:0.72rem; color:var(--text-muted); line-height:1.45;">
-              <b>【Cloudflare 托管域名专用】</b> 仅适用于接入了 Cloudflare CDN 代理的域名（如 sub.example.com）。系统每 <b>30 分钟</b> 会在后台自动扫描大陆通畅、未被墙的官方干净 IP，并自动更换至延迟最低的最新可用节点，防止单一 IP 长期访问被网络拦截或限速。
-            </span>
-            <div id="cf-scan-status-text" style="font-size:0.72rem; color:#94a3b8; margin-top:3px; line-height:1.4;">
-              ⏱️ 巡检状态：每 30 分钟自动测试一遍大陆未被墙 IP
-            </div>
-            <button type="button" onclick="scanAndFilterCleanIps(false)" style="margin-top:4px; align-self:flex-start; font-size:0.72rem; padding:3px 10px; border-radius:6px; background:rgba(59,130,246,0.15); border:1px solid rgba(59,130,246,0.3); color:#60a5fa; cursor:pointer; font-weight:500;">⚡ 立即扫描未被墙 IP 并优选</button>
-          </div>
-          <label style="display:inline-flex; align-items:center; cursor:pointer; margin-left:12px; margin-top:2px;">
-            <input type="checkbox" id="chk-auto-cf-failover" onchange="onAutoFailoverToggle(this.checked)" style="width:18px; height:18px; accent-color:var(--primary); cursor:pointer;">
-          </label>
-        </div>
-        <!-- 🛡️ 刷新失败时保留上次数据设置 -->
-        <div style="display:flex; align-items:center; justify-content:space-between; background:var(--bg-base); padding:12px 14px; border-radius:10px; border:1px solid var(--border-subtle);">
-          <div style="display:flex; flex-direction:column; gap:3px;">
-            <div style="display:flex; align-items:center; gap:6px;">
-              <span style="font-size:0.85rem; font-weight:600; color:var(--text-primary);" id="label-fallback-title">刷新失败时保留上次数据</span>
-              <span style="font-size:0.68rem; background:rgba(59,130,246,0.15); color:#60a5fa; border:1px solid rgba(59,130,246,0.25); padding:1px 5px; border-radius:4px; font-weight:700;">常用推荐</span>
-            </div>
-            <span style="font-size:0.72rem; color:var(--text-muted);" id="label-fallback-desc">当网络不好或机场刷新失败时，自动保留上次正常的节点，避免配置变空断网</span>
-          </div>
-          <label style="display:inline-flex; align-items:center; cursor:pointer;">
-            <input type="checkbox" id="chk-auto-fallback" onchange="onAutoFallbackChange(this.checked)" style="width:18px; height:18px; accent-color:var(--primary); cursor:pointer;">
-          </label>
-        </div>
-
-        <!-- 界面语言切换项 -->
-        <div style="display:flex; align-items:center; justify-content:space-between; background:var(--bg-base); padding:12px 14px; border-radius:10px; border:1px solid var(--border-subtle);">
-          <div style="display:flex; flex-direction:column; gap:3px;">
-            <span style="font-size:0.85rem; font-weight:600; color:var(--text-primary);" id="label-lang-title">界面语言 / Language</span>
-            <span style="font-size:0.72rem; color:var(--text-muted);" id="label-lang-desc">切换全局显示语言 (默认中文)</span>
-          </div>
-          <div style="display:flex; background:rgba(255,255,255,0.06); padding:3px; border-radius:8px; border:1px solid var(--border-subtle); gap:2px;">
-            <button id="btn-lang-zh" onclick="setAppLanguage('zh')" style="border:none; padding:4px 12px; border-radius:6px; font-size:0.75rem; font-weight:700; cursor:pointer; transition:all 0.15s; background:var(--primary); color:#ffffff;">中文</button>
-            <button id="btn-lang-en" onclick="setAppLanguage('en')" style="border:none; padding:4px 12px; border-radius:6px; font-size:0.75rem; font-weight:600; cursor:pointer; transition:all 0.15s; background:transparent; color:var(--text-secondary);">English</button>
           </div>
         </div>
 
-        <!-- 桌面单机托盘化项 (单机模式可选) -->
-        <div id="row-setting-tray" class="desktop-only-setting" style="display:none; align-items:center; justify-content:space-between; background:var(--bg-base); padding:12px 14px; border-radius:10px; border:1px solid var(--border-subtle);">
-          <div style="display:flex; flex-direction:column; gap:3px;">
-            <span style="font-size:0.85rem; font-weight:600; color:var(--text-primary);" id="label-tray-title">关闭主窗口时最小化到系统托盘</span>
-            <span style="font-size:0.72rem; color:var(--text-muted);" id="label-tray-desc">开启后点击右上角 × 保持后台静默运行</span>
+        <!-- 二级分组 3: 系统架构与健康状态 -->
+        <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.02); padding:10px 14px; border-radius:10px; border:1px solid rgba(255,255,255,0.05); font-size:0.74rem;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="display:inline-block; width:7px; height:7px; border-radius:50%; background:#10b981; box-shadow:0 0 8px #10b981;"></span>
+            <span style="color:#94a3b8; font-weight:500;">解析网关与内核引擎正常</span>
           </div>
-          <label style="display:inline-flex; align-items:center; cursor:pointer;">
-            <input type="checkbox" id="chk-close-to-tray" onchange="onCloseToTrayChange(this.checked)" style="width:18px; height:18px; accent-color:var(--primary); cursor:pointer;">
-          </label>
+          <span style="font-family:var(--font-mono, monospace); color:#38bdf8; font-weight:700;">SubFlow v3.2.1</span>
         </div>
 
-        <!-- 极简应用版本徽标 (纯展示，无任何技术敏感信息) -->
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:4px 8px; font-size:0.75rem; color:var(--text-muted);">
-          <span>SubFlow 订阅流</span>
-          <span style="font-family:var(--font-mono); color:var(--text-secondary);">v3.1.0 正式版</span>
-        </div>
-
-        <!-- 保存按钮 -->
-        <button class="primary-btn" style="width:100%; height:38px; justify-content:center; border-radius:10px; font-weight:600; margin-top:4px;" onclick="closeSettingsModal()">保存并完成</button>
+        <!-- 底部主操作按钮 -->
+        <button class="primary-btn" style="width:100%; height:40px; justify-content:center; border-radius:10px; font-weight:600; font-size:0.88rem; background:linear-gradient(135deg,#0284c7 0%,#2563eb 100%); border:none; color:#ffffff; box-shadow:0 4px 14px rgba(37,99,235,0.4); cursor:pointer; transition:transform 0.15s, box-shadow 0.15s;" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(37,99,235,0.5)';" onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 4px 14px rgba(37,99,235,0.4)';" onclick="closeSettingsModal()">保存并完成</button>
       </div>
     </div>
   </div>
-
   <!-- 纯配置内容实时预览弹窗 (彻底杜绝浏览器 403 / 500，零依赖秒开) -->
   <div class="modal-overlay" id="preview-modal" style="display:none; z-index:999999;" onclick="if(event.target===this)closePreviewModal()">
     <div style="background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:14px; width:100%; max-width:860px; max-height:85vh; display:flex; flex-direction:column; box-shadow:0 25px 50px -12px rgba(0,0,0,0.7); overflow:hidden; animation:modalScaleIn 0.22s cubic-bezier(0.16,1,0.3,1);">
@@ -4532,13 +4464,38 @@ function switchTab(tab) {
     // 🔄 单卡片专属温和换链：仅将当前卡片更换为最新精致短链，绝不影响其他设备与订阅
     // 🔄 单订阅精准换链：仅将当前这一条订阅的旧链接作废并生成新短链，绝对不误伤其他订阅
     async function refreshCardToShortUrl(idx, e) {
-      if (e) e.stopPropagation();
+      if (e) {
+        if (typeof e.stopPropagation === 'function') e.stopPropagation();
+        if (typeof e.preventDefault === 'function') e.preventDefault();
+      }
       if (!window.historyList || !window.historyList[idx]) return;
       const item = window.historyList[idx];
       const authToken = localStorage.getItem('subflow_token');
-      const currentOrigin = getEffectiveBaseUrl();
+      const currentOrigin = (typeof getEffectiveBaseUrl === 'function' ? getEffectiveBaseUrl() : window.location.origin).replace(/\/$/, '');
 
-      // 如果有 dbId，调用精准单订阅作废与换新接口
+      // 视觉微光反馈辅助函数
+      const triggerGlowFeedback = (newUrl) => {
+        // 查找卡片根容器
+        const cardEl = document.getElementById('hist-card-' + idx) || (e && e.target ? e.target.closest('.history-item') : null);
+        if (cardEl) {
+          const urlEl = cardEl.querySelector('.history-url-text');
+          if (urlEl) {
+            urlEl.textContent = newUrl;
+            urlEl.setAttribute('title', newUrl);
+            urlEl.style.transition = 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
+            urlEl.style.color = '#38bdf8';
+            urlEl.style.fontWeight = '700';
+            urlEl.style.textShadow = '0 0 12px rgba(56, 189, 248, 0.6)';
+            setTimeout(() => {
+              urlEl.style.color = '';
+              urlEl.style.fontWeight = '';
+              urlEl.style.textShadow = '';
+            }, 1800);
+          }
+        }
+      };
+
+      // 1. 如果有 dbId，精准调用该订阅独立作废与轮转换新接口
       if (item.dbId && authToken) {
         try {
           const res = await fetch(apiUrl('/api/user/subscriptions/' + item.dbId + '/rotate-token'), {
@@ -4551,17 +4508,23 @@ function switchTab(tab) {
           if (res.ok) {
             const data = await res.json();
             const newSubToken = data.new_sub_token;
-            // 生成专属于这条订阅的独立短链
+            // 组装专属于该订阅的全新短链
             const newShortUrl = `${currentOrigin}/sub?id=${item.dbId}&token=${newSubToken}&target=auto`;
+            item.sub_token = newSubToken;
             item.url = newShortUrl;
             try { localStorage.setItem('subflow_history', JSON.stringify(window.historyList)); } catch(err) {}
 
-            // 自动复制到剪贴板
+            // 原地精准刷新展示文本
+            triggerGlowFeedback(newShortUrl);
+
+            // 写入剪贴板
             if (navigator.clipboard && navigator.clipboard.writeText) {
               navigator.clipboard.writeText(newShortUrl).catch(() => {});
             }
 
             renderHistoryList();
+            // 确保重绘后依然保持最新短链展示
+            triggerGlowFeedback(newShortUrl);
             showSonnerToast('新链接已复制');
             return;
           }
@@ -4570,15 +4533,18 @@ function switchTab(tab) {
         }
       }
 
-      // 兜底（如未同步到 dbId 的单机/演示卡片）
+      // 2. 兜底（如单机未落库卡片）
       const userToken = (window.SUBFLOW_USER && window.SUBFLOW_USER.token) || localStorage.getItem('subflow_user_token') || 'sub_guest';
       const fallbackUrl = `${currentOrigin}/sub?token=${userToken}&target=auto`;
       item.url = fallbackUrl;
       try { localStorage.setItem('subflow_history', JSON.stringify(window.historyList)); } catch(err) {}
+      
+      triggerGlowFeedback(fallbackUrl);
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(fallbackUrl).catch(() => {});
       }
       renderHistoryList();
+      triggerGlowFeedback(fallbackUrl);
       showSonnerToast('新链接已复制');
     }
 
@@ -4880,7 +4846,24 @@ function switchTab(tab) {
     window.copyRawUrl = copyRawUrl;
 
     // 🛡️ 容灾缓存开关持久化处理
+    
+    function updateSwitchUI(checked) {
+      const slider = document.getElementById('slider-auto-fallback');
+      const knob = document.getElementById('knob-auto-fallback');
+      if (!slider || !knob) return;
+      if (checked) {
+        slider.style.background = 'linear-gradient(135deg, #0284c7, #2563eb)';
+        slider.style.boxShadow = '0 0 10px rgba(37,99,235,0.4)';
+        knob.style.transform = 'translateX(20px)';
+      } else {
+        slider.style.background = 'rgba(255,255,255,0.15)';
+        slider.style.boxShadow = 'none';
+        knob.style.transform = 'translateX(0)';
+      }
+    }
+
     function onAutoFallbackChange(checked) {
+      updateSwitchUI(checked);
       try {
         localStorage.setItem('subflow_auto_fallback', checked ? 'true' : 'false');
         showSonnerToast(checked ? '✅ 已开启容灾缓存：网络故障时保留上次正常节点' : 'ℹ️ 已关闭容灾缓存');
@@ -5698,13 +5681,16 @@ function switchTab(tab) {
             // 🌟 核心突破：将云端数据库中的订阅全量反向映射为当前网站的历史卡片流，打通跨域名 100% 镜像数据
             window.historyList = cloudSubs.map(s => {
               const raw = s.raw_url || s.source_url || '';
-              // 直接生成极短私有短链
-              const shortUrl = userToken 
-                ? `${currentOrigin}/sub?token=${userToken}&id=${s.id}&target=auto`
-                : `${currentOrigin}/sub?target=auto&url=${encodeURIComponent(raw)}`;
+              // 🌟 优先直出专属于该订阅的独立高可用短链
+              const shortUrl = s.sub_token
+                ? `${currentOrigin}/sub?id=${s.id}&token=${s.sub_token}&target=auto`
+                : (userToken 
+                  ? `${currentOrigin}/sub?token=${userToken}&id=${s.id}&target=auto`
+                  : `${currentOrigin}/sub?target=auto&url=${encodeURIComponent(raw)}`);
               return {
                 id: 'sub_' + s.id,
                 dbId: s.id,
+                sub_token: s.sub_token || '',
                 name: s.alias || s.alias_name || '我的订阅',
                 sourceUrl: raw,
                 url: shortUrl,
@@ -5731,29 +5717,6 @@ function switchTab(tab) {
                     alias: item.name || '我的订阅',
                     raw_url: raw,
                     target: 'auto'
-                  })
-                }).catch(() => {});
-              }
-            }
-          }
-        }
-      } catch (e) {
-        console.warn('Auto-sync cloud subs error:', e);
-      }
-    });
-        if (res.ok) {
-          const data = await res.json();
-          const cloudSubs = data.subscriptions || [];
-          if (cloudSubs.length === 0 && historyList && historyList.length > 0) {
-            for (const item of historyList) {
-              if (item && item.url) {
-                await fetch(apiUrl('/api/user/subscriptions'), {
-                  method: 'POST',
-                  headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    alias_name: item.name || '我的订阅',
-                    source_url: item.url,
-                    target_format: 'clash'
                   })
                 }).catch(() => {});
               }

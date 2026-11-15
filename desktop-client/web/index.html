@@ -2661,69 +2661,75 @@
       </section>
     </main>
 
-  <div class="modal-overlay" id="settings-modal" style="display:none; z-index:2147483647;" onclick="if(event.target===this)closeSettingsModal()">
-    <div style="background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:14px; width:100%; max-width:420px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.7); overflow:hidden; animation:modalScaleIn 0.22s cubic-bezier(0.16,1,0.3,1);">
-      <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-bottom:1px solid var(--border-subtle); background:var(--bg-surface-elevated);">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-          <span style="font-weight:700; font-size:0.95rem; color:var(--text-primary);" id="settings-modal-title">SubFlow 偏好设置</span>
+    <!-- 🛡️ SubFlow 现代微晶二级设置弹窗 (Liquid Glass Edition) -->
+  <div class="modal-overlay" id="settings-modal" style="display:none; z-index:2147483647; backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); background:rgba(3,7,18,0.72);" onclick="if(event.target===this)closeSettingsModal()">
+    <div style="background:rgba(15,23,42,0.85); backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px); border:1px solid rgba(255,255,255,0.12); border-radius:18px; width:100%; max-width:440px; box-shadow:0 30px 60px -12px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.05); overflow:hidden; animation:modalScaleIn 0.2s cubic-bezier(0.16,1,0.3,1);">
+      
+      <!-- 弹窗顶栏 Header -->
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 22px; border-bottom:1px solid rgba(255,255,255,0.08); background:linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0) 100%);">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="width:30px; height:30px; border-radius:10px; background:linear-gradient(135deg, rgba(56,189,248,0.2) 0%, rgba(37,99,235,0.2) 100%); border:1px solid rgba(56,189,248,0.3); display:flex; align-items:center; justify-content:center;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          </div>
+          <div>
+            <div style="font-weight:700; font-size:0.95rem; color:#f8fafc; letter-spacing:-0.2px;">偏好与核心设置</div>
+            <div style="font-size:0.7rem; color:#64748b;">SubFlow Preferences & Resilience</div>
+          </div>
         </div>
-        <button class="secondary-btn" style="padding:4px 10px; font-size:0.75rem;" onclick="closeSettingsModal()">✕</button>
+        <button class="secondary-btn" style="width:28px; height:28px; padding:0; display:flex; align-items:center; justify-content:center; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.04); color:#94a3b8; cursor:pointer; transition:all 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.1)';this.style.color='#f8fafc';" onmouseout="this.style.background='rgba(255,255,255,0.04)';this.style.color='#94a3b8';" onclick="closeSettingsModal()">✕</button>
       </div>
-      <div style="padding:20px; display:flex; flex-direction:column; gap:14px;">
+
+      <!-- 弹窗主体 Body -->
+      <div style="padding:22px; display:flex; flex-direction:column; gap:16px;">
         
-        
-        
-        <!-- 🛡️ 刷新失败时保留上次数据设置 -->
-        <div style="display:flex; align-items:center; justify-content:space-between; background:var(--bg-base); padding:12px 14px; border-radius:10px; border:1px solid var(--border-subtle);">
-          <div style="display:flex; flex-direction:column; gap:3px;">
-            <div style="display:flex; align-items:center; gap:6px;">
-              <span style="font-size:0.85rem; font-weight:600; color:var(--text-primary);" id="label-fallback-title">刷新失败时保留上次数据</span>
-              <span style="font-size:0.68rem; background:rgba(59,130,246,0.15); color:#60a5fa; border:1px solid rgba(59,130,246,0.25); padding:1px 5px; border-radius:4px; font-weight:700;">常用推荐</span>
+        <!-- 二级分组 1: 网络容灾保护 (Network Resilience) -->
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:#64748b; padding-left:2px;">网络容灾与稳定性</div>
+          <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(0,0,0,0.25); padding:14px 16px; border-radius:12px; border:1px solid rgba(255,255,255,0.07); transition:border-color 0.2s;" onmouseover="this.style.borderColor='rgba(56,189,248,0.25)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.07)'">
+            <div style="display:flex; flex-direction:column; gap:4px; max-width:82%;">
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span style="font-size:0.86rem; font-weight:600; color:#f1f5f9;">刷新失败时保留上次数据</span>
+                <span style="font-size:0.65rem; background:rgba(56,189,248,0.12); color:#38bdf8; border:1px solid rgba(56,189,248,0.25); padding:1px 6px; border-radius:4px; font-weight:700;">常用推荐</span>
+              </div>
+              <span style="font-size:0.72rem; color:#64748b; line-height:1.45;">上游机场偶发网络抖动时，自动保留上次可用节点，保障网络不断流</span>
             </div>
-            <span style="font-size:0.72rem; color:var(--text-muted);" id="label-fallback-desc">当网络不好或机场刷新失败时，自动保留上次正常的节点，避免配置变空断网</span>
-          </div>
-          <label style="display:inline-flex; align-items:center; cursor:pointer;">
-            <input type="checkbox" id="chk-auto-fallback" onchange="onAutoFallbackChange(this.checked)" style="width:18px; height:18px; accent-color:var(--primary); cursor:pointer;">
-          </label>
-        </div>
-
-        <!-- 界面语言切换项 -->
-        <div style="display:flex; align-items:center; justify-content:space-between; background:var(--bg-base); padding:12px 14px; border-radius:10px; border:1px solid var(--border-subtle);">
-          <div style="display:flex; flex-direction:column; gap:3px;">
-            <span style="font-size:0.85rem; font-weight:600; color:var(--text-primary);" id="label-lang-title">界面语言 / Language</span>
-            <span style="font-size:0.72rem; color:var(--text-muted);" id="label-lang-desc">切换全局显示语言 (默认中文)</span>
-          </div>
-          <div style="display:flex; background:rgba(255,255,255,0.06); padding:3px; border-radius:8px; border:1px solid var(--border-subtle); gap:2px;">
-            <button id="btn-lang-zh" onclick="setAppLanguage('zh')" style="border:none; padding:4px 12px; border-radius:6px; font-size:0.75rem; font-weight:700; cursor:pointer; transition:all 0.15s; background:var(--primary); color:#ffffff;">中文</button>
-            <button id="btn-lang-en" onclick="setAppLanguage('en')" style="border:none; padding:4px 12px; border-radius:6px; font-size:0.75rem; font-weight:600; cursor:pointer; transition:all 0.15s; background:transparent; color:var(--text-secondary);">English</button>
+            <label style="position:relative; display:inline-block; width:44px; height:24px; cursor:pointer; flex-shrink:0;">
+              <input type="checkbox" id="chk-auto-fallback" onchange="onAutoFallbackChange(this.checked)" style="opacity:0; width:0; height:0;">
+              <span id="slider-auto-fallback" style="position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background:rgba(255,255,255,0.15); transition:0.25s cubic-bezier(0.16,1,0.3,1); border-radius:24px;"></span>
+              <span id="knob-auto-fallback" style="position:absolute; content:''; height:18px; width:18px; left:3px; bottom:3px; background:#ffffff; transition:0.25s cubic-bezier(0.16,1,0.3,1); border-radius:50%; box-shadow:0 2px 4px rgba(0,0,0,0.3);"></span>
+            </label>
           </div>
         </div>
 
-        <!-- 桌面单机托盘化项 (单机模式可选) -->
-        <div id="row-setting-tray" class="desktop-only-setting" style="display:none; align-items:center; justify-content:space-between; background:var(--bg-base); padding:12px 14px; border-radius:10px; border:1px solid var(--border-subtle);">
-          <div style="display:flex; flex-direction:column; gap:3px;">
-            <span style="font-size:0.85rem; font-weight:600; color:var(--text-primary);" id="label-tray-title">关闭主窗口时最小化到系统托盘</span>
-            <span style="font-size:0.72rem; color:var(--text-muted);" id="label-tray-desc">开启后点击右上角 × 保持后台静默运行</span>
+        <!-- 二级分组 2: 界面语言偏好 (Language) -->
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:#64748b; padding-left:2px;">通用偏好</div>
+          <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(0,0,0,0.25); padding:12px 16px; border-radius:12px; border:1px solid rgba(255,255,255,0.07); transition:border-color 0.2s;" onmouseover="this.style.borderColor='rgba(56,189,248,0.25)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.07)'">
+            <div style="display:flex; flex-direction:column; gap:3px;">
+              <span style="font-size:0.86rem; font-weight:600; color:#f1f5f9;">界面语言 / Language</span>
+              <span style="font-size:0.72rem; color:#64748b;">设置默认显示文案 (默认简体中文)</span>
+            </div>
+            <div style="display:flex; background:rgba(255,255,255,0.06); padding:3px; border-radius:9px; border:1px solid rgba(255,255,255,0.08); gap:3px;">
+              <button id="btn-lang-zh" onclick="setAppLanguage('zh')" style="border:none; padding:5px 14px; border-radius:7px; font-size:0.75rem; font-weight:700; cursor:pointer; transition:all 0.2s cubic-bezier(0.16,1,0.3,1); background:linear-gradient(135deg,#0284c7,#2563eb); color:#ffffff; box-shadow:0 2px 8px rgba(37,99,235,0.35);">中文</button>
+              <button id="btn-lang-en" onclick="setAppLanguage('en')" style="border:none; padding:5px 14px; border-radius:7px; font-size:0.75rem; font-weight:600; cursor:pointer; transition:all 0.2s cubic-bezier(0.16,1,0.3,1); background:transparent; color:#94a3b8;">English</button>
+            </div>
           </div>
-          <label style="display:inline-flex; align-items:center; cursor:pointer;">
-            <input type="checkbox" id="chk-close-to-tray" onchange="onCloseToTrayChange(this.checked)" style="width:18px; height:18px; accent-color:var(--primary); cursor:pointer;">
-          </label>
         </div>
 
-        <!-- 极简应用版本徽标 (纯展示，无任何技术敏感信息) -->
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:4px 8px; font-size:0.75rem; color:var(--text-muted);">
-          <span>SubFlow 订阅流</span>
-          <span style="font-family:var(--font-mono); color:var(--text-secondary);">v3.2.0 正式版</span>
+        <!-- 二级分组 3: 系统架构与健康状态 -->
+        <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.02); padding:10px 14px; border-radius:10px; border:1px solid rgba(255,255,255,0.05); font-size:0.74rem;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="display:inline-block; width:7px; height:7px; border-radius:50%; background:#10b981; box-shadow:0 0 8px #10b981;"></span>
+            <span style="color:#94a3b8; font-weight:500;">解析网关与内核引擎正常</span>
+          </div>
+          <span style="font-family:var(--font-mono, monospace); color:#38bdf8; font-weight:700;">SubFlow v3.2.1</span>
         </div>
 
-        <!-- 保存按钮 -->
-        <button class="primary-btn" style="width:100%; height:38px; justify-content:center; border-radius:10px; font-weight:600; margin-top:4px;" onclick="closeSettingsModal()">保存并完成</button>
+        <!-- 底部主操作按钮 -->
+        <button class="primary-btn" style="width:100%; height:40px; justify-content:center; border-radius:10px; font-weight:600; font-size:0.88rem; background:linear-gradient(135deg,#0284c7 0%,#2563eb 100%); border:none; color:#ffffff; box-shadow:0 4px 14px rgba(37,99,235,0.4); cursor:pointer; transition:transform 0.15s, box-shadow 0.15s;" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(37,99,235,0.5)';" onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 4px 14px rgba(37,99,235,0.4)';" onclick="closeSettingsModal()">保存并完成</button>
       </div>
     </div>
   </div>
-
-  <!-- 纯配置内容实时预览弹窗 (彻底杜绝浏览器 403 / 500，零依赖秒开) -->
   <div class="modal-overlay" id="preview-modal" style="display:none; z-index:999999;" onclick="if(event.target===this)closePreviewModal()">
     <div style="background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:14px; width:100%; max-width:860px; max-height:85vh; display:flex; flex-direction:column; box-shadow:0 25px 50px -12px rgba(0,0,0,0.7); overflow:hidden; animation:modalScaleIn 0.22s cubic-bezier(0.16,1,0.3,1);">
       <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-bottom:1px solid var(--border-subtle); background:var(--bg-surface-elevated);">
@@ -4375,34 +4381,67 @@ function switchTab(tab) {
 
     // 🔄 单订阅精准独立作废与换新短链函数 (仅作废当前这一条，其他订阅毫发无损)
     async function refreshCardToShortUrl(idx, e) {
-      if (e) e.stopPropagation();
+      if (e) {
+        if (typeof e.stopPropagation === 'function') e.stopPropagation();
+        if (typeof e.preventDefault === 'function') e.preventDefault();
+      }
       if (!window.historyList || !window.historyList[idx]) return;
       const item = window.historyList[idx];
-      const currentOrigin = typeof getEffectiveBaseUrl === 'function' ? getEffectiveBaseUrl() : window.location.origin;
+      const authToken = localStorage.getItem('subflow_token');
+      const currentOrigin = (typeof getEffectiveBaseUrl === 'function' ? getEffectiveBaseUrl() : window.location.origin).replace(/\/$/, '');
 
-      // 如果有 dbId，调用本地/云端网关单订阅独立轮转作废接口
-      if (item.dbId) {
+      // 视觉微光反馈辅助函数
+      const triggerGlowFeedback = (newUrl) => {
+        // 查找卡片根容器
+        const cardEl = document.getElementById('hist-card-' + idx) || (e && e.target ? e.target.closest('.history-item') : null);
+        if (cardEl) {
+          const urlEl = cardEl.querySelector('.history-url-text');
+          if (urlEl) {
+            urlEl.textContent = newUrl;
+            urlEl.setAttribute('title', newUrl);
+            urlEl.style.transition = 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
+            urlEl.style.color = '#38bdf8';
+            urlEl.style.fontWeight = '700';
+            urlEl.style.textShadow = '0 0 12px rgba(56, 189, 248, 0.6)';
+            setTimeout(() => {
+              urlEl.style.color = '';
+              urlEl.style.fontWeight = '';
+              urlEl.style.textShadow = '';
+            }, 1800);
+          }
+        }
+      };
+
+      // 1. 如果有 dbId，精准调用该订阅独立作废与轮转换新接口
+      if (item.dbId && authToken) {
         try {
-          const authToken = localStorage.getItem('subflow_token') || '';
-          const headers = { 'Content-Type': 'application/json' };
-          if (authToken) headers['Authorization'] = 'Bearer ' + authToken;
           const res = await fetch(apiUrl('/api/user/subscriptions/' + item.dbId + '/rotate-token'), {
             method: 'POST',
-            headers: headers
+            headers: {
+              'Authorization': 'Bearer ' + authToken,
+              'Content-Type': 'application/json'
+            }
           });
           if (res.ok) {
             const data = await res.json();
             const newSubToken = data.new_sub_token;
+            // 组装专属于该订阅的全新短链
             const newShortUrl = `${currentOrigin}/sub?id=${item.dbId}&token=${newSubToken}&target=auto`;
+            item.sub_token = newSubToken;
             item.url = newShortUrl;
-            item.subToken = newSubToken;
             try { localStorage.setItem('subflow_history', JSON.stringify(window.historyList)); } catch(err) {}
 
+            // 原地精准刷新展示文本
+            triggerGlowFeedback(newShortUrl);
+
+            // 写入剪贴板
             if (navigator.clipboard && navigator.clipboard.writeText) {
               navigator.clipboard.writeText(newShortUrl).catch(() => {});
             }
 
             renderHistoryList();
+            // 确保重绘后依然保持最新短链展示
+            triggerGlowFeedback(newShortUrl);
             showSonnerToast('新链接已复制');
             return;
           }
@@ -4411,18 +4450,18 @@ function switchTab(tab) {
         }
       }
 
-      // 本地离线/单机/免登录模式：生成全新专属独立子令牌，实现单链安全轮转
-      const uniqueToken = 'loc_' + Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
-      const subId = item.id || ('sub_' + idx);
-      const newUrl = `${currentOrigin}/sub?id=${encodeURIComponent(subId)}&token=${uniqueToken}&target=auto`;
-      item.url = newUrl;
-      item.subToken = uniqueToken;
+      // 2. 兜底（如单机未落库卡片）
+      const userToken = (window.SUBFLOW_USER && window.SUBFLOW_USER.token) || localStorage.getItem('subflow_user_token') || 'sub_guest';
+      const fallbackUrl = `${currentOrigin}/sub?token=${userToken}&target=auto`;
+      item.url = fallbackUrl;
       try { localStorage.setItem('subflow_history', JSON.stringify(window.historyList)); } catch(err) {}
-
+      
+      triggerGlowFeedback(fallbackUrl);
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(newUrl).catch(() => {});
+        navigator.clipboard.writeText(fallbackUrl).catch(() => {});
       }
       renderHistoryList();
+      triggerGlowFeedback(fallbackUrl);
       showSonnerToast('新链接已复制');
     }
 
@@ -4730,7 +4769,24 @@ function switchTab(tab) {
     window.copyRawUrl = copyRawUrl;
 
     // 🛡️ 容灾缓存开关持久化处理
+    
+    function updateSwitchUI(checked) {
+      const slider = document.getElementById('slider-auto-fallback');
+      const knob = document.getElementById('knob-auto-fallback');
+      if (!slider || !knob) return;
+      if (checked) {
+        slider.style.background = 'linear-gradient(135deg, #0284c7, #2563eb)';
+        slider.style.boxShadow = '0 0 10px rgba(37,99,235,0.4)';
+        knob.style.transform = 'translateX(20px)';
+      } else {
+        slider.style.background = 'rgba(255,255,255,0.15)';
+        slider.style.boxShadow = 'none';
+        knob.style.transform = 'translateX(0)';
+      }
+    }
+
     function onAutoFallbackChange(checked) {
+      updateSwitchUI(checked);
       try {
         localStorage.setItem('subflow_auto_fallback', checked ? 'true' : 'false');
         showSonnerToast(checked ? '✅ 已开启容灾缓存：网络故障时保留上次正常节点' : 'ℹ️ 已关闭容灾缓存');

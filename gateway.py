@@ -1854,7 +1854,7 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
             user_id = user["user_id"] if user else 1
             conn = get_db()
             c = conn.cursor()
-            c.execute("SELECT id, alias_name, source_url, target_format, updated_at FROM subscriptions WHERE user_id = ? ORDER BY id DESC;", (user_id,))
+            c.execute("SELECT id, alias_name, source_url, target_format, updated_at, sub_token FROM subscriptions WHERE user_id = ? ORDER BY id DESC;", (user_id,))
             rows = c.fetchall()
             subs = []
             for r in rows:
@@ -1869,7 +1869,8 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
                     "raw_url": decrypted_url,
                     "masked_url": masked_url,
                     "target": r["target_format"] or "clash",
-                    "updated_at": r["updated_at"]
+                    "updated_at": r["updated_at"],
+                    "sub_token": (r["sub_token"] if "sub_token" in r.keys() else "") or ""
                 })
             conn.close()
             self.send_json({"ok": True, "subscriptions": subs})

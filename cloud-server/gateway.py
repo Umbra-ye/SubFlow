@@ -2876,7 +2876,35 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
                 except Exception as ex:
                     upgrade_logs.append(f"Git 拉取异常: {str(ex)}")
             else:
-                upgrade_logs.append("[Notice] 当前为自包含独立部署，已确认数据目录与用户专属域名物理隔离保护。")
+                upgrade_logs.append("[Step 1] 检测到自包含独立部署模式，开始从官方仓库定向同步最新纯净源码...")
+                files_to_update = [
+                    ("cloud-server/web/index.html", os.path.join(BASE_DIR, "web", "index.html")),
+                    ("cloud-server/web/admin.html", os.path.join(BASE_DIR, "web", "admin.html")),
+                    ("cloud-server/gateway.py", os.path.join(BASE_DIR, "gateway.py")),
+                    ("cloud-server/country_enricher.py", os.path.join(BASE_DIR, "country_enricher.py"))
+                ]
+                success_count = 0
+                for remote_rel, local_target in files_to_update:
+                    raw_url = f"https://raw.githubusercontent.com/Umbra-ye/SubFlow/main/{remote_rel}"
+                    mirror_url = f"https://ghproxy.net/{raw_url}"
+                    downloaded = False
+                    for u in [raw_url, mirror_url]:
+                        try:
+                            req = urllib.request.Request(u, headers={"User-Agent": "SubFlow-Updater"})
+                            with urllib.request.urlopen(req, timeout=10) as resp:
+                                if resp.status == 200:
+                                    os.makedirs(os.path.dirname(local_target), exist_ok=True)
+                                    with open(local_target, "wb") as f_out:
+                                        f_out.write(resp.read())
+                                    downloaded = True
+                                    success_count += 1
+                                    upgrade_logs.append(f"  + 成功拉取并覆盖: {os.path.basename(local_target)}")
+                                    break
+                        except Exception:
+                            continue
+                    if not downloaded:
+                        upgrade_logs.append(f"  - 拉取失败 (将维持现有版本): {os.path.basename(local_target)}")
+                upgrade_logs.append(f"[Step 2] 源码热更新完成 ({success_count}/{len(files_to_update)} 文件已更新)，准备平滑重启服务...")
 
             # 触发 systemd 平滑热重启 (异步延迟触发，保证当前 HTTP 响应安全送达前端)
             def do_async_restart():

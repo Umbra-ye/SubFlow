@@ -497,13 +497,18 @@ namespace SubFlow
             {
                 if (Regex.IsMatch(clean, r.Pattern) || (!string.IsNullOrEmpty(serverHost) && Regex.IsMatch(serverHost, r.Pattern)))
                 {
-                    if (!clean.Contains(r.Cn))
+                    string bracketed = "【" + r.Cn + "】";
+                    if (clean.Contains(bracketed))
                     {
-                        return r.Flag + " " + r.Cn + " - " + clean;
+                        return r.Flag + clean;
+                    }
+                    else if (clean.Contains(r.Cn))
+                    {
+                        return r.Flag + clean.Replace(r.Cn, bracketed);
                     }
                     else
                     {
-                        return r.Flag + " " + clean;
+                        return r.Flag + bracketed + clean;
                     }
                 }
             }
@@ -511,7 +516,7 @@ namespace SubFlow
             // Cloudflare Anycast CDN 默认美国兜底
             if (!string.IsNullOrEmpty(serverHost) && (serverHost.StartsWith("104.") || serverHost.StartsWith("172.64.") || serverHost.StartsWith("172.67.") || serverHost.StartsWith("162.159.") || serverHost.StartsWith("108.162.")))
             {
-                return "🇺🇸 美国 - " + clean;
+                return "🇺🇸【美国】" + clean;
             }
 
             return clean;

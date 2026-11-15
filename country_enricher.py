@@ -194,9 +194,9 @@ def enrich_node_name_fast(orig_name: str, host: str, geo_map: dict = None) -> st
     if suffix_match:
         suf = suffix_match.group(1)
         sub_name = orig_name[:-len(suf)].strip()
-        return f"{flag} {cname} - {sub_name}{suf}" if sub_name else f"{flag} {cname} 节点{suf}"
+        return f"{flag}【{cname}】{sub_name}{suf}" if sub_name else f"{flag}【{cname}】节点{suf}"
 
-    return f"{flag} {cname} - {orig_name}"
+    return f"{flag}【{cname}】{orig_name}"
 
 def enrich_base64_payload(data: bytes) -> bytes:
     """针对 Base64 / 单节点链接订阅执行两遍国家名称识别与补充"""
@@ -277,9 +277,9 @@ def enrich_base64_payload(data: bytes) -> bytes:
         if suffix_match:
             suf = suffix_match.group(1)
             sub_name = orig_name[:-len(suf)].strip()
-            new_name = f"{flag} {cname} - {sub_name}{suf}" if sub_name else f"{flag} {cname} 节点{suf}"
+            new_name = f"{flag}【{cname}】{sub_name}{suf}" if sub_name else f"{flag}【{cname}】节点{suf}"
         else:
-            new_name = f"{flag} {cname} - {orig_name}" if orig_name else f"{flag} {cname} 节点"
+            new_name = f"{flag}【{cname}】{orig_name}" if orig_name else f"{flag}【{cname}】节点"
         if kind in ('url_hash', 'ss'):
             new_lines.append(f"{extra}#{urllib.parse.quote(new_name)}")
         elif kind == 'vmess':
@@ -332,9 +332,9 @@ def enrich_yaml_payload(data: bytes) -> bytes:
             if suffix_match:
                 suf = suffix_match.group(1)
                 sub_name = name[:-len(suf)].strip()
-                new_name = f"{flag} {cname} - {sub_name}{suf}" if sub_name else f"{flag} {cname} 节点{suf}"
+                new_name = f"{flag}【{cname}】{sub_name}{suf}" if sub_name else f"{flag}【{cname}】节点{suf}"
             else:
-                new_name = f"{flag} {cname} - {name}"
+                new_name = f"{flag}【{cname}】{name}"
             replacements[name] = new_name
 
     if not replacements:

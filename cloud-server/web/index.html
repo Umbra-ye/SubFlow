@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
+  <script>
+  try {
+    if (localStorage.getItem('subflow_user_token') === 'sub_guest') {
+      localStorage.removeItem('subflow_user_token');
+    }
+  } catch(e) {}
+</script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -3595,25 +3602,26 @@ function switchTab(tab) {
       const tfo = document.getElementById('sw-tfo').classList.contains('active');
       const acl = document.getElementById('sw-acl').classList.contains('active');
 
-      const userToken = (window.SUBFLOW_USER && window.SUBFLOW_USER.token) || localStorage.getItem('subflow_user_token') || '';
-      let url = '';
-      if (userToken) {
-        // 🌟 直接生成极简纯净私有短链（仅 45 字符左右）
-        url = `${getEffectiveBaseUrl()}/sub?token=${userToken}&target=${target}`;
-        // 异步静默持久化到云端数据库，确保双网站实时同步
-        try {
-          const authToken = localStorage.getItem('subflow_token');
-          if (authToken) {
-            fetch(apiUrl('/api/user/subscriptions'), {
-              method: 'POST',
-              headers: { 'Authorization': 'Bearer ' + authToken, 'Content-Type': 'application/json' },
-              body: JSON.stringify({ alias: '我的订阅', raw_url: input, target: target })
-            }).then(() => syncCloudSubscriptions()).catch(() => {});
-          }
-        } catch(e) {}
-      } else {
-        url = `${getEffectiveBaseUrl()}/sub?target=${target}&url=${encodeURIComponent(input)}`;
+      let userToken = (window.SUBFLOW_USER && window.SUBFLOW_USER.token) || localStorage.getItem('subflow_user_token') || '';
+      if (userToken === 'sub_guest') {
+        userToken = '';
+        try { localStorage.removeItem('subflow_user_token'); } catch(e) {}
       }
+
+      // 🛡️ 稳固可用架构：默认输出 100% 携带完整订阅源的高可用标准转换链
+      let url = ${getEffectiveBaseUrl()}/sub?target=&url=;
+
+      // 若已登录且有合法账户 Token，后台异步落库建档以在卡片中分配专属短链
+      try {
+        const authToken = localStorage.getItem('subflow_token');
+        if (authToken) {
+          fetch(apiUrl('/api/user/subscriptions'), {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + authToken, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ alias: '我的订阅', raw_url: input, target: target })
+          }).then(() => syncCloudSubscriptions()).catch(() => {});
+        }
+      } catch(e) {}
       if (udp) url += '&udp=true';
       if (scv) url += '&scv=true';
       if (emoji) url += '&emoji=true';
@@ -4684,6 +4692,15 @@ function switchTab(tab) {
               } catch(e) {}
             }
             // 2. 彻底清洗虚假兜底（“不限流量” / “长期有效”）
+            // 4. 彻底自愈清洗残缺或包含 sub_guest 的脏转换链接
+            if (item.url && (item.url.includes('sub_guest') || (item.url.includes('/sub?token=') && !item.url.includes('&id=') && !item.url.includes('url=')))) {
+              const rawClean = item.sourceUrl || item.raw_url || '';
+              if (rawClean) {
+                item.url = ${currentOrigin}/sub?target=auto&url=;
+                listDirty = true;
+              }
+            }
+
             if (item.remTraffic === '不限' || item.remTraffic === '不限流量') {
               item.remTraffic = '源站未提供流量头';
               listDirty = true;

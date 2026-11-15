@@ -1,6 +1,6 @@
 {
-  "version": "3.3.1",
-  "build": "20261115-R7",
+  "version": "3.3.6",
+  "build": "20261115-R12",
   "name": "SubFlow 订阅流",
   "description": "工业级现代化跨平台订阅流中枢 (云端服务端与桌面客户端物理隔离架构)",
   "release_date": "2026-11-15"

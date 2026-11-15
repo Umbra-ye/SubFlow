@@ -4147,27 +4147,58 @@ function switchTab(tab) {
     }
     window.syncMergedCardFromSingleCards = syncMergedCardFromSingleCards;
 
-    // 👑 彻底解除合并 / 彻底物理销毁卡片逻辑
+    
+    // 👑 SubFlow 极客微晶二次确认模态窗系统 (Zero Native Confirm)
+    function showGlassConfirm({ title = '二次确认', message = '确定要继续此操作吗？', confirmText = '确定', danger = false, onConfirm }) {
+      let modal = document.getElementById('glass-confirm-modal');
+      if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'glass-confirm-modal';
+        modal.className = 'modal-overlay';
+        modal.style.zIndex = '9999999';
+        modal.style.position = 'fixed';
+        modal.style.top = '0'; modal.style.left = '0'; modal.style.right = '0'; modal.style.bottom = '0';
+        modal.style.background = 'rgba(3, 7, 18, 0.76)';
+        modal.style.backdropFilter = 'blur(16px)';
+        modal.style.webkitBackdropFilter = 'blur(16px)';
+        modal.style.display = 'flex';
+        modal.style.alignItems = 'center';
+        modal.style.justifyContent = 'center';
+        modal.style.padding = '16px';
+        document.body.appendChild(modal);
+      }
+      modal.style.display = 'flex';
+      modal.innerHTML = `
+        <div style="background:rgba(15,23,42,0.92); backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px); border:1px solid rgba(255,255,255,0.12); border-radius:16px; width:100%; max-width:400px; padding:22px; box-shadow:0 30px 60px rgba(0,0,0,0.8), 0 0 25px ${danger ? 'rgba(239,68,68,0.22)' : 'rgba(168,85,247,0.22)'}; animation:modalScaleIn 0.15s ease-out; box-sizing:border-box;">
+          <div style="font-weight:700; font-size:1.05rem; color:#f8fafc; margin-bottom:10px; display:flex; align-items:center; gap:8px;">
+            <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:${danger ? '#ef4444' : '#a855f7'}; box-shadow:0 0 8px ${danger ? '#ef4444' : '#a855f7'};"></span>
+            ${escapeHtml(title)}
+          </div>
+          <div style="font-size:0.85rem; color:var(--text-secondary); line-height:1.6; margin-bottom:20px; white-space:pre-wrap;">${escapeHtml(message)}</div>
+          <div style="display:flex; justify-content:flex-end; gap:10px;">
+            <button id="glass-confirm-cancel-btn" class="action-btn" type="button" style="height:32px; padding:0 14px; font-size:0.8rem; background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.15); color:var(--text-secondary); cursor:pointer;">取消</button>
+            <button id="glass-confirm-ok-btn" class="action-btn ${danger ? 'danger' : 'primary'}" type="button" style="height:32px; padding:0 16px; font-size:0.8rem; cursor:pointer; ${danger ? 'background:rgba(239,68,68,0.25); border-color:#ef4444; color:#fca5a5;' : 'background:linear-gradient(135deg, #a855f7, #6366f1); border-color:#9333ea; color:#fff;'}">${escapeHtml(confirmText)}</button>
+          </div>
+        </div>
+      `;
+      const close = () => { modal.style.display = 'none'; };
+      document.getElementById('glass-confirm-cancel-btn').onclick = close;
+      modal.onclick = (e) => { if (e.target === modal) close(); };
+      document.getElementById('glass-confirm-ok-btn').onclick = () => {
+        close();
+        if (typeof onConfirm === 'function') onConfirm();
+      };
+    }
+    window.showGlassConfirm = showGlassConfirm;
+
+
+    // 👑 彻底解除合并 / 彻底物理销毁卡片逻辑 (接入微晶确认弹窗，彻底杜绝 WebView2 拦截原生 confirm)
     window.recentlyDeletedSubIds = window.recentlyDeletedSubIds || new Set();
 
-    async function deleteHistoryItem(idx, isForceDelete = false) {
+    async function executeDeleteHistoryItemCore(idx, isForceDelete = false) {
       if (typeof idx !== 'number' || idx < 0 || idx >= historyList.length) return;
       const item = historyList[idx];
       if (!item) return;
-
-      let confirmMsg = '';
-      if (item.isMerged) {
-        if (isForceDelete) {
-          confirmMsg = '确定要彻底物理删除此聚合总流吗？云端短链与记录将被物理销毁，不可恢复。';
-        } else {
-          confirmMsg = '确定要解除此聚合订阅吗？各子源将恢复为独立卡片展示。';
-        }
-      } else {
-        confirmMsg = '确定要彻底物理删除此订阅卡片吗？云端短链与记录将彻底物理销毁。';
-      }
-
-      const ok = (typeof confirm === 'function' ? confirm(confirmMsg) : true);
-      if (!ok) return;
 
       // 如果解构后需要恢复单卡（仅当 isMerged 且用户选择仅解除合并，非彻底删除时）：
       if (item.isMerged && !isForceDelete) {
@@ -4235,123 +4266,102 @@ function switchTab(tab) {
       if (typeof updateBatchBar === 'function') updateBatchBar();
       showSonnerToast(item.isMerged ? (isForceDelete ? '🗑️ 已彻底物理销毁该聚合总流！' : '🗑️ 已成功解除聚合总流并恢复各子源！') : '🗑️ 已彻底物理删除该订阅卡片！');
     }
-    window.deleteHistoryItem = deleteHistoryItem;
+    window.executeDeleteHistoryItemCore = executeDeleteHistoryItemCore;
 
-    // 👑 多选与批量操作全套交互引擎 (Zero Zombie)
-    function onSubCheckChanged(event, idx) {
-      if (!window.selectedSubIndices) window.selectedSubIndices = new Set();
-      if (event.target.checked) {
-        window.selectedSubIndices.add(idx);
+    async function deleteHistoryItem(idx, isForceDelete = false) {
+      if (typeof idx !== 'number' || idx < 0 || idx >= historyList.length) return;
+      const item = historyList[idx];
+      if (!item) return;
+
+      let title = '彻底删除订阅';
+      let confirmMsg = '';
+      let isDanger = true;
+      if (item.isMerged) {
+        if (isForceDelete) {
+          title = '彻底销毁聚合总流';
+          confirmMsg = '确定要彻底物理删除此聚合总流吗？\n云端专属短链与数据库记录将被物理销毁，不可恢复。';
+        } else {
+          title = '解除聚合总流';
+          confirmMsg = '确定要解除此聚合订阅吗？\n各子源将恢复为独立卡片展示。';
+          isDanger = false;
+        }
       } else {
-        window.selectedSubIndices.delete(idx);
+        title = '彻底删除订阅卡片';
+        confirmMsg = '确定要彻底物理删除此订阅卡片吗？\n云端专属短链与记录将彻底物理销毁。';
       }
-      const chkAll = document.getElementById('chk-select-all');
-      if (chkAll) {
-        chkAll.checked = (historyList.length > 0 && window.selectedSubIndices.size === historyList.length);
-        chkAll.indeterminate = (window.selectedSubIndices.size > 0 && window.selectedSubIndices.size < historyList.length);
-      }
-      renderHistoryList();
-      updateBatchBar();
-    }
-    window.onSubCheckChanged = onSubCheckChanged;
 
-    function toggleSelectAll(checked) {
-      if (!window.selectedSubIndices) window.selectedSubIndices = new Set();
-      window.selectedSubIndices.clear();
-      if (checked) {
-        historyList.forEach((_, idx) => window.selectedSubIndices.add(idx));
-      }
-      renderHistoryList();
-      updateBatchBar();
+      showGlassConfirm({
+        title: title,
+        message: confirmMsg,
+        confirmText: item.isMerged && !isForceDelete ? '解除合并' : '彻底删除',
+        danger: isDanger,
+        onConfirm: () => {
+          executeDeleteHistoryItemCore(idx, isForceDelete);
+        }
+      });
     }
-    window.toggleSelectAll = toggleSelectAll;
-
-    function updateBatchBar() {
-      let bar = document.getElementById('batch-operation-bar');
-      const count = window.selectedSubIndices ? window.selectedSubIndices.size : 0;
-      if (count === 0) {
-        if (bar) bar.style.display = 'none';
-        return;
-      }
-      if (!bar) {
-        bar = document.createElement('div');
-        bar.id = 'batch-operation-bar';
-        bar.style.cssText = 'position:fixed; bottom:24px; left:50%; transform:translateX(-50%); z-index:9999; background:rgba(15,23,42,0.92); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); border:1px solid rgba(168,85,247,0.35); border-radius:12px; padding:10px 18px; box-shadow:0 20px 40px rgba(0,0,0,0.6), 0 0 15px rgba(168,85,247,0.2); display:flex; align-items:center; gap:12px; color:#f8fafc; font-size:0.85rem; animation:modalScaleIn 0.15s ease-out;';
-        document.body.appendChild(bar);
-      }
-      bar.style.display = 'flex';
-      bar.innerHTML = `
-        <span style="font-weight:700; color:#c084fc; display:inline-flex; align-items:center; gap:6px;">
-          <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#a855f7; box-shadow:0 0 8px #a855f7;"></span>
-          已选 ${count} 项
-        </span>
-        <button class="action-btn" onclick="batchMergeSelectedCards()" style="background:linear-gradient(135deg, #a855f7, #6366f1); border-color:#9333ea; color:#fff; font-size:0.75rem; height:28px; padding:0 12px;">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px; margin-right:4px;"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
-          一键合并总流
-        </button>
-        <button class="action-btn danger" onclick="batchDeleteSelectedCards()" style="font-size:0.75rem; height:28px; padding:0 12px; background:rgba(239,68,68,0.2); border-color:#ef4444; color:#fca5a5;">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px; margin-right:4px;"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-          彻底删除所选 (${count})
-        </button>
-        <button onclick="window.selectedSubIndices.clear(); renderHistoryList(); updateBatchBar();" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.75rem; padding:2px 6px;">
-          取消
-        </button>
-      `;
-    }
-    window.updateBatchBar = updateBatchBar;
+    window.deleteHistoryItem = deleteHistoryItem;
 
     async function batchDeleteSelectedCards() {
       if (!window.selectedSubIndices || window.selectedSubIndices.size === 0) return;
       const indices = Array.from(window.selectedSubIndices).sort((a, b) => b - a);
-      if (!confirm(`确定要彻底物理删除所选的 ${indices.length} 条订阅吗？\\n云端专属短链与数据库记录将彻底销毁，不可恢复！`)) return;
 
-      const _tok = localStorage.getItem('subflow_token');
-      const dbIdsToDelete = [];
-      indices.forEach(idx => {
-        const item = historyList[idx];
-        if (!item) return;
-        let dbId = item.dbId;
-        if (!dbId && item.id) {
-          const m = String(item.id).match(/^sub_(\d+)$/);
-          if (m) dbId = parseInt(m[1]);
-        }
-        if (!dbId && item.url) {
-          const m = String(item.url).match(/[?&]id=(\d+)/);
-          if (m) dbId = parseInt(m[1]);
-        }
-        if (dbId) {
-          dbIdsToDelete.push(dbId);
-          window.recentlyDeletedSubIds.add(Number(dbId));
-        }
-        if (item.id) window.recentlyDeletedSubIds.add(String(item.id));
-      });
-
-      // 云端批量物理删除
-      if (_tok && dbIdsToDelete.length > 0) {
-        try {
-          await fetch(apiUrl('/api/user/subscriptions/batch-delete'), {
-            method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + _tok, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ids: dbIdsToDelete })
+      showGlassConfirm({
+        title: '批量彻底删除',
+        message: `确定要彻底物理删除所选的 ${indices.length} 条订阅吗？\n云端专属短链与数据库记录将彻底销毁，不可恢复！`,
+        confirmText: `彻底删除 (${indices.length})`,
+        danger: true,
+        onConfirm: async () => {
+          const _tok = localStorage.getItem('subflow_token');
+          const dbIdsToDelete = [];
+          indices.forEach(idx => {
+            const item = historyList[idx];
+            if (!item) return;
+            let dbId = item.dbId;
+            if (!dbId && item.id) {
+              const m = String(item.id).match(/^sub_(\d+)$/);
+              if (m) dbId = parseInt(m[1]);
+            }
+            if (!dbId && item.url) {
+              const m = String(item.url).match(/[?&]id=(\d+)/);
+              if (m) dbId = parseInt(m[1]);
+            }
+            if (dbId) {
+              dbIdsToDelete.push(dbId);
+              window.recentlyDeletedSubIds.add(Number(dbId));
+            }
+            if (item.id) window.recentlyDeletedSubIds.add(String(item.id));
           });
-        } catch(e) {
-          console.warn('Batch delete error:', e);
+
+          // 云端批量物理删除
+          if (_tok && dbIdsToDelete.length > 0) {
+            try {
+              await fetch(apiUrl('/api/user/subscriptions/batch-delete'), {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + _tok, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: dbIdsToDelete })
+              });
+            } catch(e) {
+              console.warn('Batch delete error:', e);
+            }
+          }
+
+          // 本地列表彻底剔除
+          indices.forEach(idx => {
+            historyList.splice(idx, 1);
+          });
+          window.historyList = historyList;
+          try { localStorage.setItem('subflow_history', JSON.stringify(historyList)); } catch(e) {}
+
+          window.selectedSubIndices.clear();
+          renderHistoryList();
+          updateBatchBar();
+          showSonnerToast(`🎉 成功批量彻底销毁 ${indices.length} 条订阅！`);
         }
-      }
-
-      // 本地列表彻底剔除
-      indices.forEach(idx => {
-        historyList.splice(idx, 1);
       });
-      window.historyList = historyList;
-      try { localStorage.setItem('subflow_history', JSON.stringify(historyList)); } catch(e) {}
-
-      window.selectedSubIndices.clear();
-      renderHistoryList();
-      updateBatchBar();
-      showSonnerToast(`🎉 成功批量彻底销毁 ${indices.length} 条订阅！`);
     }
     window.batchDeleteSelectedCards = batchDeleteSelectedCards;
+
 
     // 👑 从聚合卡片中精准移出单个子源
     async function removeMergedSubSource(cardIdOrIdx, sIdx) {

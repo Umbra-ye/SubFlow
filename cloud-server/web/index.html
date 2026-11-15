@@ -5709,7 +5709,12 @@ function switchTab(tab) {
       }
     }
 
+    let gateAuthMode = 'login';
+    window.gateAuthMode = 'login';
+
     function switchGateTab(tab) {
+      gateAuthMode = tab;
+      window.gateAuthMode = tab;
       currentGateTab = tab;
       const slider = document.getElementById('gate-tab-slider');
       const btnLogin = document.getElementById('tab-gate-login');
@@ -5745,7 +5750,6 @@ function switchTab(tab) {
           pwdConfirm.setAttribute('autocomplete', 'new-password');
         }
       }
-      updateInviteInputVisibility();
     }
 
     async function submitGateAuth(e) {
@@ -5764,7 +5768,8 @@ function switchTab(tab) {
       if (submitBtn) submitBtn.disabled = true;
 
       try {
-        if (gateAuthMode === 'login') {
+        const currentMode = (typeof gateAuthMode !== 'undefined' ? gateAuthMode : (window.gateAuthMode || 'login'));
+      if (currentMode === 'login') {
           const res = await fetch(apiUrl('/api/auth/login'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

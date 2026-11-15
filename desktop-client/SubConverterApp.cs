@@ -20,9 +20,9 @@ using Microsoft.Web.WebView2.Core;
 [assembly: AssemblyCompany("SubFlow")]
 [assembly: AssemblyProduct("SubFlow 订阅流")]
 [assembly: AssemblyCopyright("Copyright © SubFlow")]
-[assembly: AssemblyVersion("2.0.0.3")]
-[assembly: AssemblyFileVersion("2.0.0.3")]
-[assembly: AssemblyInformationalVersion("v2.0.0-alpha.3")]
+[assembly: AssemblyVersion("3.2.0.0")]
+[assembly: AssemblyFileVersion("3.2.0.0")]
+[assembly: AssemblyInformationalVersion("v3.2.0")]
 
 namespace SubFlow
 {
@@ -45,6 +45,9 @@ namespace SubFlow
 
         [DllImport("user32.dll")]
         private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+        [DllImport("user32.dll")]
+        private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, int dwExtraInfo);
 
         [DllImport("user32.dll")]
         private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
@@ -187,40 +190,46 @@ namespace SubFlow
                 ApplyTheme(true);
 
                 CoreWebView2Environment env = null;
-                string[] candidateFolders = new string[] {
-                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SubFlow", "WV2_Data"),
-                    Path.Combine(Path.GetTempPath(), "SubFlow_WV2_" + Process.GetCurrentProcess().Id + "_" + Environment.TickCount),
-                    null
-                };
+                string userDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SubFlow", "WV2_Data");
+                bool needFallback = false;
+                try
+                {
+                    if (!Directory.Exists(userDataFolder)) Directory.CreateDirectory(userDataFolder);
+                }
+                catch { needFallback = true; }
 
-                foreach (string candidate in candidateFolders)
+                if (!needFallback)
                 {
                     try
                     {
-                        if (!string.IsNullOrEmpty(candidate) && !Directory.Exists(candidate))
-                        {
-                            Directory.CreateDirectory(candidate);
-                        }
-                        var envTask = CoreWebView2Environment.CreateAsync(null, candidate);
-                        envTask.Wait(4000);
-                        if (envTask.IsCompleted && !envTask.IsFaulted && envTask.Result != null)
-                        {
-                            env = envTask.Result;
-                            Program.Log("WebView2 environment created with folder: " + (candidate ?? "SYSTEM_DEFAULT"));
-                            break;
-                        }
+                        env = await CoreWebView2Environment.CreateAsync(null, userDataFolder);
+                        Program.Log("WebView2 environment created with standard folder.");
                     }
-                    catch (Exception exCandidate)
+                    catch (Exception exStandard)
                     {
-                        Program.Log("WV2 candidate folder failed (" + candidate + "): " + exCandidate.Message);
+                        Program.Log("WV2 standard folder failed: " + exStandard.Message);
+                        needFallback = true;
+                    }
+                }
+
+                if (needFallback)
+                {
+                    string tempFolder = Path.Combine(Path.GetTempPath(), "SubFlow_WV2_" + Process.GetCurrentProcess().Id);
+                    try
+                    {
+                        if (!Directory.Exists(tempFolder)) Directory.CreateDirectory(tempFolder);
+                        env = await CoreWebView2Environment.CreateAsync(null, tempFolder);
+                        Program.Log("WebView2 environment created with temp folder.");
+                    }
+                    catch (Exception exTemp)
+                    {
+                        Program.Log("WV2 temp folder failed: " + exTemp.Message);
                     }
                 }
 
                 if (env == null)
                 {
-                    Program.Log("All WebView2 candidate environments failed. Opening system browser.");
-                    try { Process.Start("http://127.0.0.1:25588"); } catch { }
-                    return;
+                    try { env = await CoreWebView2Environment.CreateAsync(null, null); } catch { }
                 }
 
                 await webView.EnsureCoreWebView2Async(env);
@@ -294,10 +303,12 @@ namespace SubFlow
                     this.WindowState = FormWindowState.Normal;
                 }
                 ShowWindow(this.Handle, 9); // SW_RESTORE
+                keybd_event(0x12, 0, 0, 0); // 模拟 ALT 键释放 Windows 前台置顶锁
+                keybd_event(0x12, 0, 2, 0);
                 SetWindowPos(this.Handle, (IntPtr)(-1), 0, 0, 0, 0, 0x0002 | 0x0001 | 0x0040); // HWND_TOPMOST
-                SetWindowPos(this.Handle, (IntPtr)(-2), 0, 0, 0, 0, 0x0002 | 0x0001 | 0x0040); // HWND_NOTOPMOST
                 SetForegroundWindow(this.Handle);
                 SwitchToThisWindow(this.Handle, true);
+                SetWindowPos(this.Handle, (IntPtr)(-2), 0, 0, 0, 0, 0x0002 | 0x0001 | 0x0040); // HWND_NOTOPMOST
                 this.BringToFront();
                 this.Activate();
                 Program.Log("RestoreMainWindow finished successfully.");
@@ -821,9 +832,9 @@ namespace SubFlow
                         }
                     }
 
-                    string id = req.QueryString["id"] ?? "auto";
-                    string url = req.QueryString["url"];
-                    string target = req.QueryString["target"] ?? "auto";
+                    string id = GetQueryParamUtf8(req, "id") ?? "auto";
+                    string url = GetQueryParamUtf8(req, "url");
+                    string target = GetQueryParamUtf8(req, "target") ?? "auto";
                     bool acl = (req.QueryString["acl"] == "true");
 
                     // 👑 万能自适应调度引擎 (User-Agent Dynamic Dispatch)
@@ -831,13 +842,13 @@ namespace SubFlow
                     string ua = (req.UserAgent ?? "").ToLowerInvariant();
                     if (target == "auto" || path == "/api/auto-sub" || string.IsNullOrEmpty(target))
                     {
-                        if (ua.Contains("v2ray") || ua.Contains("xray") || ua.Contains("shadowrocket") || ua.Contains("nekobox") || ua.Contains("passwall"))
+                        if (ua.Contains("sing-box") || ua.Contains("singbox") || ua.Contains("nekobox") || ua.Contains("sfa") || ua.Contains("karing"))
+                        {
+                            target = "singbox"; // 👑 Sing-box / NekoBox ➔ 原生纯 JSON 序列化输出 (完美识别 AnyTLS / Hysteria2)
+                        }
+                        else if (ua.Contains("v2ray") || ua.Contains("xray") || ua.Contains("shadowrocket") || ua.Contains("passwall"))
                         {
                             target = "mixed"; // v2rayN / v2rayNG / 小火箭 / PassWall ➔ 输出标准 Base64 纯节点
-                        }
-                        else if (ua.Contains("sing-box") || ua.Contains("singbox"))
-                        {
-                            target = "singbox"; // Sing-box 纯 JSON
                         }
                         else
                         {
@@ -930,6 +941,8 @@ namespace SubFlow
                     long aggTotal = 0;
                     long aggExpire = 0;
 
+                    bool isMerged = (urlSegments.Length > 1);
+                    int segIdx = 0;
                     foreach (string segment in urlSegments)
                     {
                         string trimmedSeg = segment.Trim();
@@ -941,8 +954,28 @@ namespace SubFlow
                         if (hashIdx >= 0)
                         {
                             fetchTarget = trimmedSeg.Substring(0, hashIdx).Trim();
-                            sourceTag = Uri.UnescapeDataString(trimmedSeg.Substring(hashIdx + 1)).Trim();
+                            string potentialTag = Uri.UnescapeDataString(trimmedSeg.Substring(hashIdx + 1)).Trim();
+                            string[] domainIndicators = new string[] { ".com", ".net", ".org", ".cc", ".cd", ".xyz", ".dev", ".cn", ".top", ".vip", "http", "/", ":" };
+                            bool isDomain = false;
+                            foreach (var ind in domainIndicators)
+                            {
+                                if (potentialTag.IndexOf(ind, StringComparison.OrdinalIgnoreCase) >= 0)
+                                {
+                                    isDomain = true;
+                                    break;
+                                }
+                            }
+                            if (!string.IsNullOrEmpty(potentialTag) && !isDomain)
+                            {
+                                sourceTag = potentialTag;
+                            }
                         }
+
+                        if (isMerged && string.IsNullOrEmpty(sourceTag))
+                        {
+                            sourceTag = ((char)('A' + (segIdx % 26))).ToString();
+                        }
+                        segIdx++;
 
                         string segRaw = "";
                         bool forceRefresh = (req.QueryString["refresh"] == "true" || req.QueryString["force"] == "true");
@@ -1013,7 +1046,7 @@ namespace SubFlow
                             if (!string.IsNullOrEmpty(sourceTag))
                             {
                                 string originalName = n.Name;
-                                n.Name = "[" + sourceTag + "] " + originalName;
+                                n.Name = originalName + " [" + sourceTag + "]";
                                 if (!string.IsNullOrEmpty(n.RawYamlLine))
                                 {
                                     if (Regex.IsMatch(n.RawYamlLine, @"name:\s*['""][^'""]+['""]"))
@@ -1084,7 +1117,22 @@ namespace SubFlow
                         aggTotal,
                         aggExpire > 0 ? aggExpire : 1800000000L);
 
-                    if (target == "clash" || target == "clash-provider")
+                    if (target == "singbox" || target == "sing-box" || target == "nekobox" || target == "sfa")
+                    {
+                        string json = GenerateSingBoxJson(nodes);
+                        res.ContentType = "application/json; charset=utf-8";
+                        if (aggTotal > 0)
+                        {
+                            res.Headers.Add("Subscription-Userinfo", userinfoHeader);
+                        }
+                        res.Headers.Add("profile-update-interval", "24");
+                        byte[] data = Encoding.UTF8.GetBytes(json);
+                        res.ContentLength64 = data.Length;
+                        if (!isHeadMethod) res.OutputStream.Write(data, 0, data.Length);
+                        res.Close();
+                        return;
+                    }
+                    else if (target == "clash" || target == "clash-provider")
                     {
                         string yaml = GenerateClashYaml(nodes, target == "clash-provider", acl, tagGroupMap);
                         lock (cacheLock)
@@ -1217,8 +1265,8 @@ namespace SubFlow
                 }
                 else if (path == "/api/save-alias")
                 {
-                    string aliasId = req.QueryString["id"] ?? "auto";
-                    string targetUrl = req.QueryString["url"];
+                    string aliasId = GetQueryParamUtf8(req, "id") ?? "auto";
+                    string targetUrl = GetQueryParamUtf8(req, "url");
                     if (!string.IsNullOrEmpty(targetUrl))
                     {
                         lock (subscriptionAliases)
@@ -1278,7 +1326,7 @@ namespace SubFlow
                 }
                 else if (path == "/api/purge-cache")
                 {
-                    string targetUrl = req.QueryString["url"];
+                    string targetUrl = GetQueryParamUtf8(req, "url");
                     if (!string.IsNullOrEmpty(targetUrl))
                     {
                         try
@@ -1316,7 +1364,7 @@ namespace SubFlow
                 {
                     string lanIp = string.IsNullOrEmpty(cachedLanIp) ? GetLocalIPv4() : cachedLanIp;
                     bool tunnelRunning = (tunnelProcess != null && !tunnelProcess.HasExited);
-                    SendJson(res, "{\"ok\":true,\"version\":\"1.0\",\"lan_ip\":\"" + lanIp + "\",\"pin\":\"" + globalSecurityPin + "\",\"tunnel_url\":\"" + currentTunnelUrl + "\",\"tunnel_running\":" + (tunnelRunning ? "true" : "false") + ",\"custom_token\":\"" + customTunnelToken.Replace("\"", "\\\"") + "\",\"custom_domain\":\"" + customTunnelDomain.Replace("\"", "\\\"") + "\"}");
+                    SendJson(res, "{\"ok\":true,\"version\":\"3.1.0\",\"lan_ip\":\"" + lanIp + "\",\"pin\":\"" + globalSecurityPin + "\",\"tunnel_url\":\"" + currentTunnelUrl + "\",\"tunnel_running\":" + (tunnelRunning ? "true" : "false") + ",\"custom_token\":\"" + customTunnelToken.Replace("\"", "\\\"") + "\",\"custom_domain\":\"" + customTunnelDomain.Replace("\"", "\\\"") + "\"}");
                 }
                 else if (path == "/api/bring-to-front")
                 {
@@ -1369,6 +1417,35 @@ namespace SubFlow
             {
                 try { res.Close(); } catch { }
             }
+        }
+
+        private static string GetQueryParamUtf8(HttpListenerRequest req, string paramName)
+        {
+            try
+            {
+                string raw = req.RawUrl;
+                int qIdx = raw.IndexOf('?');
+                if (qIdx >= 0)
+                {
+                    string q = raw.Substring(qIdx + 1);
+                    string[] parts = q.Split('&');
+                    foreach (var p in parts)
+                    {
+                        int eq = p.IndexOf('=');
+                        if (eq > 0)
+                        {
+                            string k = p.Substring(0, eq);
+                            if (string.Equals(k, paramName, StringComparison.OrdinalIgnoreCase))
+                            {
+                                string v = p.Substring(eq + 1);
+                                return Uri.UnescapeDataString(v.Replace("+", " "));
+                            }
+                        }
+                    }
+                }
+            }
+            catch { }
+            return req.QueryString[paramName];
         }
 
         private void SendText(HttpListenerResponse res, string text, int code = 200, bool isHead = false)
@@ -1498,9 +1575,12 @@ namespace SubFlow
             public string ShareLink;
         }
 
-        private static List<NodeItem> ParseNodes(string raw)
+                private static List<NodeItem> ParseNodes(string raw)
         {
             List<NodeItem> list = new List<NodeItem>();
+            if (string.IsNullOrEmpty(raw)) return list;
+
+            // 1. 如果是标准的 Clash YAML 配置
             if (raw.Contains("proxies:") || raw.Contains("proxy-groups:"))
             {
                 MatchCollection matches = Regex.Matches(raw, @"-\s*\{[^\n]+\}");
@@ -1517,13 +1597,20 @@ namespace SubFlow
                     string port = GetRegexVal(line, @"port:\s*([0-9]+)");
                     string pass = GetRegexVal(line, @"password:\s*([^\s,}]+)");
                     string sni = GetRegexVal(line, @"sni:\s*([^\s,}]+)");
-                    string serverIp = server; // 原生直接复用域名，消除耗时 DNS 串行解析阻塞
+                    string serverIp = server;
 
                     NodeItem item = new NodeItem();
-                    item.Name = name != null ? name.Trim() : "Node";
-                    item.RawYamlLine = line;
+                    string rawName = name != null ? name.Trim() : "Node";
+                    if (!Regex.IsMatch(rawName, @"(香港|日本|美国|新加坡|台湾|韩国|英国|德国|🇭🇰|🇯🇵|🇺🇸|🇸🇬|🇹🇼|🇰🇷|🇬🇧|🇩🇪)"))
+                    {
+                        if (serverIp != null && (serverIp.StartsWith("104.") || serverIp.StartsWith("172.64.") || serverIp.StartsWith("172.66.") || serverIp.StartsWith("172.67.") || serverIp.StartsWith("162.159.") || serverIp.StartsWith("108.162.")))
+                        {
+                            rawName = "🇺🇸 美国 - " + rawName;
+                        }
+                    }
+                    item.Name = rawName;
+                    item.RawYamlLine = Regex.Replace(line, @"name:\s*[^,}]+", "name: " + item.Name);
 
-                    // 👑 万能多协议转 v2rayN / 小火箭标准分享链接
                     if (line.Contains("type: vless") && !string.IsNullOrEmpty(serverIp) && !string.IsNullOrEmpty(port))
                     {
                         string uuid = GetRegexVal(line, @"uuid:\s*([^\s,}]+)");
@@ -1546,12 +1633,6 @@ namespace SubFlow
                         item.ShareLink = string.Format("hysteria2://{0}@{1}:{2}/?sni={3}#{4}",
                             pass, serverIp, port, sni, Uri.EscapeDataString(item.Name));
                     }
-                    else if (line.Contains("type: anytls") && !string.IsNullOrEmpty(serverIp) && !string.IsNullOrEmpty(port))
-                    {
-                        string fp = GetRegexVal(line, @"client-fingerprint:\s*([^\s,}]+)") ?? "chrome";
-                        item.ShareLink = string.Format("anytls://{0}@{1}:{2}?type=tcp&fp={3}&security=tls&sni={4}&alpn=h2,http/1.1&allowInsecure=1&insecure=1&udp=1&tfo=0#{5}",
-                            pass, serverIp, port, fp, sni, Uri.EscapeDataString(item.Name));
-                    }
                     else if (line.Contains("type: ss") && !string.IsNullOrEmpty(serverIp) && !string.IsNullOrEmpty(port))
                     {
                         string cipher = GetRegexVal(line, @"cipher:\s*([^\s,}]+)") ?? "aes-256-gcm";
@@ -1561,8 +1642,440 @@ namespace SubFlow
                     }
                     list.Add(item);
                 }
+                return list;
+            }
+
+            // 2. 如果是 Base64 编码的订阅或多行节点明文
+            string plainText = raw.Trim();
+            try
+            {
+                string b64Clean = plainText.Replace("\r", "").Replace("\n", "").Replace(" ", "");
+                int mod4 = b64Clean.Length % 4;
+                if (mod4 > 0) b64Clean += new string('=', 4 - mod4);
+                byte[] decodedBytes = Convert.FromBase64String(b64Clean);
+                string decoded = Encoding.UTF8.GetString(decodedBytes);
+                if (decoded.Contains("://"))
+                {
+                    plainText = decoded;
+                }
+            }
+            catch { }
+
+            string[] lines = plainText.Split(new char[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var rawLine in lines)
+            {
+                string line = rawLine.Trim();
+                if (string.IsNullOrEmpty(line) || !line.Contains("://")) continue;
+
+                if (line.StartsWith("vmess://", StringComparison.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        string vContent = line.Substring(8).Trim();
+                        int mod4 = vContent.Length % 4;
+                        if (mod4 > 0) vContent += new string('=', 4 - mod4);
+                        string jsonStr = Encoding.UTF8.GetString(Convert.FromBase64String(vContent));
+                        string ps = GetRegexVal(jsonStr, @"""ps""\s*:\s*""([^""]+)""") ?? "VMess 节点";
+                        string add = GetRegexVal(jsonStr, @"""add""\s*:\s*""([^""]+)""");
+                        string portStr = GetRegexVal(jsonStr, @"""port""\s*:\s*([0-9]+)") ?? "443";
+                        string id = GetRegexVal(jsonStr, @"""id""\s*:\s*""([^""]+)""");
+                        string net = GetRegexVal(jsonStr, @"""net""\s*:\s*""([^""]+)""") ?? "ws";
+                        string tls = GetRegexVal(jsonStr, @"""tls""\s*:\s*""([^""]+)""") ?? "none";
+                        string host = GetRegexVal(jsonStr, @"""host""\s*:\s*""([^""]+)""") ?? add;
+                        string path = GetRegexVal(jsonStr, @"""path""\s*:\s*""([^""]+)""") ?? "/";
+
+                        if (!string.IsNullOrEmpty(add) && !string.IsNullOrEmpty(id))
+                        {
+                            NodeItem ni = new NodeItem();
+                            ni.Name = ps;
+                            ni.ShareLink = line;
+                            ni.RawYamlLine = "- {name: \"" + ps.Replace("\"", "\\\"") + "\", type: vmess, server: " + add + ", port: " + portStr + ", uuid: " + id + ", alterId: 0, cipher: auto, udp: true, tls: " + (tls == "tls" ? "true" : "false") + ", network: " + net + ", ws-opts: {path: \"" + path + "\", headers: {Host: \"" + host + "\"}}}";
+                            list.Add(ni);
+                        }
+                    }
+                    catch { }
+                }
+                else if (line.StartsWith("ss://", StringComparison.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        int hashIdx = line.IndexOf('#');
+                        string ps = hashIdx > 0 ? Uri.UnescapeDataString(line.Substring(hashIdx + 1).Trim()) : "Shadowsocks 节点";
+                        string mainPart = hashIdx > 0 ? line.Substring(5, hashIdx - 5) : line.Substring(5);
+
+                        string cipher = "aes-256-gcm";
+                        string pass = "";
+                        string server = "";
+                        string port = "443";
+
+                        if (mainPart.Contains("@"))
+                        {
+                            int atIdx = mainPart.IndexOf('@');
+                            string b64Auth = mainPart.Substring(0, atIdx);
+                            string hostPort = mainPart.Substring(atIdx + 1);
+                            int mod4 = b64Auth.Length % 4;
+                            if (mod4 > 0) b64Auth += new string('=', 4 - mod4);
+                            string auth = Encoding.UTF8.GetString(Convert.FromBase64String(b64Auth));
+                            int colon = auth.IndexOf(':');
+                            if (colon > 0)
+                            {
+                                cipher = auth.Substring(0, colon);
+                                pass = auth.Substring(colon + 1);
+                            }
+                            int colonHost = hostPort.LastIndexOf(':');
+                            if (colonHost > 0)
+                            {
+                                server = hostPort.Substring(0, colonHost);
+                                port = hostPort.Substring(colonHost + 1);
+                            }
+                        }
+                        else
+                        {
+                            int mod4 = mainPart.Length % 4;
+                            if (mod4 > 0) mainPart += new string('=', 4 - mod4);
+                            string fullAuth = Encoding.UTF8.GetString(Convert.FromBase64String(mainPart));
+                            int atIdx = fullAuth.LastIndexOf('@');
+                            if (atIdx > 0)
+                            {
+                                string auth = fullAuth.Substring(0, atIdx);
+                                string hostPort = fullAuth.Substring(atIdx + 1);
+                                int colon = auth.IndexOf(':');
+                                if (colon > 0)
+                                {
+                                    cipher = auth.Substring(0, colon);
+                                    pass = auth.Substring(colon + 1);
+                                }
+                                int colonHost = hostPort.LastIndexOf(':');
+                                if (colonHost > 0)
+                                {
+                                    server = hostPort.Substring(0, colonHost);
+                                    port = hostPort.Substring(colonHost + 1);
+                                }
+                            }
+                        }
+
+                        if (!string.IsNullOrEmpty(server) && !string.IsNullOrEmpty(pass))
+                        {
+                            NodeItem ni = new NodeItem();
+                            ni.Name = ps;
+                            ni.ShareLink = line;
+                            ni.RawYamlLine = "- {name: \"" + ps.Replace("\"", "\\\"") + "\", type: ss, server: " + server + ", port: " + port + ", cipher: " + cipher + ", password: \"" + pass.Replace("\"", "\\\"") + "\", udp: true}";
+                            list.Add(ni);
+                        }
+                    }
+                    catch { }
+                }
+                
+                else if (line.StartsWith("trojan://", StringComparison.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        int hashIdx = line.IndexOf('#');
+                        string ps = hashIdx > 0 ? Uri.UnescapeDataString(line.Substring(hashIdx + 1).Trim()) : "Trojan 节点";
+                        string content = hashIdx > 0 ? line.Substring(9, hashIdx - 9) : line.Substring(9);
+                        Uri u = new Uri("http://" + content);
+                        string pass = u.UserInfo;
+                        string server = u.Host;
+                        int port = u.Port > 0 ? u.Port : 443;
+                        string sni = server;
+                        NodeItem ni = new NodeItem();
+                        ni.Name = ps;
+                        ni.ShareLink = line;
+                        ni.RawYamlLine = "- {name: \"" + ps.Replace("\"", "\\\"") + "\", type: trojan, server: " + server + ", port: " + port + ", password: \"" + pass.Replace("\"", "\\\"") + "\", udp: true, sni: " + sni + "}";
+                        list.Add(ni);
+                    }
+                    catch { }
+                }
+                else if (line.StartsWith("hysteria2://", StringComparison.OrdinalIgnoreCase) || line.StartsWith("hy2://", StringComparison.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        int prefixLen = line.StartsWith("hysteria2://", StringComparison.OrdinalIgnoreCase) ? 12 : 6;
+                        int hashIdx = line.IndexOf('#');
+                        string ps = hashIdx > 0 ? Uri.UnescapeDataString(line.Substring(hashIdx + 1).Trim()) : "Hysteria2 节点";
+                        string content = hashIdx > 0 ? line.Substring(prefixLen, hashIdx - prefixLen) : line.Substring(prefixLen);
+                        Uri u = new Uri("http://" + content);
+                        string pass = u.UserInfo;
+                        string server = u.Host;
+                        int port = u.Port > 0 ? u.Port : 443;
+                        string sni = server;
+                        Match mSni = Regex.Match(content, @"sni=([^&]+)");
+                        if (mSni.Success) sni = mSni.Groups[1].Value;
+
+                        NodeItem ni = new NodeItem();
+                        ni.Name = ps;
+                        ni.ShareLink = line;
+                        ni.RawYamlLine = "- {name: \"" + ps.Replace("\"", "\\\"") + "\", type: hysteria2, server: " + server + ", port: " + port + ", password: \"" + pass.Replace("\"", "\\\"") + "\", udp: true, sni: " + sni + "}";
+                        list.Add(ni);
+                    }
+                    catch { }
+                }
+                else if (line.StartsWith("vless://", StringComparison.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        int hashIdx = line.IndexOf('#');
+                        string ps = hashIdx > 0 ? Uri.UnescapeDataString(line.Substring(hashIdx + 1).Trim()) : "VLESS 节点";
+                        string content = hashIdx > 0 ? line.Substring(8, hashIdx - 8) : line.Substring(8);
+                        Uri u = new Uri("http://" + content);
+                        string uuid = u.UserInfo;
+                        string server = u.Host;
+                        int port = u.Port > 0 ? u.Port : 443;
+                        string sni = server;
+                        string type = "ws";
+                        string path = "/";
+                        string sec = "tls";
+                        NodeItem ni = new NodeItem();
+                        ni.Name = ps;
+                        ni.ShareLink = line;
+                        ni.RawYamlLine = "- {name: \"" + ps.Replace("\"", "\\\"") + "\", type: vless, server: " + server + ", port: " + port + ", uuid: " + uuid + ", udp: true, tls: " + (sec == "tls" ? "true" : "false") + ", network: " + type + ", ws-opts: {path: \"" + path + "\", headers: {Host: \"" + sni + "\"}}}";
+                        list.Add(ni);
+                    }
+                    catch { }
+                }
             }
             return list;
+        }
+
+        
+
+        
+        private static string GenerateSingBoxJson(List<NodeItem> nodes)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append("{\n  \"outbounds\": [\n");
+
+            List<string> nodeTags = new List<string>();
+            List<string> outboundJsonBlocks = new List<string>();
+
+            int count = 1;
+            foreach (var n in nodes)
+            {
+                string tag = !string.IsNullOrEmpty(n.Name) ? n.Name : ("Node " + count);
+                nodeTags.Add(tag);
+                count++;
+
+                string escapedTag = tag.Replace("\"", "\\\"");
+                string nodeJson = "";
+
+                string share = n.ShareLink ?? "";
+                string yaml = n.RawYamlLine ?? "";
+
+                if (share.StartsWith("vless://", StringComparison.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        int atIdx = share.IndexOf('@');
+                        int colonIdx = atIdx > 0 ? share.IndexOf(':', atIdx) : -1;
+                        int slashOrQIdx = colonIdx > 0 ? share.IndexOfAny(new char[] { '/', '?' }, colonIdx) : -1;
+                        if (slashOrQIdx < 0) slashOrQIdx = share.Length;
+
+                        string uuid = atIdx > 8 ? share.Substring(8, atIdx - 8) : "";
+                        string server = colonIdx > atIdx ? share.Substring(atIdx + 1, colonIdx - atIdx - 1) : "";
+                        string portStr = slashOrQIdx > colonIdx ? share.Substring(colonIdx + 1, slashOrQIdx - colonIdx - 1) : "443";
+                        int port = 443;
+                        int.TryParse(portStr, out port);
+
+                        string sni = GetRegexVal(share, @"sni=([^&]+)") ?? server;
+                        string flow = GetRegexVal(share, @"flow=([^&]+)") ?? "";
+                        string pbk = GetRegexVal(share, @"pbk=([^&]+)") ?? "";
+                        string sid = GetRegexVal(share, @"sid=([^&]+)") ?? "";
+                        string path = GetRegexVal(share, @"path=([^&]+)") ?? "/";
+                        string host = GetRegexVal(share, @"host=([^&]+)") ?? sni;
+                        string net = GetRegexVal(share, @"type=([^&]+)") ?? "ws";
+                        string sec = GetRegexVal(share, @"security=([^&]+)") ?? "tls";
+
+                        StringBuilder ob = new StringBuilder();
+                        ob.Append("    {\n");
+                        ob.Append("      \"type\": \"vless\",\n");
+                        ob.Append("      \"tag\": \"" + escapedTag + "\",\n");
+                        ob.Append("      \"server\": \"" + server + "\",\n");
+                        ob.Append("      \"server_port\": " + port + ",\n");
+                        ob.Append("      \"uuid\": \"" + uuid + "\"");
+
+                        if (!string.IsNullOrEmpty(flow))
+                        {
+                            ob.Append(",\n      \"flow\": \"" + flow + "\"");
+                        }
+
+                        if (sec == "tls" || sec == "reality")
+                        {
+                            ob.Append(",\n      \"tls\": {\n");
+                            ob.Append("        \"enabled\": true,\n");
+                            ob.Append("        \"server_name\": \"" + sni + "\",\n");
+                            ob.Append("        \"insecure\": false");
+                            if (sec == "reality")
+                            {
+                                ob.Append(",\n        \"reality\": {\n");
+                                ob.Append("          \"enabled\": true,\n");
+                                ob.Append("          \"public_key\": \"" + pbk + "\",\n");
+                                ob.Append("          \"short_id\": \"" + sid + "\"\n");
+                                ob.Append("        }");
+                            }
+                            ob.Append("\n      }");
+                        }
+
+                        if (net == "ws")
+                        {
+                            ob.Append(",\n      \"transport\": {\n");
+                            ob.Append("        \"type\": \"ws\",\n");
+                            ob.Append("        \"path\": \"" + path.Replace("\"", "\\\"") + "\",\n");
+                            ob.Append("        \"headers\": { \"Host\": \"" + host + "\" }\n");
+                            ob.Append("      }");
+                        }
+                        ob.Append("\n    }");
+                        nodeJson = ob.ToString();
+                    }
+                    catch { }
+                }
+                else if (share.StartsWith("hysteria2://", StringComparison.OrdinalIgnoreCase) || share.StartsWith("hy2://", StringComparison.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        int prefixLen = share.StartsWith("hysteria2://", StringComparison.OrdinalIgnoreCase) ? 12 : 6;
+                        int atIdx = share.IndexOf('@', prefixLen);
+                        int colonIdx = atIdx > 0 ? share.IndexOf(':', atIdx) : -1;
+                        int slashOrQIdx = colonIdx > 0 ? share.IndexOfAny(new char[] { '/', '?' }, colonIdx) : -1;
+                        if (slashOrQIdx < 0) slashOrQIdx = share.Length;
+
+                        string pass = atIdx > prefixLen ? share.Substring(prefixLen, atIdx - prefixLen) : "";
+                        string server = colonIdx > atIdx ? share.Substring(atIdx + 1, colonIdx - atIdx - 1) : "";
+                        string portStr = slashOrQIdx > colonIdx ? share.Substring(colonIdx + 1, slashOrQIdx - colonIdx - 1) : "443";
+                        int port = 443;
+                        int.TryParse(portStr, out port);
+                        string sni = GetRegexVal(share, @"sni=([^&]+)") ?? server;
+
+                        StringBuilder ob = new StringBuilder();
+                        ob.Append("    {\n");
+                        ob.Append("      \"type\": \"hysteria2\",\n");
+                        ob.Append("      \"tag\": \"" + escapedTag + "\",\n");
+                        ob.Append("      \"server\": \"" + server + "\",\n");
+                        ob.Append("      \"server_port\": " + port + ",\n");
+                        ob.Append("      \"password\": \"" + pass.Replace("\"", "\\\"") + "\",\n");
+                        ob.Append("      \"tls\": {\n        \"enabled\": true,\n        \"server_name\": \"" + sni + "\",\n        \"insecure\": false\n      }\n");
+                        ob.Append("    }");
+                        nodeJson = ob.ToString();
+                    }
+                    catch { }
+                }
+                else if (share.StartsWith("trojan://", StringComparison.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        int atIdx = share.IndexOf('@', 9);
+                        int colonIdx = atIdx > 0 ? share.IndexOf(':', atIdx) : -1;
+                        int slashOrQIdx = colonIdx > 0 ? share.IndexOfAny(new char[] { '/', '?' }, colonIdx) : -1;
+                        if (slashOrQIdx < 0) slashOrQIdx = share.Length;
+
+                        string pass = atIdx > 9 ? share.Substring(9, atIdx - 9) : "";
+                        string server = colonIdx > atIdx ? share.Substring(atIdx + 1, colonIdx - atIdx - 1) : "";
+                        string portStr = slashOrQIdx > colonIdx ? share.Substring(colonIdx + 1, slashOrQIdx - colonIdx - 1) : "443";
+                        int port = 443;
+                        int.TryParse(portStr, out port);
+                        string sni = GetRegexVal(share, @"sni=([^&]+)") ?? server;
+
+                        StringBuilder ob = new StringBuilder();
+                        ob.Append("    {\n");
+                        ob.Append("      \"type\": \"trojan\",\n");
+                        ob.Append("      \"tag\": \"" + escapedTag + "\",\n");
+                        ob.Append("      \"server\": \"" + server + "\",\n");
+                        ob.Append("      \"server_port\": " + port + ",\n");
+                        ob.Append("      \"password\": \"" + pass.Replace("\"", "\\\"") + "\",\n");
+                        ob.Append("      \"tls\": {\n        \"enabled\": true,\n        \"server_name\": \"" + sni + "\",\n        \"insecure\": false\n      }\n");
+                        ob.Append("    }");
+                        nodeJson = ob.ToString();
+                    }
+                    catch { }
+                }
+                else if (share.StartsWith("ss://", StringComparison.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        string server = GetRegexVal(yaml, @"server:\s*([^\s,}]+)") ?? "";
+                        string portStr = GetRegexVal(yaml, @"port:\s*([0-9]+)") ?? "443";
+                        int port = 443; int.TryParse(portStr, out port);
+                        string pass = GetRegexVal(yaml, @"password:\s*['""]?([^'""\s,}]+)") ?? "";
+                        string cipher = GetRegexVal(yaml, @"cipher:\s*([^\s,}]+)") ?? "aes-256-gcm";
+
+                        if (!string.IsNullOrEmpty(server))
+                        {
+                            StringBuilder ob = new StringBuilder();
+                            ob.Append("    {\n");
+                            ob.Append("      \"type\": \"shadowsocks\",\n");
+                            ob.Append("      \"tag\": \"" + escapedTag + "\",\n");
+                            ob.Append("      \"server\": \"" + server + "\",\n");
+                            ob.Append("      \"server_port\": " + port + ",\n");
+                            ob.Append("      \"method\": \"" + cipher + "\",\n");
+                            ob.Append("      \"password\": \"" + pass.Replace("\"", "\\\"") + "\"\n");
+                            ob.Append("    }");
+                            nodeJson = ob.ToString();
+                        }
+                    }
+                    catch { }
+                }
+
+                if (string.IsNullOrEmpty(nodeJson) && !string.IsNullOrEmpty(yaml))
+                {
+                    string server = GetRegexVal(yaml, @"server:\s*([^\s,}]+)") ?? "";
+                    string portStr = GetRegexVal(yaml, @"port:\s*([0-9]+)") ?? "443";
+                    int port = 443; int.TryParse(portStr, out port);
+                    string pass = GetRegexVal(yaml, @"password:\s*['""]?([^'""\s,}]+)") ?? GetRegexVal(yaml, @"uuid:\s*([^\s,}]+)") ?? "";
+                    string sni = GetRegexVal(yaml, @"sni:\s*([^\s,}]+)") ?? server;
+                    string type = GetRegexVal(yaml, @"type:\s*([^\s,}]+)") ?? "vless";
+
+                    if (!string.IsNullOrEmpty(server))
+                    {
+                        StringBuilder ob = new StringBuilder();
+                        ob.Append("    {\n");
+                        ob.Append("      \"type\": \"" + type + "\",\n");
+                        ob.Append("      \"tag\": \"" + escapedTag + "\",\n");
+                        ob.Append("      \"server\": \"" + server + "\",\n");
+                        ob.Append("      \"server_port\": " + port + ",\n");
+                        if (type == "vless" || type == "vmess") ob.Append("      \"uuid\": \"" + pass + "\"");
+                        else ob.Append("      \"password\": \"" + pass.Replace("\"", "\\\"") + "\"");
+                        if (yaml.Contains("tls: true"))
+                        {
+                            ob.Append(",\n      \"tls\": {\n        \"enabled\": true,\n        \"server_name\": \"" + sni + "\",\n        \"insecure\": false\n      }");
+                        }
+                        ob.Append("\n    }");
+                        nodeJson = ob.ToString();
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(nodeJson))
+                {
+                    outboundJsonBlocks.Add(nodeJson);
+                }
+            }
+
+            List<string> quotedTags = new List<string>();
+            foreach (var t in nodeTags) quotedTags.Add("\"" + t.Replace("\"", "\\\"") + "\"");
+            string allTagsArray = string.Join(", ", quotedTags.ToArray());
+
+            sb.Append("    {\n");
+            sb.Append("      \"type\": \"selector\",\n");
+            sb.Append("      \"tag\": \"🚀 节点选择\",\n");
+            sb.Append("      \"outbounds\": [\"⚡ 自动优选\", \"🎯 全球直连\", " + allTagsArray + "],\n");
+            sb.Append("      \"default\": \"⚡ 自动优选\"\n");
+            sb.Append("    },\n");
+
+            sb.Append("    {\n");
+            sb.Append("      \"type\": \"urltest\",\n");
+            sb.Append("      \"tag\": \"⚡ 自动优选\",\n");
+            sb.Append("      \"outbounds\": [" + allTagsArray + "],\n");
+            sb.Append("      \"url\": \"http://www.gstatic.com/generate_204\",\n");
+            sb.Append("      \"interval\": \"3m\"\n");
+            sb.Append("    }");
+
+            if (outboundJsonBlocks.Count > 0)
+            {
+                sb.Append(",\n");
+                sb.Append(string.Join(",\n", outboundJsonBlocks.ToArray()));
+            }
+
+            sb.Append(",\n    {\n      \"type\": \"direct\",\n      \"tag\": \"🎯 全球直连\"\n    }\n");
+            sb.Append("  ]\n}");
+            return sb.ToString();
         }
 
         private static string GenerateClashYaml(List<NodeItem> nodes, bool isProviderOnly, bool enableAcl, Dictionary<string, List<string>> tagGroupMap = null)
@@ -1593,15 +2106,63 @@ namespace SubFlow
             }
             sb.AppendLine();
 
+            // 动态地区识别与国家分组
+            var regionDefs = new List<Tuple<string, string[]>>()
+            {
+                Tuple.Create("🇭🇰 香港节点", new string[] { "🇭🇰", "香港", "HK", "Hong Kong" }),
+                Tuple.Create("🇯🇵 日本节点", new string[] { "🇯🇵", "日本", "JP", "Japan", "Tokyo" }),
+                Tuple.Create("🇺🇸 美国节点", new string[] { "🇺🇸", "美国", "US", "United States", "USA" }),
+                Tuple.Create("🇸🇬 新加坡节点", new string[] { "🇸🇬", "新加坡", "SG", "Singapore", "狮城" }),
+                Tuple.Create("🇹🇼 台湾节点", new string[] { "🇹🇼", "台湾", "TW", "Taiwan", "台北" }),
+                Tuple.Create("🇰🇷 韩国节点", new string[] { "🇰🇷", "韩国", "KR", "Korea", "首尔" }),
+                Tuple.Create("🇬🇧 英国节点", new string[] { "🇬🇧", "英国", "UK", "United Kingdom", "伦敦" }),
+                Tuple.Create("🇩🇪 德国节点", new string[] { "🇩🇪", "德国", "DE", "Germany", "法兰克福" })
+            };
+
+            var regionMap = new Dictionary<string, List<string>>();
+            foreach (var def in regionDefs) regionMap[def.Item1] = new List<string>();
+            var otherNodes = new List<string>();
+
+            foreach (var name in nodeNames)
+            {
+                bool matched = false;
+                foreach (var def in regionDefs)
+                {
+                    foreach (var kw in def.Item2)
+                    {
+                        if (name.IndexOf(kw, StringComparison.OrdinalIgnoreCase) >= 0)
+                        {
+                            regionMap[def.Item1].Add(name);
+                            matched = true;
+                            break;
+                        }
+                    }
+                    if (matched) break;
+                }
+                if (!matched) otherNodes.Add(name);
+            }
+
+            var activeGroups = new List<string>();
+            foreach (var def in regionDefs)
+            {
+                if (regionMap[def.Item1].Count > 0) activeGroups.Add(def.Item1);
+            }
+            if (otherNodes.Count > 0) activeGroups.Add("🌐 其他地区");
+
             sb.AppendLine("proxy-groups:");
             sb.AppendLine("  - name: 🚀 节点选择");
             sb.AppendLine("    type: select");
             sb.AppendLine("    proxies:");
+            sb.AppendLine("      - ⚡ 自动优选");
+            sb.AppendLine("      - DIRECT");
+            foreach (var grp in activeGroups)
+            {
+                sb.AppendLine("      - " + grp);
+            }
             foreach (var name in nodeNames)
             {
                 sb.AppendLine(string.Format("      - \"{0}\"", name.Replace("\"", "\\\"")));
             }
-            sb.AppendLine("      - DIRECT");
             sb.AppendLine();
 
             sb.AppendLine("  - name: ⚡ 自动优选");
@@ -1614,6 +2175,39 @@ namespace SubFlow
                 sb.AppendLine(string.Format("      - \"{0}\"", name.Replace("\"", "\\\"")));
             }
             sb.AppendLine();
+
+            // 注入各个国家地区专属策略组
+            foreach (var def in regionDefs)
+            {
+                var rList = regionMap[def.Item1];
+                if (rList.Count > 0)
+                {
+                    sb.AppendLine("  - name: " + def.Item1);
+                    sb.AppendLine("    type: select");
+                    sb.AppendLine("    proxies:");
+                    sb.AppendLine("      - ⚡ 自动优选");
+                    foreach (var n in rList)
+                    {
+                        sb.AppendLine(string.Format("      - \"{0}\"", n.Replace("\"", "\\\"")));
+                    }
+                    sb.AppendLine("      - DIRECT");
+                    sb.AppendLine();
+                }
+            }
+
+            if (otherNodes.Count > 0)
+            {
+                sb.AppendLine("  - name: 🌐 其他地区");
+                sb.AppendLine("    type: select");
+                sb.AppendLine("    proxies:");
+                sb.AppendLine("      - ⚡ 自动优选");
+                foreach (var n in otherNodes)
+                {
+                    sb.AppendLine(string.Format("      - \"{0}\"", n.Replace("\"", "\\\"")));
+                }
+                sb.AppendLine("      - DIRECT");
+                sb.AppendLine();
+            }
 
             // 👑 多机场专属分组策略（如果用户合并了多个机场）
             if (tagGroupMap != null && tagGroupMap.Count > 1)
@@ -1681,6 +2275,9 @@ namespace SubFlow
         private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
         [DllImport("user32.dll")]
+        private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, int dwExtraInfo);
+
+        [DllImport("user32.dll")]
         private static extern bool SetForegroundWindow(IntPtr hWnd);
 
         [DllImport("user32.dll")]
@@ -1696,38 +2293,17 @@ namespace SubFlow
                 Log("CRITICAL ThreadException: " + e.Exception);
             };
 
-            // 绝杀防御第 1 关：尝试唤醒已有实例
-            bool isRestored = false;
+            // 🚀 核心铁律：只要用户双击启动，无论后台是否有旧进程/僵尸进程，一律强制物理杀死清场！保证当前进程100%拉起前台界面！
+            int myPid = Process.GetCurrentProcess().Id;
+            Log("SubFlow launched by user (PID: " + myPid + "). Enforcing clean start...");
             try
             {
-                var pingReq = (HttpWebRequest)WebRequest.Create("http://127.0.0.1:25588/api/restore-window");
-                pingReq.Timeout = 800;
-                pingReq.ReadWriteTimeout = 800;
-                using (var pingResp = (HttpWebResponse)pingReq.GetResponse())
-                {
-                    if (pingResp.StatusCode == HttpStatusCode.OK)
-                    {
-                        Log("Successfully signaled running instance to restore window. Exiting launcher process.");
-                        isRestored = true;
-                    }
-                }
-            }
-            catch { }
-
-            if (isRestored)
-            {
-                return;
-            }
-
-            // 绝杀防御第 2 关：如果端口无响应（说明僵死或残留未退出），彻底清理并冷启动！
-            try
-            {
-                int myPid = Process.GetCurrentProcess().Id;
                 foreach (var p in Process.GetProcessesByName("SubFlow"))
                 {
                     if (p.Id != myPid)
                     {
-                        try { p.Kill(); } catch { }
+                        Log("Killing legacy SubFlow process PID: " + p.Id);
+                        try { p.Kill(); p.WaitForExit(1000); } catch { }
                     }
                 }
                 foreach (var p in Process.GetProcessesByName("SubConverter"))
@@ -1739,7 +2315,10 @@ namespace SubFlow
                 }
                 Thread.Sleep(150);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Log("Process cleanup warning: " + ex.Message);
+            }
 
             try
             {

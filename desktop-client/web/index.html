@@ -4192,15 +4192,16 @@ function switchTab(tab) {
     window.showGlassConfirm = showGlassConfirm;
 
 
-    // 👑 彻底解除合并 / 彻底物理销毁卡片逻辑 (接入微晶确认弹窗，彻底杜绝 WebView2 拦截原生 confirm)
+    
+    // 👑 彻底解除合并 / 彻底物理销毁卡片逻辑 (0 弹窗阻塞，瞬间物理剔除，杜绝一切环境点击无反应)
     window.recentlyDeletedSubIds = window.recentlyDeletedSubIds || new Set();
 
-    async function executeDeleteHistoryItemCore(idx, isForceDelete = false) {
+    async function deleteHistoryItem(idx, isForceDelete = true) {
       if (typeof idx !== 'number' || idx < 0 || idx >= historyList.length) return;
       const item = historyList[idx];
       if (!item) return;
 
-      // 如果解构后需要恢复单卡（仅当 isMerged 且用户选择仅解除合并，非彻底删除时）：
+      // 如果解构后需要恢复单卡（仅当 isMerged 且用户点击解除合并 false 时）：
       if (item.isMerged && !isForceDelete) {
         if (Array.isArray(item.subSources) && item.subSources.length > 0) {
           const singleCards = historyList.filter(h => !h.isMerged);
@@ -4224,7 +4225,7 @@ function switchTab(tab) {
         }
       }
 
-      // 🛡️ 智能提取真实纯数字主键 ID 进行物理 DELETE (坚决杜绝 sub_ 字符串导致 400 失败)
+      // 🛡️ 智能提取真实纯数字主键 ID 进行物理 DELETE
       let targetDbId = item.dbId;
       if (!targetDbId && item.id) {
         const m = String(item.id).match(/^sub_(\d+)$/);
@@ -4239,22 +4240,23 @@ function switchTab(tab) {
       if (targetDbId) window.recentlyDeletedSubIds.add(Number(targetDbId));
       if (item.id) window.recentlyDeletedSubIds.add(String(item.id));
 
-      // 🚀 云端持久化同步彻底物理删除
+      // 🚀 云端/本地持久化同步彻底物理删除
       const _tok = localStorage.getItem('subflow_token');
       if (_tok && targetDbId) {
         try {
           let deleteUrl = apiUrl('/api/user/subscriptions/' + targetDbId);
           if (item.sub_token) deleteUrl += '?token=' + encodeURIComponent(item.sub_token);
-          await fetch(deleteUrl, {
-            method: 'DELETE',
-            headers: { 'Authorization': 'Bearer ' + _tok }
-          });
-        } catch(e) {
-          console.warn('Physical delete cloud subscription error:', e);
-        }
+          fetch(deleteUrl, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + _tok } }).catch(() => {});
+        } catch(e) {}
       }
 
-      // 本地移出当前卡片
+      // 本地别名持久化物理删除
+      const localAlias = item.shortAlias || (item.url && item.url.match(/[?&]id=([^&]+)/) ? item.url.match(/[?&]id=([^&]+)/)[1] : '');
+      if (localAlias) {
+        try { fetch(apiUrl('/api/delete-alias?id=' + encodeURIComponent(localAlias))).catch(() => {}); } catch(e) {}
+      }
+
+      // ⚡ 本地列表瞬间直接剔除当前卡片，绝无任何阻塞
       historyList.splice(idx, 1);
       window.historyList = historyList;
       try { localStorage.setItem('subflow_history', JSON.stringify(historyList)); } catch(e) {}
@@ -4264,43 +4266,11 @@ function switchTab(tab) {
       }
       renderHistoryList();
       if (typeof updateBatchBar === 'function') updateBatchBar();
-      showSonnerToast(item.isMerged ? (isForceDelete ? '🗑️ 已彻底物理销毁该聚合总流！' : '🗑️ 已成功解除聚合总流并恢复各子源！') : '🗑️ 已彻底物理删除该订阅卡片！');
-    }
-    window.executeDeleteHistoryItemCore = executeDeleteHistoryItemCore;
-
-    async function deleteHistoryItem(idx, isForceDelete = false) {
-      if (typeof idx !== 'number' || idx < 0 || idx >= historyList.length) return;
-      const item = historyList[idx];
-      if (!item) return;
-
-      let title = '彻底删除订阅';
-      let confirmMsg = '';
-      let isDanger = true;
-      if (item.isMerged) {
-        if (isForceDelete) {
-          title = '彻底销毁聚合总流';
-          confirmMsg = '确定要彻底物理删除此聚合总流吗？\n云端专属短链与数据库记录将被物理销毁，不可恢复。';
-        } else {
-          title = '解除聚合总流';
-          confirmMsg = '确定要解除此聚合订阅吗？\n各子源将恢复为独立卡片展示。';
-          isDanger = false;
-        }
-      } else {
-        title = '彻底删除订阅卡片';
-        confirmMsg = '确定要彻底物理删除此订阅卡片吗？\n云端专属短链与记录将彻底物理销毁。';
-      }
-
-      showGlassConfirm({
-        title: title,
-        message: confirmMsg,
-        confirmText: item.isMerged && !isForceDelete ? '解除合并' : '彻底删除',
-        danger: isDanger,
-        onConfirm: () => {
-          executeDeleteHistoryItemCore(idx, isForceDelete);
-        }
-      });
+      showSonnerToast(item.isMerged ? (isForceDelete ? '🗑️ 已彻底物理销毁该聚合总流！' : '🔓 已解除聚合总流并恢复各子源！') : '🗑️ 已彻底删除该订阅卡片！');
     }
     window.deleteHistoryItem = deleteHistoryItem;
+    window.executeDeleteHistoryItemCore = deleteHistoryItem;
+    
 
     async function batchDeleteSelectedCards() {
       if (!window.selectedSubIndices || window.selectedSubIndices.size === 0) return;
@@ -4783,7 +4753,32 @@ function switchTab(tab) {
           div.id = 'hist-card-' + idx;
 
           // 🛡️ 核心防崩溃：全局安全 URL 变量，彻底杜绝 undefined.replace 抛异常
-          const safeRawUrl = String(item.sourceUrl || item.raw_url || (typeof extractPureAirportUrls === 'function' ? extractPureAirportUrls(item.url) : '') || item.url || '').trim();
+          // 🛡️ 核心防污染铁律：严禁将 SubFlow 自身的短链或中转链接误当作「原订阅」
+          let safeRawUrl = String(item.sourceUrl || item.raw_url || '').trim();
+          if (safeRawUrl.includes('127.0.0.1:25588/sub') || safeRawUrl.includes('/sub?id=') || (safeRawUrl.includes('/sub?token=') && !safeRawUrl.includes('url='))) {
+            safeRawUrl = '';
+          }
+          if (!safeRawUrl && window.cachedLocalAliases) {
+            const aliasKey = item.shortAlias || (item.url && item.url.match(/[?&]id=([^&]+)/) ? item.url.match(/[?&]id=([^&]+)/)[1] : '');
+            if (aliasKey && window.cachedLocalAliases[aliasKey]) {
+              safeRawUrl = window.cachedLocalAliases[aliasKey];
+              item.sourceUrl = safeRawUrl;
+            }
+          }
+          if (!safeRawUrl && item.url && item.url.includes('url=')) {
+            try {
+              const u = new URL(item.url, currentOrigin);
+              const inner = u.searchParams.get('url');
+              if (inner && !inner.includes('127.0.0.1:25588')) safeRawUrl = inner.trim();
+            } catch(e) {}
+          }
+          if (!safeRawUrl) {
+            safeRawUrl = (typeof extractPureAirportUrls === 'function' ? extractPureAirportUrls(item.url) : '') || '';
+            if (safeRawUrl.includes('127.0.0.1:25588/sub') || safeRawUrl.includes('/sub?id=')) safeRawUrl = '';
+          }
+          if (!safeRawUrl) {
+            safeRawUrl = '上游原始订阅已安全托管 (专属私有转换)';
+          }
           const safeConvertedUrl = String(item.url || ((item.dbId || item.id) && item.sub_token ? (currentOrigin + '/sub?id=' + (item.dbId || item.id) + '&token=' + item.sub_token + '&target=auto') : safeRawUrl)).trim();
 
         if (item.isMerged) {

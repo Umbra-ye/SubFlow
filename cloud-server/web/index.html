@@ -3202,6 +3202,42 @@
     // 纯净历史订阅库持久化 (0 演示假数据，纯净初始态)
     // ==========================================================================
     let currentPlatform = 'auto';
+    
+    // 🛡️ 智能解包清洗器：彻底消灭 SubFlow 嵌套套娃
+    function extractPureAirportUrls(inputStr) {
+      if (!inputStr) return '';
+      const lines = inputStr.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      const pureList = [];
+      for (const line of lines) {
+        // 如果包含多源拼接的 |，拆开逐个清洗
+        const subParts = line.split('|').map(p => p.trim()).filter(Boolean);
+        for (let part of subParts) {
+          let current = part;
+          // 循环解包，直到不再包含嵌套的 /sub? 转换格式
+          let depth = 0;
+          while (depth < 5 && (current.includes('/sub?') || current.includes('/sub/'))) {
+            try {
+              // 提取 url= 参数
+              const m = current.match(/[?&]url=([^&]+)/);
+              if (m && m[1]) {
+                current = decodeURIComponent(m[1]);
+                depth++;
+              } else {
+                break;
+              }
+            } catch(e) {
+              break;
+            }
+          }
+          if (current && !pureList.includes(current)) {
+            pureList.push(current);
+          }
+        }
+      }
+      return pureList.join('\n');
+    }
+    window.extractPureAirportUrls = extractPureAirportUrls;
+
     let historyList = []; window.historyList = historyList;
     try {
       const saved = localStorage.getItem('subflow_history');
@@ -4791,8 +4827,8 @@ function switchTab(tab) {
             <!-- 2. 中间通栏聚合总链条 (充满横向空间，带高亮一键复制) -->
             <div style="display:flex; align-items:center; gap:8px; background:rgba(168,85,247,0.06); padding:5px 10px; border-radius:6px; border:1px solid rgba(168,85,247,0.2); width:100%; box-sizing:border-box;">
               <span style="font-size:0.68rem; font-weight:700; color:#c084fc; background:rgba(168,85,247,0.18); border:1px solid rgba(168,85,247,0.3); padding:1.5px 6px; border-radius:4px; flex-shrink:0;">聚合总链</span>
-              <span class="history-url-text merged-url-text" style="font-size:0.75rem; color:var(--text-muted); font-family:monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;" title="${item.url}">${item.url}</span>
-              <button class="refresh-url-btn merged" onclick="refreshCardToShortUrl(${idx}, event)" title="一键重置密钥并作废旧链接"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; vertical-align:-1px;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg> <span>刷新</span></button><button class="action-btn primary" onclick="copyHistoryConvertedUrl('${item.url}', 'auto')" title="${dict.btnCopyMerged}" style="background:linear-gradient(135deg, #a855f7, #6366f1); border-color:#9333ea; color:#fff; padding:2px 10px; font-size:0.7rem; height:24px; flex-shrink:0;">
+              <span class="history-url-text merged-url-text" style="font-size:0.75rem; color:var(--text-muted); font-family:monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;" title="${(item.dbId && item.sub_token) ? (currentOrigin + '/sub?id=' + item.dbId + '&token=' + item.sub_token + '&target=auto') : item.url}">${(item.dbId && item.sub_token) ? (currentOrigin + '/sub?id=' + item.dbId + '&token=' + item.sub_token + '&target=auto') : item.url}</span>
+              <button class="refresh-url-btn merged" onclick="refreshCardToShortUrl(${idx}, event)" title="一键重置密钥并作废旧链接"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; vertical-align:-1px;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg> <span>刷新</span></button><button class="action-btn primary" onclick="copyHistoryConvertedUrl('${(item.dbId && item.sub_token) ? (currentOrigin + '/sub?id=' + item.dbId + '&token=' + item.sub_token + '&target=auto') : item.url}', 'auto')" title="${dict.btnCopyMerged}" style="background:linear-gradient(135deg, #a855f7, #6366f1); border-color:#9333ea; color:#fff; padding:2px 10px; font-size:0.7rem; height:24px; flex-shrink:0;">
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px; margin-right:3px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>${dict.btnCopyMerged}
               </button>
             </div>
@@ -6198,14 +6234,16 @@ function switchTab(tab) {
     }
     window.clearMergeInput = clearMergeInput;
 
-    function generateMergedSubscription() {
+        function generateMergedSubscription() {
       const raw = document.getElementById('merge-source-input').value.trim();
       const resultInput = document.getElementById('merge-result-url');
       if (!raw) {
         resultInput.value = '';
         return;
       }
-      const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+      // 🛡️ 强制进行深层递归解包，彻底消除套娃
+      const cleanedRaw = extractPureAirportUrls(raw);
+      const lines = cleanedRaw.split('\n').map(l => l.trim()).filter(Boolean);
       if (lines.length === 0) {
         resultInput.value = '';
         return;
@@ -6270,54 +6308,93 @@ function switchTab(tab) {
     }
     window.previewMergedPlain = previewMergedPlain;
 
-    function saveMergedToHistoryCards() {
-      const url = document.getElementById('merge-result-url').value;
-      const raw = document.getElementById('merge-source-input').value.trim();
-      const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
-      const name = document.getElementById('merge-stream-name').value.trim() || '聚合总流';
-      if (!url || lines.length === 0) {
-        toast.warning('请先输入有效订阅链接');
+    async function saveMergedToHistoryCards() {
+      const resultInput = document.getElementById('merge-result-url');
+      const rawInput = document.getElementById('merge-source-input');
+      const raw = rawInput ? rawInput.value.trim() : '';
+      const name = (document.getElementById('merge-stream-name').value.trim()) || '我的聚合总流';
+      
+      // 🛡️ 强制深层解包提取纯净源
+      const cleanedRaw = extractPureAirportUrls(raw);
+      const lines = cleanedRaw.split('\n').map(l => l.trim()).filter(Boolean);
+      if (lines.length === 0) {
+        toast.warning('请先输入至少 1 条有效的机场订阅链接');
         return;
       }
+      
+      const currentOrigin = (typeof getEffectiveBaseUrl === 'function' ? getEffectiveBaseUrl() : window.location.origin).replace(/\/$/, '');
+      const rawToSave = lines.join('|');
+      let finalDisplayUrl = resultInput ? resultInput.value : '';
+      let subId = null;
+      let subToken = '';
+      
+      // 🚀 核心持久化闭环：同步请求云端签发专属短链！
+      const _tok = localStorage.getItem('subflow_token');
+      if (_tok) {
+        try {
+          const res = await fetch(apiUrl('/api/user/subscriptions'), {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + _tok, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              alias_name: name,
+              source_url: rawToSave,
+              target_format: 'clash'
+            })
+          });
+          if (res.ok) {
+            const d = await res.json();
+            if (d && d.id) {
+              subId = d.id;
+              subToken = d.sub_token || '';
+              // 🌟 核心跃迁：直接将展示链接与复制链接重置为优雅短链！
+              finalDisplayUrl = `${currentOrigin}/sub?id=${subId}&token=${subToken}&target=auto`;
+            }
+          }
+        } catch(err) {
+          console.warn('Save merged to cloud error:', err);
+        }
+      }
+
+      if (!finalDisplayUrl) {
+        finalDisplayUrl = `${currentOrigin}/sub?target=auto&url=${encodeURIComponent(rawToSave)}&udp=true&scv=true`;
+      }
+      
       const newCard = {
-        id: 'merged_' + Date.now(),
+        id: subId ? ('sub_' + subId) : ('merged_' + Date.now()),
+        dbId: subId,
+        sub_token: subToken,
         name: name,
-        url: url,
+        sourceUrl: rawToSave,
+        url: finalDisplayUrl,
         isMerged: true,
         latency: 0,
-        nodeCount: lines.reduce((acc, u) => {
-          const matched = historyList.find(h => h.url === u.trim());
-          return acc + (matched && matched.nodeCount ? matched.nodeCount : 0);
-        }, 0),
+        nodeCount: 0,
         remTraffic: '合并总流',
         expire: '动态聚合',
         subSources: lines.map((u, i) => {
-          const matched = historyList.find(h => h.url === u.trim());
+          let sName = '源 ' + (i + 1);
+          try {
+            const urlObj = new URL(u);
+            sName = urlObj.hostname || sName;
+          } catch(e) {}
           return {
-            name: matched && matched.name ? matched.name : ('源 ' + (i+1)),
-            url: u.trim(),
-            nodeCount: matched && matched.nodeCount ? matched.nodeCount : 0,
-            remTraffic: matched && matched.remTraffic ? matched.remTraffic : '--',
-            expire: matched && matched.expire ? matched.expire : '--'
+            name: sName,
+            url: u,
+            nodeCount: 0,
+            remTraffic: '--',
+            expire: '--'
           };
         })
       };
+
       historyList.unshift(newCard);
       try { localStorage.setItem('subflow_history', JSON.stringify(historyList)); } catch(e) {}
-      // 🚀 核心持久化闭环：同步写入云端数据库
-      const _tok = localStorage.getItem('subflow_token');
-      if (_tok && url) {
-        fetch(apiUrl('/api/user/subscriptions'), {
-          method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + _tok, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            alias_name: name,
-            source_url: url,
-            target_format: 'clash'
-          })
-        }).catch(() => {});
+      
+      if (typeof renderHistoryList === 'function') {
+        renderHistoryList();
       }
-      showSonnerToast('🎉 成功保存为【' + name + '】聚合卡片！已加入历史列表。');
+      
+      showSonnerToast(`🎉 成功保存为【${name}】！已生成专属精巧短链并加入历史列表。`);
     }
     window.saveMergedToHistoryCards = saveMergedToHistoryCards;
 

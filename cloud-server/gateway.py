@@ -2501,17 +2501,26 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
                 return
             # 密文落库
             encrypted_url = encrypt_secret(raw_url)
+            new_sub_token = secrets.token_hex(16)
             with db_lock:
                 conn = get_db()
                 c = conn.cursor()
                 c.execute("""
-                INSERT INTO subscriptions (user_id, alias_name, source_url, target_format)
-                VALUES (?, ?, ?, ?);
-                """, (user_id, alias, encrypted_url, target))
+                INSERT INTO subscriptions (user_id, alias_name, source_url, target_format, sub_token)
+                VALUES (?, ?, ?, ?, ?);
+                """, (user_id, alias, encrypted_url, target, new_sub_token))
                 sub_id = c.lastrowid
                 conn.commit()
                 conn.close()
-            self.send_json({"ok": True, "message": "订阅已安全加密保存至您的私有库", "id": sub_id, "alias": alias})
+            short_url = f"/sub?id={sub_id}&token={new_sub_token}&target={target}"
+            self.send_json({
+                "ok": True,
+                "message": "订阅已安全加密保存至您的私有库",
+                "id": sub_id,
+                "alias": alias,
+                "sub_token": new_sub_token,
+                "short_url": short_url
+            })
             return
 
         

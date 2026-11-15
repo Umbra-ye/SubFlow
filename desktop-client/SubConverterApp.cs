@@ -20,9 +20,9 @@ using Microsoft.Web.WebView2.Core;
 [assembly: AssemblyCompany("SubFlow")]
 [assembly: AssemblyProduct("SubFlow 订阅流")]
 [assembly: AssemblyCopyright("Copyright © SubFlow")]
-[assembly: AssemblyVersion("3.2.0.0")]
-[assembly: AssemblyFileVersion("3.2.0.0")]
-[assembly: AssemblyInformationalVersion("v3.2.0")]
+[assembly: AssemblyVersion("3.3.6.0")]
+[assembly: AssemblyFileVersion("3.3.6.0")]
+[assembly: AssemblyInformationalVersion("v3.3.6")]
 
 namespace SubFlow
 {

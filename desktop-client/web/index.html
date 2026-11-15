@@ -4018,354 +4018,63 @@ function switchTab(tab) {
         });
     }
 
-    function copyHistoryConvertedUrl(sourceUrl, targetFormat = 'auto', forceRemote = false) {
-      let baseUrl = (forceRemote && isTunnelRunning && currentTunnelUrl) ? currentTunnelUrl : getEffectiveBaseUrl();
-      let convertedUrl = `${baseUrl}/sub?target=${targetFormat}&url=${encodeURIComponent(sourceUrl)}`;
-      if (currentServerPin) convertedUrl += `&pin=${encodeURIComponent(currentServerPin)}`;
+    function copyHistoryConvertedUrl(urlOrSource, targetFormat = 'auto', forceRemote = false) {
+      let finalUrl = (urlOrSource || '').trim();
+      const currentOrigin = (typeof getEffectiveBaseUrl === 'function' ? getEffectiveBaseUrl() : window.location.origin).replace(/\/$/, '');
+      let baseUrl = (forceRemote && isTunnelRunning && currentTunnelUrl) ? currentTunnelUrl : currentOrigin;
+
+      // 🛡️ 核心防套娃门禁 1: 若传入的内容是自身签发的聚合短链 (/sub?id= 或 /sub?token=)，直接复制短链，绝对不许再套 /sub?target=！
+      if (finalUrl.includes('/sub?id=') || (finalUrl.includes('/sub?token=') && !finalUrl.includes('url='))) {
+        try {
+          const u = new URL(finalUrl, baseUrl);
+          finalUrl = baseUrl + u.pathname + u.search;
+        } catch(e) {}
+      }
+      // 🛡️ 终极安全护栏：若传入的链接包含自嵌套（url=），以绝对优先级一刀剥开！
+      else if (finalUrl.includes('url=')) {
+        try {
+          const u = new URL(finalUrl, baseUrl);
+          let inner = u.searchParams.get('url');
+          if (inner) {
+            for (let i = 0; i < 3; i++) {
+              if (/%25|%3A|%2F/i.test(inner)) {
+                try { inner = decodeURIComponent(inner); } catch(e) {}
+              }
+            }
+            if (inner.includes('/sub?id=') || inner.includes('/sub?token=')) {
+              finalUrl = inner;
+            }
+          }
+        } catch(e) {}
+        // 若仍包含嵌套，全局正则提取短链
+        if (finalUrl.includes('url=')) {
+          let decoded = finalUrl;
+          try { decoded = decodeURIComponent(decoded); } catch(e) {}
+          const matchShort = decoded.match(/https?:\/\/[^&\s]+\/sub\?id=\d+&token=[a-zA-Z0-9]+(?:&target=\w+)?/);
+          if (matchShort) finalUrl = matchShort[0];
+        }
+      }
+      // 🎯 门禁 3: 只有当传入的是纯粹的外部原订阅且没有任何 /sub 前缀时，才拼接转换参数
+      else if (finalUrl && !finalUrl.includes('/sub?')) {
+        finalUrl = `${baseUrl}/sub?target=${targetFormat}&url=${encodeURIComponent(finalUrl)}`;
+        if (currentServerPin) finalUrl += `&pin=${encodeURIComponent(currentServerPin)}`;
+      }
+
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(convertedUrl).then(() => {
-          showSonnerToast('新链接已复制');
+        navigator.clipboard.writeText(finalUrl).then(() => {
+          showSonnerToast(currentAppLang === 'en' ? '📋 Copied short link!' : '📋 已复制极简短链！客户端可直接粘贴！');
         }).catch(() => {
-          fallbackCopyText(convertedUrl);
+          fallbackCopyText(finalUrl);
         });
       } else {
-        fallbackCopyText(convertedUrl);
+        fallbackCopyText(finalUrl);
       }
       try {
-        fetch(apiUrl(`/api/save-alias?id=auto&url=${encodeURIComponent(sourceUrl)}`)).catch(() => {});
+        fetch(apiUrl(`/api/save-alias?id=auto&url=${encodeURIComponent(urlOrSource)}`)).catch(() => {});
       } catch (e) {}
     }
 
-    let selectedSubIndices = new Set();
-
-    function onSubCheckChanged(e, idx) {
-      if (e.target.checked) {
-        selectedSubIndices.add(idx);
-      } else {
-        selectedSubIndices.delete(idx);
-      }
-      updateBatchBar();
-      const itemEl = document.getElementById('hist-card-' + idx);
-      if (itemEl) {
-        if (selectedSubIndices.has(idx)) itemEl.classList.add('selected-card');
-        else itemEl.classList.remove('selected-card');
-      }
-    }
-
-    function toggleSelectAll(checked) {
-      selectedSubIndices.clear();
-      if (checked) {
-        // 优先勾选所有单机场订阅源
-        const singleIndices = [];
-        historyList.forEach((item, idx) => {
-          if (!item.isMerged) singleIndices.push(idx);
-        });
-        if (singleIndices.length > 0) {
-          singleIndices.forEach(i => selectedSubIndices.add(i));
-        } else {
-          historyList.forEach((_, idx) => selectedSubIndices.add(idx));
-        }
-      }
-      renderHistoryList();
-      updateBatchBar();
-    }
-
-    function clearBatchSelection() {
-      selectedSubIndices.clear();
-      const chkAll = document.getElementById('chk-select-all');
-      if (chkAll) chkAll.checked = false;
-      renderHistoryList();
-      updateBatchBar();
-    }
-
-    function updateBatchBar() {
-      const bar = document.getElementById('batch-merge-bar');
-      const countText = document.getElementById('batch-count-text');
-      const summaryInfo = document.getElementById('batch-summary-info');
-      const chkAll = document.getElementById('chk-select-all');
-      if (!bar) return;
-
-      const dict = i18nDict[currentAppLang] || i18nDict.zh;
-      const count = selectedSubIndices.size;
-      if (chkAll) {
-        const total = historyList.length;
-        if (total > 0 && count === total) {
-          chkAll.checked = true;
-          chkAll.indeterminate = false;
-        } else if (count > 0) {
-          chkAll.checked = false;
-          chkAll.indeterminate = true;
-        } else {
-          chkAll.checked = false;
-          chkAll.indeterminate = false;
-        }
-      }
-
-      if (count === 0) {
-        bar.style.display = 'none';
-        return;
-      }
-
-      bar.style.display = 'flex';
-      countText.textContent = dict.batchCountText.replace('{0}', count);
-
-      if (count >= 2) {
-        const selectedItems = Array.from(selectedSubIndices).map(i => historyList[i]).filter(Boolean);
-        let totalNodes = 0;
-        let totalTrafficGB = 0;
-        let nearestExpire = '';
-        let nearestExpAirport = '';
-
-        selectedItems.forEach(item => {
-          totalNodes += (item.nodeCount || 0);
-          const mTraffic = (item.remTraffic || '').match(/([0-9.]+)\s*GB/i);
-          if (mTraffic) totalTrafficGB += parseFloat(mTraffic[1]);
-
-          const mDate = (item.expire || '').match(/(\d{4}-\d{2}-\d{2})/);
-          if (mDate) {
-            const dStr = mDate[1];
-            if (!nearestExpire || dStr < nearestExpire) {
-              nearestExpire = dStr;
-              nearestExpAirport = item.name.replace(/^[^\w\u4e00-\u9fa5]+/, '').trim();
-            }
-          }
-        });
-
-        if (currentAppLang === 'en') {
-          let summary = `⚡ Merged: ${totalNodes} nodes`;
-          if (totalTrafficGB > 0) summary += ` ｜ 📊 Traffic: ${totalTrafficGB.toFixed(1)} GB`;
-          if (nearestExpire) summary += ` ｜ ⏳ Earliest Exp: ${nearestExpire} (${nearestExpAirport})`;
-          summaryInfo.textContent = summary;
-        } else {
-          let summary = `⚡ 合并共 ${totalNodes} 节点`;
-          if (totalTrafficGB > 0) summary += ` ｜ 📊 合计流量: ${totalTrafficGB.toFixed(1)} GB`;
-          if (nearestExpire) summary += ` ｜ ⏳ 最近到期: ${nearestExpire} (${nearestExpAirport})`;
-          summaryInfo.textContent = summary;
-        }
-      } else {
-        summaryInfo.textContent = dict.batchPromptMore;
-      }
-    }
-
     
-    // 🛡️ 架构级原始机场订阅源提取器: 彻底杜绝任何 /sub?url= 自调用套娃链接存入
-    function getRawAirportUrl(anyUrl) {
-      if (!anyUrl || typeof anyUrl !== 'string') return '';
-      let cur = anyUrl.trim();
-      let depth = 5;
-      while (depth > 0 && cur.includes('/sub?') && cur.includes('url=')) {
-        try {
-          const m = cur.match(/[?&]url=([^&]+)/);
-          if (m) {
-            cur = decodeURIComponent(m[1]).trim();
-            depth--;
-          } else {
-            break;
-          }
-        } catch(e) {
-          break;
-        }
-      }
-      return cur;
-    }
-    window.getRawAirportUrl = getRawAirportUrl;
-
-    function buildMergedCompositeUrl(target = 'auto') {
-      const selectedItems = Array.from(selectedSubIndices).map(i => historyList[i]).filter(Boolean);
-      if (selectedItems.length === 0) return '';
-      const parts = selectedItems.map((item, idx) => {
-        let cleanUrl = item.url.split('#')[0];
-        let tag = (item.name || '').replace(/^[^\w\u4e00-\u9fa5]+/, '').replace(/[\(\)（）\s]/g, '').trim();
-        const isDomain = tag.includes('.com') || tag.includes('.cc') || tag.includes('.cd') || tag.includes('.net') || tag.includes('.org') || tag.includes('.xyz') || tag.includes('.dev') || tag.includes('.cn') || tag.includes('://');
-        if (isDomain || !tag) {
-          tag = String.fromCharCode(65 + (idx % 26));
-        }
-        return cleanUrl + '#' + encodeURIComponent(tag);
-      });
-      const composite = parts.join('|');
-      return `${getEffectiveBaseUrl()}/sub?target=${target}&url=${encodeURIComponent(composite)}&udp=true&scv=true`;
-    }
-
-    function copyMergedSelected() {
-      if (selectedSubIndices.size < 2) {
-        showSonnerToast('⚠️ 请至少勾选 2 个机场订阅进行合并！');
-        return;
-      }
-      const mergedUrl = buildMergedCompositeUrl('auto');
-      navigator.clipboard.writeText(mergedUrl).then(() => {
-        showSonnerToast('新链接已复制');
-      }).catch(() => {
-        toast.error('剪贴板复制失败');
-      });
-    }
-
-    function importMergedToFlClash() {
-      if (selectedSubIndices.size < 2) {
-        showSonnerToast('⚠️ 请至少勾选 2 个机场订阅进行合并！');
-        return;
-      }
-      const clashUrl = buildMergedCompositeUrl('clash');
-      showSonnerToast('🚀 正在一键唤醒 FlClash 导入多源聚合总订阅...');
-      fetch(apiUrl(`/api/import-flclash?url=${encodeURIComponent(clashUrl)}`))
-        .then(r => r.json())
-        .then(data => {
-          if (data.ok) showSonnerToast('✅ 已唤醒 FlClash！请在弹出的窗口中确认保存。');
-          else window.location.href = `clash://install-config?url=${encodeURIComponent(clashUrl)}&name=SubFlow-Merged`;
-        })
-        .catch(() => {
-          window.location.href = `clash://install-config?url=${encodeURIComponent(clashUrl)}&name=SubFlow-Merged`;
-        });
-    }
-
-    function previewMergedSelected() {
-      if (selectedSubIndices.size < 2) {
-        showSonnerToast('⚠️ 请至少勾选 2 个机场订阅进行合并！');
-        return;
-      }
-      const clashUrl = buildMergedCompositeUrl('clash');
-      openPreviewModal(clashUrl);
-    }
-
-    function loadMergedToConvert() {
-      if (selectedSubIndices.size < 2) {
-        showSonnerToast('⚠️ 请至少勾选 2 个机场订阅进行合并！');
-        return;
-      }
-      const selectedItems = Array.from(selectedSubIndices).map(i => historyList[i]).filter(Boolean);
-      const compositeInput = selectedItems.map(item => item.url).join('|');
-      document.getElementById('source-input').value = compositeInput;
-      switchTab('convert');
-      autoDetect();
-      showSonnerToast('⚡ 已将多订阅聚合流载入转换面板！');
-    }
-
-    function saveSelectedAsMergedCard() {
-      if (selectedSubIndices.size < 2) {
-        showSonnerToast('⚠️ 请至少勾选 2 个机场订阅进行合并保存！');
-        return;
-      }
-      const selectedItems = Array.from(selectedSubIndices).map(i => historyList[i]).filter(Boolean);
-      
-      let totalNodes = 0;
-      let totalTrafficGB = 0;
-      let nearestExpire = '';
-      let nearestExpAirport = '';
-      const subSources = [];
-
-      selectedItems.forEach(item => {
-        const cleanName = item.name.replace(/^[^\w\u4e00-\u9fa5]+/, '').replace(/[\(\)（）\s]/g, '').trim();
-        totalNodes += (item.nodeCount || 0);
-        
-        const mTraffic = (item.remTraffic || '').match(/([0-9.]+)\s*GB/i);
-        if (mTraffic) totalTrafficGB += parseFloat(mTraffic[1]);
-
-        const mDate = (item.expire || '').match(/(\d{4}-\d{2}-\d{2})/);
-        if (mDate) {
-          const dStr = mDate[1];
-          if (!nearestExpire || dStr < nearestExpire) {
-            nearestExpire = dStr;
-            nearestExpAirport = cleanName;
-          }
-        }
-
-        subSources.push({
-          name: cleanName,
-          url: item.url,
-          nodeCount: item.nodeCount || 0,
-          remTraffic: item.remTraffic || '--',
-          expire: item.expire || '--'
-        });
-      });
-
-      const airportNames = subSources.map(s => `[${s.name}]`).join(' + ');
-      const mergedCard = {
-        id: 'merged_' + Date.now(),
-        isMerged: true,
-        name: `👑 聚合总流 · ${airportNames}`,
-        url: buildMergedCompositeUrl('auto'),
-        latency: 0,
-        nodeCount: totalNodes,
-        remTraffic: `${totalTrafficGB > 0 ? totalTrafficGB.toFixed(1) + ' GB' : '合计可用'}`,
-        expire: `${nearestExpire ? nearestExpire + ' (' + nearestExpAirport + ')' : '按各源有效'}`,
-        subSources: subSources,
-        status: 'online'
-      };
-
-      // 🌟 核心突破：多源合并短链化 (打通云端数据库与本地 C# 别名网关，100% 告别超长明文！)
-      const rawUrls = subSources.map(s => {
-        let u = s.url || s.sourceUrl || '';
-        if (typeof getRawAirportUrl === 'function') u = getRawAirportUrl(u);
-        return u;
-      }).filter(Boolean).join('|');
-
-      const _tok = localStorage.getItem('subflow_token');
-      const isCloud = Boolean(_tok) && !window.location.origin.includes('127.0.0.1') && !window.location.origin.startsWith('file://');
-
-      if (isCloud) {
-        fetch(apiUrl('/api/user/subscriptions'), {
-          method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + _tok, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            alias_name: mergedCard.name,
-            source_url: rawUrls,
-            target_format: 'clash'
-          })
-        }).then(r => r.json()).then(data => {
-          if (data && data.id) {
-            mergedCard.dbId = data.id;
-            if (data.sub_token) {
-              mergedCard.sub_token = data.sub_token;
-              mergedCard.url = `${getEffectiveBaseUrl()}/sub?id=${data.id}&token=${data.sub_token}&target=auto`;
-              if (typeof renderHistoryList === 'function') renderHistoryList();
-            }
-            try { localStorage.setItem('subflow_history', JSON.stringify(historyList)); } catch(e) {}
-          }
-        }).catch(() => {});
-      } else {
-        // 本地单机离线模式：立即注册本地 C# 别名短链
-        const randTag = Math.random().toString(36).substring(2, 8);
-        const shortMergedId = 'merged_' + (historyList.length + 1) + '_' + randTag;
-        mergedCard.shortAlias = shortMergedId;
-        mergedCard.url = `${getEffectiveBaseUrl()}/sub?id=${shortMergedId}&target=auto`;
-        try {
-          fetch(apiUrl('/api/save-alias?id=' + encodeURIComponent(shortMergedId) + '&url=' + encodeURIComponent(rawUrls))).catch(() => {});
-        } catch(e) {}
-      }
-
-      historyList.unshift(mergedCard);
-      try { localStorage.setItem('subflow_history', JSON.stringify(historyList)); } catch(e) {}
-      
-      selectedSubIndices.clear();
-      renderHistoryList();
-      updateBatchBar();
-      showSonnerToast('👑 成功保存为【' + mergedCard.name + '】聚合卡片！各机场流量与到期已精巧分列。');
-    }
-
-    
-    // 👑 订阅全生命周期垃圾回收与引用计数审计 (Zero-Orphan Reference Counting & Auto Purge)
-    function checkAndPurgeOrphanSubscription(targetUrl) {
-      if (!targetUrl) return;
-      const cleanTarget = targetUrl.split('#')[0].trim();
-      let refCount = 0;
-      for (const h of historyList) {
-        if (!h.isMerged && h.url && h.url.split('#')[0].trim() === cleanTarget) {
-          refCount++;
-        }
-        if (h.isMerged && Array.isArray(h.subSources)) {
-          for (const s of h.subSources) {
-            if (s.url && s.url.split('#')[0].trim() === cleanTarget) {
-              refCount++;
-            }
-          }
-        }
-      }
-      if (refCount === 0) {
-        console.log('[GC Purge] 订阅已彻底移出所有单链与合并链，执行底层物理缓存清理:', cleanTarget);
-        fetch(apiUrl('/api/purge-cache?url=' + encodeURIComponent(cleanTarget))).catch(() => {});
-      }
-    }
-
-    // 👑 合并卡片精细解构: 从合并总链中精准移出单个子机场 (不影响独立单订阅)
     
     
     // 👑 智能单卡数据即时映射 (优先直接复用单卡数据，单卡不存在时才独立请求)
@@ -4809,6 +4518,23 @@ function switchTab(tab) {
         const currentOrigin = (typeof getEffectiveBaseUrl === 'function' ? getEffectiveBaseUrl() : window.location.origin).replace(/\/$/, '');
         historyList.forEach((item, idx) => {
           if (!item) return;
+
+          // 🚀 核心自愈铁律：彻底物理消灭一切长链，全量卡片强制重塑为纯净私有短链
+          const realCardId = item.dbId || item.id;
+          if (realCardId && item.sub_token) {
+            const cleanShortUrl = currentOrigin + '/sub?id=' + realCardId + '&token=' + item.sub_token + '&target=auto';
+            if (item.url !== cleanShortUrl) {
+              item.url = cleanShortUrl;
+              listDirty = true;
+            }
+          } else if (item.url && item.url.includes('url=')) {
+            const shortMatch = item.url.match(/\/sub\?id=\d+&token=[a-zA-Z0-9]+(?:&target=\w+)?/);
+            if (shortMatch) {
+              item.url = currentOrigin + shortMatch[0];
+              listDirty = true;
+            }
+          }
+
           if (item.isMerged) {
             // 🚀 核心自愈：自动同步继承单卡测活与名称
             if (typeof syncMergedCardFromSingleCards === 'function') {

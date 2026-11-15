@@ -4066,13 +4066,43 @@ function switchTab(tab) {
         isMerged: true,
         name: `👑 聚合总流 · ${airportNames}`,
         url: buildMergedCompositeUrl('auto'),
-        latency: 0, // 未测速诚实展示 0
+        latency: 0,
         nodeCount: totalNodes,
         remTraffic: `${totalTrafficGB > 0 ? totalTrafficGB.toFixed(1) + ' GB' : '合计可用'}`,
         expire: `${nearestExpire ? nearestExpire + ' (' + nearestExpAirport + ')' : '按各源有效'}`,
         subSources: subSources,
         status: 'online'
       };
+
+      // 🌟 核心突破：如果已登录，立即后台自动落库建档生成专属短链，彻底告别几百字符的超长明文！
+      const _tok = localStorage.getItem('subflow_token');
+      if (_tok) {
+        const rawUrls = subSources.map(s => {
+          let u = s.url || s.sourceUrl || '';
+          if (typeof getRawAirportUrl === 'function') u = getRawAirportUrl(u);
+          return u;
+        }).filter(Boolean).join('|');
+
+        fetch(apiUrl('/api/user/subscriptions'), {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + _tok, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            alias_name: mergedCard.name,
+            source_url: rawUrls,
+            target_format: 'clash'
+          })
+        }).then(r => r.json()).then(data => {
+          if (data && data.id) {
+            mergedCard.dbId = data.id;
+            if (data.sub_token) {
+              mergedCard.sub_token = data.sub_token;
+              mergedCard.url = `${getEffectiveBaseUrl()}/sub?id=${data.id}&token=${data.sub_token}&target=auto`;
+              if (typeof renderHistoryList === 'function') renderHistoryList();
+            }
+            try { localStorage.setItem('subflow_history', JSON.stringify(historyList)); } catch(e) {}
+          }
+        }).catch(() => {});
+      }
 
       historyList.unshift(mergedCard);
       try { localStorage.setItem('subflow_history', JSON.stringify(historyList)); } catch(e) {}
@@ -4390,21 +4420,25 @@ function switchTab(tab) {
       const authToken = localStorage.getItem('subflow_token');
       const currentOrigin = (typeof getEffectiveBaseUrl === 'function' ? getEffectiveBaseUrl() : window.location.origin).replace(/\/$/, '');
 
-      // 视觉微光反馈辅助函数：精准靶向【转换链】(converted-url-text)，绝对不碰【原订阅】！
+      // 视觉微光反馈辅助函数：精准靶向【转换链】与【聚合总链】，绝对不碰上排【原订阅】！
       const triggerGlowFeedback = (newUrl) => {
         let urlEl = null;
         if (e && e.target) {
-          // 优先在【刷新】按钮同行的 div 容器内提取对应的转换链 span
+          // 优先在【刷新】按钮同行的 div 容器内提取对应文本 span
           const rowDiv = e.target.closest('div');
-          if (rowDiv) urlEl = rowDiv.querySelector('.history-url-text');
+          if (rowDiv) {
+            urlEl = rowDiv.querySelector('.converted-url-text') || 
+                    rowDiv.querySelector('.merged-url-text') || 
+                    rowDiv.querySelector('.history-url-text:not(.raw-url-text)');
+          }
         }
         if (!urlEl) {
           const cardEl = document.getElementById('hist-card-' + idx);
           if (cardEl) {
-            // 优先查找 converted-url-text，若无则取卡片内最后一个 history-url-text (单卡最后一排必为转换链)
-            urlEl = cardEl.querySelector('.converted-url-text');
+            urlEl = cardEl.querySelector('.converted-url-text') || 
+                    cardEl.querySelector('.merged-url-text');
             if (!urlEl) {
-              const allSpans = cardEl.querySelectorAll('.history-url-text');
+              const allSpans = cardEl.querySelectorAll('.history-url-text:not(.raw-url-text)');
               if (allSpans.length > 0) urlEl = allSpans[allSpans.length - 1];
             }
           }
@@ -4425,14 +4459,55 @@ function switchTab(tab) {
         // 同步更新同一排的复制按钮 onclick 属性
         const cardEl = document.getElementById('hist-card-' + idx) || (e && e.target ? e.target.closest('.history-item') : null);
         if (cardEl) {
-          const copyBtn = cardEl.querySelector('.copy-url-btn.primary, .copy-converted-btn');
+          const copyBtn = cardEl.querySelector('.copy-url-btn.converted, .copy-url-btn.primary, .copy-converted-btn');
           if (copyBtn) {
-            copyBtn.setAttribute('onclick', `copyConvertedUrl('${newUrl}')`);
+            copyBtn.setAttribute('onclick', "copyHistoryConvertedUrl('" + newUrl.replace(/'/g, "\\'") + "', 'auto')");
           }
         }
       };
 
-      // 1. 如果有 dbId，精准调用该订阅独立作废与轮转换新接口
+      // 🎯 步骤 1: 智能自愈落库 (若当前卡片尚未在数据库建档，现场自动注册获取真实 dbId 与 sub_token)
+      if (!item.dbId && authToken) {
+        try {
+          let rawToSave = '';
+          if (item.isMerged) {
+            if (Array.isArray(item.subSources) && item.subSources.length > 0) {
+              rawToSave = item.subSources.map(s => {
+                let u = s.url || s.sourceUrl || '';
+                if (typeof getRawAirportUrl === 'function') u = getRawAirportUrl(u);
+                return u;
+              }).filter(Boolean).join('|');
+            } else {
+              rawToSave = item.sourceUrl || item.url;
+            }
+          } else {
+            rawToSave = (typeof getRawAirportUrl === 'function' ? getRawAirportUrl(item.sourceUrl || item.url) : (item.sourceUrl || item.url));
+          }
+
+          const createRes = await fetch(apiUrl('/api/user/subscriptions'), {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + authToken, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              alias_name: item.name || (item.isMerged ? '我的聚合总流' : '我的订阅'),
+              source_url: rawToSave,
+              target_format: 'clash'
+            })
+          });
+          if (createRes.ok) {
+            const createData = await createRes.json();
+            if (createData && createData.id) {
+              item.dbId = createData.id;
+              if (createData.sub_token) {
+                item.sub_token = createData.sub_token;
+              }
+            }
+          }
+        } catch(err) {
+          console.warn('Auto-persist on refresh error:', err);
+        }
+      }
+
+      // 🎯 步骤 2: 拥有正式 dbId 时，调用单订阅精准轮转密钥与旧链作废接口
       if (item.dbId && authToken) {
         try {
           const res = await fetch(apiUrl('/api/user/subscriptions/' + item.dbId + '/rotate-token'), {
@@ -4445,22 +4520,19 @@ function switchTab(tab) {
           if (res.ok) {
             const data = await res.json();
             const newSubToken = data.new_sub_token;
-            // 组装专属于该订阅的全新短链
-            const newShortUrl = `${currentOrigin}/sub?id=${item.dbId}&token=${newSubToken}&target=auto`;
+            // 组装专属于该订阅的全新独立高可用短链
+            const newShortUrl = currentOrigin + '/sub?id=' + item.dbId + '&token=' + newSubToken + '&target=auto';
             item.sub_token = newSubToken;
             item.url = newShortUrl;
             try { localStorage.setItem('subflow_history', JSON.stringify(window.historyList)); } catch(err) {}
 
-            // 原地精准刷新展示文本
             triggerGlowFeedback(newShortUrl);
 
-            // 写入剪贴板
             if (navigator.clipboard && navigator.clipboard.writeText) {
               navigator.clipboard.writeText(newShortUrl).catch(() => {});
             }
 
             renderHistoryList();
-            // 确保重绘后依然保持最新短链展示
             triggerGlowFeedback(newShortUrl);
             showSonnerToast('新链接已复制');
             return;
@@ -4470,18 +4542,26 @@ function switchTab(tab) {
         }
       }
 
-      // 2. 兜底（如单机未落库卡片）
-      const userToken = (window.SUBFLOW_USER && window.SUBFLOW_USER.token) || localStorage.getItem('subflow_user_token') || 'sub_guest';
-      const fallbackUrl = `${currentOrigin}/sub?token=${userToken}&target=auto`;
-      item.url = fallbackUrl;
+      // 🎯 步骤 3: 离线/未登录模式安全兜底 (严禁使用假兜底数据，100% 保留真实节点并附加防缓存时间戳)
+      let realUrl = item.url || (item.sourceUrl ? (currentOrigin + '/sub?target=auto&url=' + encodeURIComponent(item.sourceUrl)) : '');
+      if (realUrl) {
+        try {
+          const u = new URL(realUrl, currentOrigin);
+          u.searchParams.set('_t', Date.now().toString());
+          realUrl = u.toString();
+        } catch(e) {
+          realUrl = realUrl + (realUrl.includes('?') ? '&' : '?') + '_t=' + Date.now();
+        }
+      }
+      item.url = realUrl;
       try { localStorage.setItem('subflow_history', JSON.stringify(window.historyList)); } catch(err) {}
       
-      triggerGlowFeedback(fallbackUrl);
+      triggerGlowFeedback(realUrl);
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(fallbackUrl).catch(() => {});
+        navigator.clipboard.writeText(realUrl).catch(() => {});
       }
       renderHistoryList();
-      triggerGlowFeedback(fallbackUrl);
+      triggerGlowFeedback(realUrl);
       showSonnerToast('新链接已复制');
     }
 
@@ -4505,14 +4585,20 @@ function switchTab(tab) {
             }
           } else {
             // 1. 修复双链重合：如果 url 缺失转换前缀或等于 sourceUrl
-            const raw = (item.sourceUrl || (typeof unwrapSubFlowUrl === 'function' ? unwrapSubFlowUrl(item.url) : item.url) || item.url || '').trim();
-            if (raw) {
-              item.sourceUrl = raw;
-              const hasSubPrefix = item.url && (item.url.includes('/sub?') || item.url.includes('target='));
-              if (!hasSubPrefix || item.url === raw) {
-                item.url = `${currentOrigin}/sub?target=auto&url=${encodeURIComponent(raw)}`;
-                listDirty = true;
-              }
+            // 🛡️ 保护真实原订阅：严禁将短链误当作原订阅反写
+            if (item.sourceUrl && (item.sourceUrl.includes('/sub?id=') || (item.sourceUrl.includes('/sub?token=') && !item.sourceUrl.includes('url=')))) {
+              item.sourceUrl = '';
+              listDirty = true;
+            }
+            if (!item.sourceUrl && item.url && item.url.includes('url=')) {
+              try {
+                const u = new URL(item.url, currentOrigin);
+                const inner = u.searchParams.get('url');
+                if (inner) {
+                  item.sourceUrl = inner.trim();
+                  listDirty = true;
+                }
+              } catch(e) {}
             }
             // 2. 彻底清洗虚假兜底（“不限流量” / “长期有效”）
             if (item.remTraffic === '不限' || item.remTraffic === '不限流量') {
@@ -4606,7 +4692,7 @@ function switchTab(tab) {
             <!-- 2. 中间通栏聚合总链条 (充满横向空间，带高亮一键复制) -->
             <div style="display:flex; align-items:center; gap:8px; background:rgba(168,85,247,0.06); padding:5px 10px; border-radius:6px; border:1px solid rgba(168,85,247,0.2); width:100%; box-sizing:border-box;">
               <span style="font-size:0.68rem; font-weight:700; color:#c084fc; background:rgba(168,85,247,0.18); border:1px solid rgba(168,85,247,0.3); padding:1.5px 6px; border-radius:4px; flex-shrink:0;">聚合总链</span>
-              <span class="history-url-text" style="font-size:0.75rem; color:var(--text-muted); font-family:monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;" title="${item.url}">${item.url}</span>
+              <span class="history-url-text merged-url-text" style="font-size:0.75rem; color:var(--text-muted); font-family:monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;" title="${item.url}">${item.url}</span>
               <button class="refresh-url-btn merged" onclick="refreshCardToShortUrl(${idx}, event)" title="一键重置密钥并作废旧链接"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; vertical-align:-1px;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg> <span>刷新</span></button><button class="action-btn primary" onclick="copyHistoryConvertedUrl('${item.url}', 'auto')" title="${dict.btnCopyMerged}" style="background:linear-gradient(135deg, #a855f7, #6366f1); border-color:#9333ea; color:#fff; padding:2px 10px; font-size:0.7rem; height:24px; flex-shrink:0;">
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px; margin-right:3px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>${dict.btnCopyMerged}
               </button>

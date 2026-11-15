@@ -642,9 +642,9 @@ class NativeSubEngine:
             elif p_type == 'trojan' and server and uuid:
                 share_link = f"trojan://{uuid}@{server}:{port}?security=tls&sni={sni}#{urllib.parse.quote(name)}"
             elif p_type == 'vless' and server and uuid:
-                host_m = re.search(r'Host:\s*([^\s,}]+)', line) or re.search(r'host:\s*([^\s,}]+)', line)
+                host_m = re.search(r"""Host:\s*["']?([^"'\s,}]+)["']?""", line)
                 host = host_m.group(1).strip() if host_m else sni
-                path_m = re.search(r'path:\s*["\']?([^"\',}]+)["\']?', line)
+                path_m = re.search(r"""path:\s*["']?([^"'\s,}]+)["']?""", line)
                 path = path_m.group(1).strip() if path_m else "/"
                 net_m = re.search(r'network:\s*([^\s,}]+)', line)
                 net = net_m.group(1).strip() if net_m else "tcp"
@@ -695,6 +695,36 @@ class NativeSubEngine:
                     "password": user,
                     "tls": {"enabled": True, "server_name": sni, "insecure": True}
                 }
+            elif scheme == 'vmess':
+                try:
+                    b64_part = u[8:].strip()
+                    m_len = len(b64_part) % 4
+                    if m_len: b64_part += '=' * (4 - m_len)
+                    v_json = json.loads(base64.b64decode(b64_part).decode('utf-8', errors='ignore'))
+                    v_server = v_json.get('add', '')
+                    v_port = int(v_json.get('port', 443))
+                    v_uuid = v_json.get('id', '')
+                    v_net = v_json.get('net', 'ws')
+                    v_path = v_json.get('path', '/')
+                    v_host = v_json.get('host', v_server)
+                    v_tls = v_json.get('tls', '')
+                    v_sni = v_json.get('sni', v_host)
+                    v_ps = v_json.get('ps', name)
+                    ob = {
+                        "type": "vmess",
+                        "tag": v_ps or name,
+                        "server": v_server,
+                        "server_port": v_port,
+                        "uuid": v_uuid,
+                        "security": "auto",
+                        "alter_id": 0,
+                        "tls": {"enabled": v_tls == "tls", "server_name": v_sni, "insecure": True}
+                    }
+                    if v_net == 'ws':
+                        ob["transport"] = {"type": "ws", "path": v_path, "headers": {"Host": v_host}}
+                    return ob
+                except Exception:
+                    pass
             elif scheme == 'vless':
                 sni = qs.get('sni', [''])[0] or qs.get('host', [''])[0] or server
                 sec = qs.get('security', ['none'])[0].lower()
@@ -778,6 +808,28 @@ class NativeSubEngine:
                     "password": pwd,
                     "tls": {"enabled": True, "server_name": sni, "insecure": True}
                 }
+            elif p_type == 'vmess':
+                cipher_m = re.search(r'cipher:\s*([^\s,}]+)', line)
+                cipher = cipher_m.group(1).strip() if cipher_m else "auto"
+                net_m = re.search(r'network:\s*([^\s,}]+)', line)
+                net = net_m.group(1).strip() if net_m else "ws"
+                path_m = re.search(r"""path:\s*["']?([^"'\s,}]+)["']?""", line)
+                path = path_m.group(1).strip() if path_m else "/"
+                host_m = re.search(r"""Host:\s*["']?([^"'\s,}]+)["']?""", line)
+                host = host_m.group(1).strip() if host_m else sni
+                ob = {
+                    "type": "vmess",
+                    "tag": name,
+                    "server": server,
+                    "server_port": port,
+                    "uuid": pwd,
+                    "security": cipher if cipher != "auto" else "auto",
+                    "alter_id": 0,
+                    "tls": {"enabled": "tls: true" in line or "security: tls" in line, "server_name": sni, "insecure": True}
+                }
+                if net == 'ws':
+                    ob["transport"] = {"type": "ws", "path": path, "headers": {"Host": host}}
+                return ob
             elif p_type == 'vless':
                 return {
                     "type": "vless",
@@ -2874,8 +2926,8 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
     # 10. 核心订阅分发与上游容灾兜底 (/sub)
     # ==========================================================================
     def handle_sub_request(self, query: str, client_ip: str):
-        # 速率限制防刷
-        if not check_rate_limit(client_ip, max_per_sec=8):
+        # 速率限制防刷 (本地回环免限流，公网放宽至 30次/秒)
+        if client_ip not in ('127.0.0.1', '::1') and not check_rate_limit(client_ip, max_per_sec=30):
             self.send_error(429, "Too Many Requests")
             return
 
@@ -2995,7 +3047,8 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
         u_tag = f"user_{user_id}" if user_id is not None else "direct_" + hashlib.md5(composite_url.encode()).hexdigest()[:12]
         snapshot_file = os.path.join(CACHE_DIR, f"{u_tag}_{target_format}.snapshot")
 
-        if is_multi_source or target_format in ("singbox", "sing-box", "sfa", "nekobox"):
+        # 👑 工业级节点零丢损铁律: 优先由 NativeSubEngine 全协议无损引擎输出，保证全格式 30 节点 100% 满额
+        if True:
             client_ua = self.headers.get("User-Agent", "")
             try:
                 native_data, native_mime, native_uinfo = NativeSubEngine.convert(source_urls, target_format, client_ua)

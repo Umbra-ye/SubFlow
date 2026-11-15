@@ -1640,6 +1640,18 @@ namespace SubFlow
                         item.ShareLink = string.Format("ss://{0}@{1}:{2}#{3}",
                             auth, serverIp, port, Uri.EscapeDataString(item.Name));
                     }
+                    else if (line.Contains("type: vmess") && !string.IsNullOrEmpty(serverIp) && !string.IsNullOrEmpty(port))
+                    {
+                        string uuid = GetRegexVal(line, @"uuid:\s*([^\s,}]+)");
+                        string net = GetRegexVal(line, @"network:\s*([^\s,}]+)") ?? "ws";
+                        string sec = line.Contains("tls: true") ? "tls" : "none";
+                        string path = GetRegexVal(line, @"path:\s*([^\s,}]+)") ?? "/";
+                        string host = GetRegexVal(line, @"Host:\s*([^\s,}]+)") ?? serverIp;
+                        string vmessJson = string.Format("{{\"v\":\"2\",\"ps\":\"{0}\",\"add\":\"{1}\",\"port\":\"{2}\",\"id\":\"{3}\",\"aid\":\"0\",\"scy\":\"auto\",\"net\":\"{4}\",\"type\":\"none\",\"host\":\"{5}\",\"path\":\"{6}\",\"tls\":\"{7}\",\"sni\":\"{8}\",\"alpn\":\"\"}}",
+                            item.Name.Replace("\"", "\""), serverIp, port, uuid, net, host, path, sec, host);
+                        string vmessB64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(vmessJson));
+                        item.ShareLink = "vmess://" + vmessB64;
+                    }
                     list.Add(item);
                 }
                 return list;
@@ -1984,6 +1996,52 @@ namespace SubFlow
                         ob.Append("      \"tls\": {\n        \"enabled\": true,\n        \"server_name\": \"" + sni + "\",\n        \"insecure\": false\n      }\n");
                         ob.Append("    }");
                         nodeJson = ob.ToString();
+                    }
+                    catch { }
+                }
+                else if (share.StartsWith("vmess://", StringComparison.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        string b64 = share.Substring(8).Trim();
+                        int mod4 = b64.Length % 4;
+                        if (mod4 > 0) b64 += new string('=', 4 - mod4);
+                        string vjson = Encoding.UTF8.GetString(Convert.FromBase64String(b64));
+
+                        string server = GetRegexVal(vjson, @"""add""\s*:\s*""([^""]+)""") ?? "";
+                        string portStr = GetRegexVal(vjson, @"""port""\s*:\s*""?([0-9]+)""?") ?? "443";
+                        int port = 443; int.TryParse(portStr, out port);
+                        string uuid = GetRegexVal(vjson, @"""id""\s*:\s*""([^""]+)""") ?? "";
+                        string net = GetRegexVal(vjson, @"""net""\s*:\s*""([^""]+)""") ?? "ws";
+                        string path = GetRegexVal(vjson, @"""path""\s*:\s*""([^""]+)""") ?? "/";
+                        string host = GetRegexVal(vjson, @"""host""\s*:\s*""([^""]+)""") ?? server;
+                        string tls = GetRegexVal(vjson, @"""tls""\s*:\s*""([^""]+)""") ?? "";
+                        string sni = GetRegexVal(vjson, @"""sni""\s*:\s*""([^""]+)""") ?? host;
+
+                        if (!string.IsNullOrEmpty(server) && !string.IsNullOrEmpty(uuid))
+                        {
+                            StringBuilder ob = new StringBuilder();
+                            ob.Append("    {\n");
+                            ob.Append("      \"type\": \"vmess\",\n");
+                            ob.Append("      \"tag\": \"" + escapedTag + "\",\n");
+                            ob.Append("      \"server\": \"" + server + "\",\n");
+                            ob.Append("      \"server_port\": " + port + ",\n");
+                            ob.Append("      \"uuid\": \"" + uuid + "\",\n");
+                            ob.Append("      \"security\": \"auto\",\n");
+                            ob.Append("      \"alter_id\": 0");
+
+                            if (tls == "tls")
+                            {
+                                ob.Append(",\n      \"tls\": {\n        \"enabled\": true,\n        \"server_name\": \"" + sni + "\",\n        \"insecure\": false\n      }");
+                            }
+
+                            if (net == "ws")
+                            {
+                                ob.Append(",\n      \"transport\": {\n        \"type\": \"ws\",\n        \"path\": \"" + path.Replace("\"", "\"") + "\",\n        \"headers\": { \"Host\": \"" + host + "\" }\n      }");
+                            }
+                            ob.Append("\n    }");
+                            nodeJson = ob.ToString();
+                        }
                     }
                     catch { }
                 }

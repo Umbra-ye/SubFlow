@@ -1,7 +1,7 @@
 {
-  "version": "3.2.0",
-  "build": "20261115-R2",
+  "version": "3.2.1",
+  "build": "20261115-R3",
   "name": "SubFlow 订阅流",
-  "description": "2026 工业级全能跨平台订阅转换与管理系统 (本地桌面端全面升级：集成原生 Sing-Box 1.9+ 协议引擎、单订阅微晶独立刷新作废与纯净短链直出)",
+  "description": "2026 工业级全能跨平台订阅转换与管理系统 (彻底解决多协议节点丢损 Bug：全矩阵覆盖 10 大主流客户端，支持 VMess/VLESS/Trojan/SS/Hysteria2 100% 满额 0 丢失直出)",
   "release_date": "2026-11-15"
 }

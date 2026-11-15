@@ -5913,15 +5913,7 @@ function switchTab(tab) {
     async function checkAuthStatus() {
       // 严格硬件级判定：仅当运行在个人电脑的 SubFlow.exe 本地桌面客户端 (WebView2 原生宿主) 时才免密直通
       // 部署在云端 Windows 服务器或云端 Linux VPS 时，外部浏览器访问无 webview 宿主，统一执行 100% 高安全门禁与邀请制！
-      const isNativeDesktopApp = !!(window.chrome && window.chrome.webview);
-
-      if (isNativeDesktopApp) {
-        // 本地桌面客户端主人：秒进工作台
-        const localMasterUser = { username: '本地主机', role: 'admin' };
-        window.SUBFLOW_USER = localMasterUser;
-        unlockAppView(localMasterUser);
-        return;
-      }
+      // [物理架构解耦] 云端服务器版物理彻底移除本地免登分支，100% 强制走云端高安全门禁！
       // 检查记住密码与自动回填
       try {
         const isRem = localStorage.getItem('subflow_remember') === 'true';

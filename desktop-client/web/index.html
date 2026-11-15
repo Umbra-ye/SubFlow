@@ -77,6 +77,74 @@
       return curr;
     }
     window.unwrapSubFlowUrl = unwrapSubFlowUrl;
+    function extractPureAirportUrls(inputStr) {
+      if (!inputStr) return '';
+      const results = [];
+      const seen = new Set();
+
+      function processItem(item, depth) {
+        if (depth > 12 || !item) return;
+        let cur = String(item).trim();
+        if (!cur) return;
+
+        // 1. 拆分竖线或换行
+        if (cur.includes('|')) {
+          cur.split('|').forEach(p => processItem(p, depth + 1));
+          return;
+        }
+        if (cur.includes('\n') || cur.includes('\r')) {
+          cur.split(/\r?\n/).forEach(p => processItem(p, depth + 1));
+          return;
+        }
+
+        // 2. 检测中转链接 [?&]url=
+        const m = cur.match(/[?&]url=([^&]+)/);
+        if (m && m[1]) {
+          let val = m[1].trim();
+          try {
+            val = decodeURIComponent(val);
+          } catch (e) {
+            try { val = unescape(val); } catch (e2) {}
+          }
+          processItem(val, depth + 1);
+          return;
+        }
+
+        // 3. 递归还原多重编码 (%253A -> %3A -> :)
+        let cleanUrl = cur;
+        for (let i = 0; i < 4; i++) {
+          if (/%25|%3A|%2F/i.test(cleanUrl)) {
+            try {
+              cleanUrl = decodeURIComponent(cleanUrl);
+            } catch (e) {
+              break;
+            }
+          } else {
+            break;
+          }
+        }
+
+        if (cleanUrl !== cur) {
+          if (cleanUrl.includes('|') || /[?&]url=/i.test(cleanUrl)) {
+            processItem(cleanUrl, depth + 1);
+            return;
+          }
+        }
+
+        // 4. 标准协议头判定
+        if (/^https?:\/\//i.test(cleanUrl)) {
+          if (!seen.has(cleanUrl)) {
+            seen.add(cleanUrl);
+            results.push(cleanUrl);
+          }
+        }
+      }
+
+      processItem(inputStr, 0);
+      return results.join('\n');
+    }
+    window.extractPureAirportUrls = extractPureAirportUrls;
+
 
     // 🌐 全局域名动态联动刷新中枢
     function applyGlobalDomainUpdate(domain) {
@@ -5602,16 +5670,30 @@ function switchTab(tab) {
         historyList.forEach(item => {
           const btn = document.createElement('button');
           btn.className = 'secondary-btn';
-          btn.style.cssText = 'padding:4px 8px; font-size:0.75rem;';
+          btn.style.cssText = 'padding:4px 8px; font-size:0.75rem; cursor:pointer;';
           btn.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px; margin-right:3px;"><path d="M12 5v14M5 12h14"></path></svg>${item.name}`;
           btn.onclick = () => {
             const textarea = document.getElementById('merge-source-input');
-            const lines = textarea.value.split('\n').map(l => l.trim()).filter(Boolean);
-            if (!lines.includes(item.url)) {
-              lines.push(item.url);
-              textarea.value = lines.join('\n');
-              generateMergedSubscription();
-              showSonnerToast('已添加: ' + item.name);
+            // 🛡️ 终极原链接提取：无论历史卡片里存的是什么，100% 提取原始机场链接！
+            const candidate = item.sourceUrl || item.raw_url || item.url || '';
+            const pureLinesStr = (typeof extractPureAirportUrls === 'function' ? extractPureAirportUrls(candidate) : '') || candidate;
+            const newPureUrls = pureLinesStr.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+            
+            const currentLines = textarea.value.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+            let addedCount = 0;
+            newPureUrls.forEach(u => {
+              if (!currentLines.includes(u)) {
+                currentLines.push(u);
+                addedCount++;
+              }
+            });
+
+            textarea.value = currentLines.join('\n');
+            generateMergedSubscription();
+            if (addedCount > 0) {
+              showSonnerToast('已添加原链接: ' + item.name);
+            } else {
+              showSonnerToast('该原链接已在合并列表中');
             }
           };
           chips.appendChild(btn);
@@ -5621,6 +5703,40 @@ function switchTab(tab) {
     }
     window.quickFillFromHistory = quickFillFromHistory;
 
+    function autoCleanMergeSourceInput() {
+      const textarea = document.getElementById('merge-source-input');
+      if (!textarea) return;
+      const val = textarea.value;
+      if (!val) return;
+      if (/[?&]url=/i.test(val) || /%25|%3A|%2F/i.test(val) || val.includes('|')) {
+        const cleaned = typeof extractPureAirportUrls === 'function' ? extractPureAirportUrls(val) : '';
+        if (cleaned && cleaned !== val) {
+          textarea.value = cleaned;
+          if (typeof showSonnerToast === 'function') {
+            showSonnerToast('⚡ 已自动为您剥离中转壳，还原为原始机场订阅链接！');
+          }
+        }
+      }
+    }
+    window.autoCleanMergeSourceInput = autoCleanMergeSourceInput;
+
+    function autoCleanMergeSourceInput() {
+      const textarea = document.getElementById('merge-source-input');
+      if (!textarea) return;
+      const val = textarea.value;
+      if (!val) return;
+      if (/[?&]url=/i.test(val) || /%25|%3A|%2F/i.test(val) || val.includes('|')) {
+        const cleaned = typeof extractPureAirportUrls === 'function' ? extractPureAirportUrls(val) : '';
+        if (cleaned && cleaned !== val) {
+          textarea.value = cleaned;
+          if (typeof showSonnerToast === 'function') {
+            showSonnerToast('⚡ 已自动为您剥离中转壳，还原为原始机场订阅链接！');
+          }
+        }
+      }
+    }
+    window.autoCleanMergeSourceInput = autoCleanMergeSourceInput;
+
     function clearMergeInput() {
       document.getElementById('merge-source-input').value = '';
       document.getElementById('merge-result-url').value = '';
@@ -5628,29 +5744,22 @@ function switchTab(tab) {
     window.clearMergeInput = clearMergeInput;
 
     function generateMergedSubscription() {
-      const raw = document.getElementById('merge-source-input').value.trim();
+      const rawInput = document.getElementById('merge-source-input');
       const resultInput = document.getElementById('merge-result-url');
+      if (!rawInput || !resultInput) return;
+      const raw = rawInput.value.trim();
       if (!raw) {
         resultInput.value = '';
         return;
       }
-      const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+      // 🛡️ 强制进行深层递归解包，彻底消除套娃
+      const cleanedRaw = typeof extractPureAirportUrls === 'function' ? extractPureAirportUrls(raw) : raw;
+      const lines = cleanedRaw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
       if (lines.length === 0) {
         resultInput.value = '';
         return;
       }
-      const processedLines = lines.map((l, idx) => {
-        let line = unwrapSubFlowUrl(l.trim());
-        // 匹配用户自定义别名前缀，如 [主力] http... 或 主力: http...
-        const prefixMatch = line.match(/^\[([^\]]+)\]\s*(https?:\/\/.+)$/i) || line.match(/^([^\s:]+)[:：]\s*(https?:\/\/.+)$/i);
-        if (prefixMatch) {
-          const customTag = prefixMatch[1].trim();
-          const targetUrl = prefixMatch[2].trim().split('#')[0];
-          return `${targetUrl}#${encodeURIComponent(customTag)}`;
-        }
-        return line;
-      });
-      const encodedUrls = encodeURIComponent(processedLines.join('|'));
+      const encodedUrls = encodeURIComponent(lines.join('|'));
       const format = document.getElementById('merge-target-format').value;
       const streamName = encodeURIComponent(document.getElementById('merge-stream-name').value.trim() || '聚合总流');
       const addPrefix = document.getElementById('merge-opt-prefix').checked ? '&insert=false' : '';
@@ -5781,7 +5890,7 @@ function switchTab(tab) {
           </div>
         </div>
 
-        <textarea id="merge-source-input" class="modern-input" rows="5" placeholder="请在此粘贴需要合并的多个机场订阅链接，每行一个：&#10;https://airport-a.com/sub?token=xxx&#10;https://airport-b.com/api/v1/client/subscribe?token=yyy" style="width:100%; resize:vertical; font-family:var(--font-mono); font-size:0.82rem; line-height:1.6; padding:12px; box-sizing:border-box;" oninput="generateMergedSubscription()"></textarea>
+        <textarea id="merge-source-input" class="modern-input" rows="5" onpaste="setTimeout(autoCleanMergeSourceInput, 50)" onchange="autoCleanMergeSourceInput()" placeholder="请在此粘贴需要合并的多个机场订阅链接，每行一个：&#10;https://airport-a.com/sub?token=xxx&#10;https://airport-b.com/api/v1/client/subscribe?token=yyy" style="width:100%; resize:vertical; font-family:var(--font-mono); font-size:0.82rem; line-height:1.6; padding:12px; box-sizing:border-box;" oninput="generateMergedSubscription()"></textarea>
 
         <!-- 历史订阅快速点选注入托盘 -->
         <div id="merge-history-picker" style="display:none; margin-top:12px; padding:12px; background:var(--bg-base); border-radius:10px; border:1px solid var(--border-subtle);">

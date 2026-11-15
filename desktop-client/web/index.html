@@ -4620,7 +4620,7 @@ function switchTab(tab) {
             if (item.url && (item.url.includes('sub_guest') || (item.url.includes('/sub?token=') && !item.url.includes('&id=') && !item.url.includes('url=')))) {
               const rawClean = item.sourceUrl || item.raw_url || '';
               if (rawClean) {
-                item.url = ${currentOrigin}/sub?target=auto&url=;
+                item.url = `${currentOrigin}/sub?target=auto&url=${encodeURIComponent(rawClean)}`;
                 listDirty = true;
               }
             }

@@ -3609,7 +3609,7 @@ function switchTab(tab) {
       }
 
       // 🛡️ 稳固可用架构：默认输出 100% 携带完整订阅源的高可用标准转换链
-      let url = ${getEffectiveBaseUrl()}/sub?target=&url=;
+      let url = `${getEffectiveBaseUrl()}/sub?target=${target}&url=${encodeURIComponent(input)}`;
 
       // 若已登录且有合法账户 Token，后台异步落库建档以在卡片中分配专属短链
       try {
@@ -4696,7 +4696,7 @@ function switchTab(tab) {
             if (item.url && (item.url.includes('sub_guest') || (item.url.includes('/sub?token=') && !item.url.includes('&id=') && !item.url.includes('url=')))) {
               const rawClean = item.sourceUrl || item.raw_url || '';
               if (rawClean) {
-                item.url = ${currentOrigin}/sub?target=auto&url=;
+                item.url = `${currentOrigin}/sub?target=auto&url=${encodeURIComponent(rawClean)}`;
                 listDirty = true;
               }
             }

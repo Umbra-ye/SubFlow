@@ -4728,6 +4728,17 @@ function switchTab(tab) {
 
     function renderHistoryList() {
       window.renderHistoryList = renderHistoryList;
+      const currentOrigin = (typeof getEffectiveBaseUrl === 'function' ? getEffectiveBaseUrl() : window.location.origin).replace(/\/$/, '');
+      if (Array.isArray(window.historyList) && window.historyList.length > 0) {
+        historyList = window.historyList;
+      } else if (Array.isArray(historyList) && historyList.length > 0) {
+        window.historyList = historyList;
+      }
+      if (Array.isArray(window.historyList) && window.historyList.length > 0) {
+        historyList = window.historyList;
+      } else if (Array.isArray(historyList) && historyList.length > 0) {
+        window.historyList = historyList;
+      }
       // 🚀 核心自愈引擎：彻底修复历史脏卡片（双链重合、虚假兜底、旧0节点）
       if (Array.isArray(window.historyList)) {
         let listDirty = false;
@@ -4819,9 +4830,15 @@ function switchTab(tab) {
       }
 
       historyList.forEach((item, idx) => {
-        const isChecked = selectedSubIndices.has(idx);
-        const div = document.createElement('div');
-        div.id = 'hist-card-' + idx;
+        if (!item) return;
+        try {
+          const isChecked = selectedSubIndices.has(idx);
+          const div = document.createElement('div');
+          div.id = 'hist-card-' + idx;
+
+          // 🛡️ 核心防崩溃：全局安全 URL 变量，彻底杜绝 undefined.replace 抛异常
+          const safeRawUrl = String(item.sourceUrl || item.raw_url || (typeof extractPureAirportUrls === 'function' ? extractPureAirportUrls(item.url) : '') || item.url || '').trim();
+          const safeConvertedUrl = String(item.url || ((item.dbId || item.id) && item.sub_token ? (currentOrigin + '/sub?id=' + (item.dbId || item.id) + '&token=' + item.sub_token + '&target=auto') : safeRawUrl)).trim();
 
         if (item.isMerged) {
           // 👑 专属多源聚合卡片: 优雅现代排版 (按钮沉底右对齐，消灭空白；支持重命名)
@@ -4928,16 +4945,16 @@ function switchTab(tab) {
               <!-- 原订阅条 -->
               <div style="display:flex; align-items:center; gap:8px; background:rgba(15,23,42,0.45); padding:5px 10px; border-radius:6px; border:1px solid rgba(255,255,255,0.08); width:100%; box-sizing:border-box;">
                 <span style="font-size:0.68rem; font-weight:700; color:#38bdf8; background:rgba(56,189,248,0.15); border:1px solid rgba(56,189,248,0.25); padding:1.5px 6px; border-radius:4px; flex-shrink:0; white-space:nowrap;">原订阅</span>
-                <span class="history-url-text raw-url-text" style="font-size:0.75rem; color:#94a3b8; font-family:monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;" title="${item.sourceUrl || unwrapSubFlowUrl(item.url) || item.url}">${item.sourceUrl || unwrapSubFlowUrl(item.url) || item.url}</span>
-                <button class="action-btn copy-url-btn" onclick="copyRawUrl('${(item.sourceUrl || unwrapSubFlowUrl(item.url) || item.url).replace(/'/g, "\\'")}')" title="复制上游机场原始订阅链接">
+                <span class="history-url-text raw-url-text" style="font-size:0.75rem; color:#94a3b8; font-family:monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;" title="${safeRawUrl}">${safeRawUrl}</span>
+                <button class="action-btn copy-url-btn" onclick="copyRawUrl('${safeRawUrl.replace(/'/g, "\\'")}')" title="复制上游机场原始订阅链接">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px; margin-right:3px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span>复制原链</span>
                 </button>
               </div>
               <!-- 转换链条 -->
               <div style="display:flex; align-items:center; gap:8px; background:rgba(15,23,42,0.45); padding:5px 10px; border-radius:6px; border:1px solid rgba(255,255,255,0.08); width:100%; box-sizing:border-box;">
                 <span style="font-size:0.68rem; font-weight:700; color:#34d399; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.25); padding:1.5px 6px; border-radius:4px; flex-shrink:0; white-space:nowrap;">转换链</span>
-                <span class="history-url-text converted-url-text" style="font-size:0.75rem; color:#94a3b8; font-family:monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;" title="${item.url}">${item.url}</span>
-                <button class="refresh-url-btn" onclick="refreshCardToShortUrl(${idx}, event)" title="一键重置密钥并作废旧链接"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; vertical-align:-1px;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg> <span>刷新</span></button><button class="action-btn copy-url-btn converted" onclick="copyHistoryConvertedUrl('${item.url.replace(/'/g, "\\'")}', 'auto')" title="复制 SubFlow 转换链接">
+                <span class="history-url-text converted-url-text" style="font-size:0.75rem; color:#94a3b8; font-family:monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;" title="${safeConvertedUrl}">${safeConvertedUrl}</span>
+                <button class="refresh-url-btn" onclick="refreshCardToShortUrl(${idx}, event)" title="一键重置密钥并作废旧链接"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; vertical-align:-1px;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg> <span>刷新</span></button><button class="action-btn copy-url-btn converted" onclick="copyHistoryConvertedUrl('${safeConvertedUrl.replace(/'/g, "\\'")}', 'auto')" title="复制 SubFlow 转换链接">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px; margin-right:3px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span>复制转换链</span>
                 </button>
               </div>
@@ -4952,6 +4969,7 @@ function switchTab(tab) {
           `;
         }
         stream.appendChild(div);
+        } catch(errCard) { console.error("Render card error at idx " + idx, errCard); }
       });
     }
 
@@ -6340,6 +6358,40 @@ function switchTab(tab) {
       const base = getEffectiveBaseUrl();
       const finalUrl = `${base}/sub?target=${format}&url=${encodedUrls}&filename=${streamName}.yaml&emoji=true&udp=true&scv=true${addPrefix}`;
       resultInput.value = finalUrl;
+      // 🌟 核心升级：合并流自动生成优雅私有短链，彻底隐藏原始机场链接与 token
+      const _tok = localStorage.getItem('subflow_token');
+      if (_tok && lines.length > 0) {
+        clearTimeout(window._mergeShortUrlTimer);
+        window._mergeShortUrlTimer = setTimeout(async () => {
+          try {
+            const streamAlias = (document.getElementById('merge-stream-name').value.trim()) || '我的聚合总流';
+            const res = await fetch(apiUrl('/api/user/subscriptions'), {
+              method: 'POST',
+              headers: { 'Authorization': 'Bearer ' + _tok, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                alias_name: streamAlias,
+                source_url: lines.join('|'),
+                target_format: 'clash'
+              })
+            });
+            if (res.ok) {
+              const d = await res.json();
+              if (d && (d.id || d.sub_token)) {
+                const shortUrl = `${base}/sub?id=${d.id}&token=${d.sub_token}&target=auto`;
+                resultInput.value = shortUrl;
+                // 呼吸微光提示
+                resultInput.style.transition = 'all 0.3s ease';
+                resultInput.style.borderColor = '#10b981';
+                resultInput.style.boxShadow = '0 0 12px rgba(16, 185, 129, 0.4)';
+                setTimeout(() => {
+                  resultInput.style.borderColor = '';
+                  resultInput.style.boxShadow = '';
+                }, 1500);
+              }
+            }
+          } catch(e) {}
+        }, 350);
+      }
     }
     window.generateMergedSubscription = generateMergedSubscription;
 

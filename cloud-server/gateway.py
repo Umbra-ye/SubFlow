@@ -2830,29 +2830,78 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
             log_output = []
             has_update = False
             remote_info = ""
+            remote_ver = ""
+            remote_build = ""
+            changelog = []
 
-            if is_git:
+            # 无论是否为 Git 模式，都向官方源拉取 version.json 探测最新版本
+            version_urls = [
+                "https://raw.githubusercontent.com/Umbra-ye/SubFlow/main/version.json",
+                "https://fastly.jsdelivr.net/gh/Umbra-ye/SubFlow@main/version.json",
+                "https://ghproxy.net/https://raw.githubusercontent.com/Umbra-ye/SubFlow/main/version.json"
+            ]
+            remote_data = None
+            for vu in version_urls:
                 try:
-                    p = subprocess.run(["git", "fetch", "--dry-run"], cwd=BASE_DIR, capture_output=True, text=True, timeout=8)
-                    log_output.append(p.stdout or p.stderr or "Git fetch check completed.")
-                    p_diff = subprocess.run(["git", "status", "-uno"], cwd=BASE_DIR, capture_output=True, text=True, timeout=5)
-                    status_text = p_diff.stdout
-                    log_output.append(status_text)
-                    if "behind" in status_text or "Your branch is behind" in status_text:
-                        has_update = True
-                        remote_info = "检测到远程 Git 仓库存在新版本提交！"
-                    else:
-                        remote_info = "当前代码已是最新版本。"
-                except Exception as ex:
-                    log_output.append(f"Git 检测异常: {str(ex)}")
+                    req_v = urllib.request.Request(vu, headers={"User-Agent": "SubFlow-VersionChecker"})
+                    with urllib.request.urlopen(req_v, timeout=5) as r_v:
+                        if r_v.status == 200:
+                            remote_data = json.loads(r_v.read().decode("utf-8"))
+                            break
+                except Exception:
+                    continue
+
+            # 读取本地版本
+            local_ver = "3.2.0"
+            local_build = "20261115-R5"
+            loc_vfile = os.path.join(BASE_DIR, "version.json")
+            if os.path.exists(loc_vfile):
+                try:
+                    with open(loc_vfile, "r", encoding="utf-8") as lf:
+                        loc_j = json.load(lf)
+                        local_ver = loc_j.get("version", local_ver)
+                        local_build = loc_j.get("build", local_build)
+                except Exception:
+                    pass
+
+            if remote_data:
+                remote_ver = remote_data.get("version", "")
+                remote_build = remote_data.get("build", "")
+                changelog = remote_data.get("changelog", [])
+                if remote_ver != local_ver or remote_build != local_build:
+                    has_update = True
+                    remote_info = f"🔥 发现官方新版本: v{remote_ver} (Build {remote_build})，当前为 v{local_ver} (Build {local_build})"
+                    log_output.append(f"[检测结果] 发现新版本 v{remote_ver} (发布日期: {remote_data.get('release_date', '')})")
+                    for cl in changelog:
+                        log_output.append(f"  * {cl}")
+                else:
+                    remote_info = f"✅ 当前已是官方最新版本 (v{local_ver} Build {local_build})，运行良好。"
+                    log_output.append(f"[检测结果] 本地版本与 GitHub 官方源完全一致 (v{local_ver})。")
             else:
-                remote_info = f"云端处于自包含独立发布包部署模式。已连接配置更新源: {repo_url or '默认源'}"
-                log_output.append("服务器处于极简独立运行模式，支持通过 Git 同步或本地一键推送程序 3 秒热升级。")
+                if is_git:
+                    try:
+                        p = subprocess.run(["git", "fetch", "--dry-run"], cwd=BASE_DIR, capture_output=True, text=True, timeout=8)
+                        p_diff = subprocess.run(["git", "status", "-uno"], cwd=BASE_DIR, capture_output=True, text=True, timeout=5)
+                        status_text = p_diff.stdout
+                        if "behind" in status_text or "Your branch is behind" in status_text:
+                            has_update = True
+                            remote_info = "检测到远程 Git 仓库存在新版本提交！"
+                        else:
+                            remote_info = "当前代码已是最新版本。"
+                    except Exception as ex:
+                        remote_info = f"版本检测网络受限: {str(ex)}"
+                else:
+                    remote_info = "无法连接 GitHub 版本探测源，请检查服务器外网网络。"
 
             self.send_json({
                 "ok": True,
                 "has_update": has_update,
+                "current_version": local_ver,
+                "current_build": local_build,
+                "latest_version": remote_ver or local_ver,
+                "latest_build": remote_build or local_build,
                 "remote_info": remote_info,
+                "changelog": changelog,
                 "log": "\n".join(log_output)
             })
             return
@@ -2870,7 +2919,7 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
 
             if is_git:
                 try:
-                    upgrade_logs.append("[Step 1] 正在同步远程代码...")
+                    upgrade_logs.append("[Step 1] 正在通过 Git 同步远程最新分支代码...")
                     p_pull = subprocess.run(["git", "pull", "--rebase", "origin", "main"], cwd=BASE_DIR, capture_output=True, text=True, timeout=20)
                     upgrade_logs.append(p_pull.stdout or p_pull.stderr or "代码已同步。")
                 except Exception as ex:
@@ -2878,41 +2927,71 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
             else:
                 upgrade_logs.append("[Step 1] 检测到自包含独立部署模式，开始从官方仓库定向同步最新纯净源码...")
                 files_to_update = [
+                    ("version.json", os.path.join(BASE_DIR, "version.json")),
                     ("cloud-server/web/index.html", os.path.join(BASE_DIR, "web", "index.html")),
                     ("cloud-server/web/admin.html", os.path.join(BASE_DIR, "web", "admin.html")),
                     ("cloud-server/gateway.py", os.path.join(BASE_DIR, "gateway.py")),
                     ("cloud-server/country_enricher.py", os.path.join(BASE_DIR, "country_enricher.py"))
                 ]
+                import py_compile
                 success_count = 0
                 for remote_rel, local_target in files_to_update:
-                    raw_url = f"https://raw.githubusercontent.com/Umbra-ye/SubFlow/main/{remote_rel}"
-                    mirror_url = f"https://ghproxy.net/{raw_url}"
+                    urls = [
+                        f"https://raw.githubusercontent.com/Umbra-ye/SubFlow/main/{remote_rel}",
+                        f"https://fastly.jsdelivr.net/gh/Umbra-ye/SubFlow@main/{remote_rel}",
+                        f"https://ghproxy.net/https://raw.githubusercontent.com/Umbra-ye/SubFlow/main/{remote_rel}",
+                        f"https://mirror.ghproxy.com/https://raw.githubusercontent.com/Umbra-ye/SubFlow/main/{remote_rel}"
+                    ]
                     downloaded = False
-                    for u in [raw_url, mirror_url]:
+                    tmp_target = f"{local_target}.tmp"
+                    for u in urls:
                         try:
                             req = urllib.request.Request(u, headers={"User-Agent": "SubFlow-Updater"})
-                            with urllib.request.urlopen(req, timeout=10) as resp:
+                            with urllib.request.urlopen(req, timeout=12) as resp:
                                 if resp.status == 200:
                                     os.makedirs(os.path.dirname(local_target), exist_ok=True)
-                                    with open(local_target, "wb") as f_out:
+                                    with open(tmp_target, "wb") as f_out:
                                         f_out.write(resp.read())
+                                    
+                                    # 语法自检防崩溃门禁
+                                    if local_target.endswith(".py"):
+                                        try:
+                                            py_compile.compile(tmp_target, doraise=True)
+                                        except Exception as py_err:
+                                            upgrade_logs.append(f"  ! 拦截异常代码: {os.path.basename(local_target)} 语法校验失败 ({str(py_err)})")
+                                            if os.path.exists(tmp_target): os.remove(tmp_target)
+                                            continue
+                                    
+                                    # 原子替换
+                                    os.replace(tmp_target, local_target)
                                     downloaded = True
                                     success_count += 1
                                     upgrade_logs.append(f"  + 成功拉取并覆盖: {os.path.basename(local_target)}")
                                     break
                         except Exception:
+                            if os.path.exists(tmp_target):
+                                try: os.remove(tmp_target)
+                                except Exception: pass
                             continue
                     if not downloaded:
                         upgrade_logs.append(f"  - 拉取失败 (将维持现有版本): {os.path.basename(local_target)}")
                 upgrade_logs.append(f"[Step 2] 源码热更新完成 ({success_count}/{len(files_to_update)} 文件已更新)，准备平滑重启服务...")
 
-            # 触发 systemd 平滑热重启 (异步延迟触发，保证当前 HTTP 响应安全送达前端)
+            # 触发平滑热重启 (异步延迟触发，保证当前 HTTP 响应安全送达前端)
             def do_async_restart():
                 time.sleep(1.2)
                 try:
-                    subprocess.run(["systemctl", "restart", "subflow.service"], timeout=5)
+                    p = subprocess.run(["systemctl", "restart", "subflow.service"], timeout=5, capture_output=True)
+                    if p.returncode != 0:
+                        subprocess.run(["systemctl", "restart", "subflow"], timeout=5, capture_output=True)
                 except Exception:
                     pass
+                # 触发自杀退出，由守护脚本或 systemd (Restart=always) 毫秒级拉起最新代码
+                try:
+                    os._exit(0)
+                except Exception:
+                    pass
+
             threading.Thread(target=do_async_restart, daemon=True).start()
 
             self.send_json({
@@ -2924,8 +3003,6 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
 
         self.send_error(404, "Endpoint not found")
 
-    # ==========================================================================
-    # 9. DELETE 请求处理 (删除订阅)
     # ==========================================================================
     def do_DELETE(self):
         parsed = urllib.parse.urlparse(self.path)

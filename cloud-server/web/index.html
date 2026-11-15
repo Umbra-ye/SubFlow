@@ -2,6 +2,9 @@
 <html lang="zh-CN">
 <head>
   <script>
+    let selectedSubIndices = new Set();
+    window.selectedSubIndices = selectedSubIndices;
+
   try {
     if (localStorage.getItem('subflow_user_token') === 'sub_guest') {
       localStorage.removeItem('subflow_user_token');
@@ -4708,7 +4711,7 @@ function switchTab(tab) {
       historyList.forEach((item, idx) => {
         if (!item) return;
         try {
-          const isChecked = selectedSubIndices.has(idx);
+          const isChecked = (typeof selectedSubIndices !== 'undefined' && selectedSubIndices && typeof selectedSubIndices.has === 'function') ? selectedSubIndices.has(idx) : false;
           const div = document.createElement('div');
           div.id = 'hist-card-' + idx;
 

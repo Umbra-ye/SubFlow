@@ -2501,15 +2501,39 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
                 return
             # 密文落库
             encrypted_url = encrypt_secret(raw_url)
-            new_sub_token = secrets.token_hex(16)
             with db_lock:
                 conn = get_db()
                 c = conn.cursor()
-                c.execute("""
-                INSERT INTO subscriptions (user_id, alias_name, source_url, target_format, sub_token)
-                VALUES (?, ?, ?, ?, ?);
-                """, (user_id, alias, encrypted_url, target, new_sub_token))
-                sub_id = c.lastrowid
+                # 🛡️ 智能去重排障：查询当前用户是否已存在完全相同 raw_url 的订阅
+                c.execute("SELECT id, sub_token, source_url FROM subscriptions WHERE user_id = ?;", (user_id,))
+                existing_rows = c.fetchall()
+                matched_id = None
+                matched_token = None
+                for r in existing_rows:
+                    dec = decrypt_secret(r["source_url"])
+                    if dec == raw_url or r["source_url"] == encrypted_url:
+                        matched_id = r["id"]
+                        matched_token = (r["sub_token"] if "sub_token" in r.keys() else "") or ""
+                        break
+                
+                if matched_id:
+                    # 已存在相同源的订阅：更新其 alias、target 与更新时间，绝不无脑重复 INSERT 制造僵尸垃圾
+                    if not matched_token:
+                        matched_token = secrets.token_hex(16)
+                    c.execute("""
+                        UPDATE subscriptions 
+                        SET alias_name = ?, target_format = ?, sub_token = ?, updated_at = CURRENT_TIMESTAMP
+                        WHERE id = ?;
+                    """, (alias, target, matched_token, matched_id))
+                    sub_id = matched_id
+                    new_sub_token = matched_token
+                else:
+                    new_sub_token = secrets.token_hex(16)
+                    c.execute("""
+                    INSERT INTO subscriptions (user_id, alias_name, source_url, target_format, sub_token)
+                    VALUES (?, ?, ?, ?, ?);
+                    """, (user_id, alias, encrypted_url, target, new_sub_token))
+                    sub_id = c.lastrowid
                 conn.commit()
                 conn.close()
             short_url = f"/sub?id={sub_id}&token={new_sub_token}&target={target}"
@@ -2521,6 +2545,36 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
                 "sub_token": new_sub_token,
                 "short_url": short_url
             })
+            return
+
+        # 7.0 批量物理彻底删除订阅 (/api/user/subscriptions/batch-delete)
+        if path == "/api/user/subscriptions/batch-delete":
+            user = self.get_current_user()
+            if not user and RUN_MODE != "local":
+                self.send_json({"error": "Unauthorized"}, code=401)
+                return
+            user_id = user["user_id"] if user else 1
+            ids = body.get("ids", [])
+            valid_ids = []
+            for item in ids:
+                if isinstance(item, int):
+                    valid_ids.append(item)
+                elif isinstance(item, str):
+                    s = item.replace("sub_", "").strip()
+                    if s.isdigit():
+                        valid_ids.append(int(s))
+            if not valid_ids:
+                self.send_json({"error": "No valid IDs provided"}, code=400)
+                return
+            with db_lock:
+                conn = get_db()
+                c = conn.cursor()
+                placeholders = ",".join("?" for _ in valid_ids)
+                c.execute(f"DELETE FROM subscriptions WHERE id IN ({placeholders}) AND user_id = ?;", (*valid_ids, user_id))
+                deleted_count = c.rowcount
+                conn.commit()
+                conn.close()
+            self.send_json({"ok": True, "message": f"已彻底物理销毁 {deleted_count} 条订阅", "deleted_count": deleted_count})
             return
 
         
@@ -3022,18 +3076,33 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
                 self.send_json({"error": "Unauthorized"}, code=401)
                 return
             user_id = user["user_id"] if user else 1
+            raw_segment = path.split("/")[-1].strip()
+            # 🛡️ 架构级容错：自动剥离前端可能携带的 sub_ 前缀
+            if raw_segment.startswith("sub_"):
+                raw_segment = raw_segment[4:]
+            
+            sub_id = None
             try:
-                sub_id = int(path.split("/")[-1])
+                sub_id = int(raw_segment)
             except ValueError:
-                self.send_json({"error": "Invalid ID"}, code=400)
-                return
+                sub_id = None
+
+            query_params = urllib.parse.parse_qs(parsed.query)
+            token_param = query_params.get("token", [""])[0].strip()
+
             with db_lock:
                 conn = get_db()
                 c = conn.cursor()
-                c.execute("DELETE FROM subscriptions WHERE id = ? AND user_id = ?;", (sub_id, user_id))
+                deleted_rows = 0
+                if sub_id is not None:
+                    c.execute("DELETE FROM subscriptions WHERE id = ? AND user_id = ?;", (sub_id, user_id))
+                    deleted_rows = c.rowcount
+                if deleted_rows == 0 and token_param:
+                    c.execute("DELETE FROM subscriptions WHERE sub_token = ? AND user_id = ?;", (token_param, user_id))
+                    deleted_rows = c.rowcount
                 conn.commit()
                 conn.close()
-            self.send_json({"ok": True, "message": "订阅已删除"})
+            self.send_json({"ok": True, "message": "订阅已彻底物理删除", "deleted_rows": deleted_rows})
             return
         self.send_error(404)
 

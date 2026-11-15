@@ -4147,17 +4147,30 @@ function switchTab(tab) {
     }
     window.syncMergedCardFromSingleCards = syncMergedCardFromSingleCards;
 
-    // 👑 彻底解除合并 / 删除卡片逻辑
-    async function deleteHistoryItem(idx) {
+    // 👑 彻底解除合并 / 彻底物理销毁卡片逻辑
+    window.recentlyDeletedSubIds = window.recentlyDeletedSubIds || new Set();
+
+    async function deleteHistoryItem(idx, isForceDelete = false) {
       if (typeof idx !== 'number' || idx < 0 || idx >= historyList.length) return;
       const item = historyList[idx];
       if (!item) return;
 
+      let confirmMsg = '';
       if (item.isMerged) {
-        const ok = (typeof confirm === 'function' ? confirm('确定要解除此聚合订阅吗？各子源将恢复为独立卡片展示。') : true);
-        if (!ok) return;
+        if (isForceDelete) {
+          confirmMsg = '确定要彻底物理删除此聚合总流吗？云端短链与记录将被物理销毁，不可恢复。';
+        } else {
+          confirmMsg = '确定要解除此聚合订阅吗？各子源将恢复为独立卡片展示。';
+        }
+      } else {
+        confirmMsg = '确定要彻底物理删除此订阅卡片吗？云端短链与记录将彻底物理销毁。';
+      }
 
-        // 如果解构后需要恢复单卡：检查单卡列表中是否有这些子源，没有则恢复
+      const ok = (typeof confirm === 'function' ? confirm(confirmMsg) : true);
+      if (!ok) return;
+
+      // 如果解构后需要恢复单卡（仅当 isMerged 且用户选择仅解除合并，非彻底删除时）：
+      if (item.isMerged && !isForceDelete) {
         if (Array.isArray(item.subSources) && item.subSources.length > 0) {
           const singleCards = historyList.filter(h => !h.isMerged);
           item.subSources.forEach((s, sIdx) => {
@@ -4178,22 +4191,39 @@ function switchTab(tab) {
             }
           });
         }
-      } else {
-        if (!confirm('确定要删除此订阅卡片吗？')) return;
       }
 
-      // 云端持久化同步删除
+      // 🛡️ 智能提取真实纯数字主键 ID 进行物理 DELETE (坚决杜绝 sub_ 字符串导致 400 失败)
+      let targetDbId = item.dbId;
+      if (!targetDbId && item.id) {
+        const m = String(item.id).match(/^sub_(\d+)$/);
+        if (m) targetDbId = parseInt(m[1]);
+      }
+      if (!targetDbId && item.url) {
+        const m = String(item.url).match(/[?&]id=(\d+)/);
+        if (m) targetDbId = parseInt(m[1]);
+      }
+
+      // 🛡️ 登记到本地防僵尸回流黑名单
+      if (targetDbId) window.recentlyDeletedSubIds.add(Number(targetDbId));
+      if (item.id) window.recentlyDeletedSubIds.add(String(item.id));
+
+      // 🚀 云端持久化同步彻底物理删除
       const _tok = localStorage.getItem('subflow_token');
-      if (_tok && item.id) {
+      if (_tok && targetDbId) {
         try {
-          fetch(apiUrl('/api/user/subscriptions/' + encodeURIComponent(item.id)), {
+          let deleteUrl = apiUrl('/api/user/subscriptions/' + targetDbId);
+          if (item.sub_token) deleteUrl += '?token=' + encodeURIComponent(item.sub_token);
+          await fetch(deleteUrl, {
             method: 'DELETE',
             headers: { 'Authorization': 'Bearer ' + _tok }
-          }).catch(() => {});
-        } catch(e) {}
+          });
+        } catch(e) {
+          console.warn('Physical delete cloud subscription error:', e);
+        }
       }
 
-      // 移出当前卡片
+      // 本地移出当前卡片
       historyList.splice(idx, 1);
       window.historyList = historyList;
       try { localStorage.setItem('subflow_history', JSON.stringify(historyList)); } catch(e) {}
@@ -4203,9 +4233,125 @@ function switchTab(tab) {
       }
       renderHistoryList();
       if (typeof updateBatchBar === 'function') updateBatchBar();
-      showSonnerToast(item.isMerged ? '🗑️ 已成功解除聚合总流并恢复各子源！' : '🗑️ 已删除该订阅卡片！');
+      showSonnerToast(item.isMerged ? (isForceDelete ? '🗑️ 已彻底物理销毁该聚合总流！' : '🗑️ 已成功解除聚合总流并恢复各子源！') : '🗑️ 已彻底物理删除该订阅卡片！');
     }
     window.deleteHistoryItem = deleteHistoryItem;
+
+    // 👑 多选与批量操作全套交互引擎 (Zero Zombie)
+    function onSubCheckChanged(event, idx) {
+      if (!window.selectedSubIndices) window.selectedSubIndices = new Set();
+      if (event.target.checked) {
+        window.selectedSubIndices.add(idx);
+      } else {
+        window.selectedSubIndices.delete(idx);
+      }
+      const chkAll = document.getElementById('chk-select-all');
+      if (chkAll) {
+        chkAll.checked = (historyList.length > 0 && window.selectedSubIndices.size === historyList.length);
+        chkAll.indeterminate = (window.selectedSubIndices.size > 0 && window.selectedSubIndices.size < historyList.length);
+      }
+      renderHistoryList();
+      updateBatchBar();
+    }
+    window.onSubCheckChanged = onSubCheckChanged;
+
+    function toggleSelectAll(checked) {
+      if (!window.selectedSubIndices) window.selectedSubIndices = new Set();
+      window.selectedSubIndices.clear();
+      if (checked) {
+        historyList.forEach((_, idx) => window.selectedSubIndices.add(idx));
+      }
+      renderHistoryList();
+      updateBatchBar();
+    }
+    window.toggleSelectAll = toggleSelectAll;
+
+    function updateBatchBar() {
+      let bar = document.getElementById('batch-operation-bar');
+      const count = window.selectedSubIndices ? window.selectedSubIndices.size : 0;
+      if (count === 0) {
+        if (bar) bar.style.display = 'none';
+        return;
+      }
+      if (!bar) {
+        bar = document.createElement('div');
+        bar.id = 'batch-operation-bar';
+        bar.style.cssText = 'position:fixed; bottom:24px; left:50%; transform:translateX(-50%); z-index:9999; background:rgba(15,23,42,0.92); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); border:1px solid rgba(168,85,247,0.35); border-radius:12px; padding:10px 18px; box-shadow:0 20px 40px rgba(0,0,0,0.6), 0 0 15px rgba(168,85,247,0.2); display:flex; align-items:center; gap:12px; color:#f8fafc; font-size:0.85rem; animation:modalScaleIn 0.15s ease-out;';
+        document.body.appendChild(bar);
+      }
+      bar.style.display = 'flex';
+      bar.innerHTML = `
+        <span style="font-weight:700; color:#c084fc; display:inline-flex; align-items:center; gap:6px;">
+          <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#a855f7; box-shadow:0 0 8px #a855f7;"></span>
+          已选 ${count} 项
+        </span>
+        <button class="action-btn" onclick="batchMergeSelectedCards()" style="background:linear-gradient(135deg, #a855f7, #6366f1); border-color:#9333ea; color:#fff; font-size:0.75rem; height:28px; padding:0 12px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px; margin-right:4px;"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+          一键合并总流
+        </button>
+        <button class="action-btn danger" onclick="batchDeleteSelectedCards()" style="font-size:0.75rem; height:28px; padding:0 12px; background:rgba(239,68,68,0.2); border-color:#ef4444; color:#fca5a5;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px; margin-right:4px;"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+          彻底删除所选 (${count})
+        </button>
+        <button onclick="window.selectedSubIndices.clear(); renderHistoryList(); updateBatchBar();" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.75rem; padding:2px 6px;">
+          取消
+        </button>
+      `;
+    }
+    window.updateBatchBar = updateBatchBar;
+
+    async function batchDeleteSelectedCards() {
+      if (!window.selectedSubIndices || window.selectedSubIndices.size === 0) return;
+      const indices = Array.from(window.selectedSubIndices).sort((a, b) => b - a);
+      if (!confirm(`确定要彻底物理删除所选的 ${indices.length} 条订阅吗？\\n云端专属短链与数据库记录将彻底销毁，不可恢复！`)) return;
+
+      const _tok = localStorage.getItem('subflow_token');
+      const dbIdsToDelete = [];
+      indices.forEach(idx => {
+        const item = historyList[idx];
+        if (!item) return;
+        let dbId = item.dbId;
+        if (!dbId && item.id) {
+          const m = String(item.id).match(/^sub_(\d+)$/);
+          if (m) dbId = parseInt(m[1]);
+        }
+        if (!dbId && item.url) {
+          const m = String(item.url).match(/[?&]id=(\d+)/);
+          if (m) dbId = parseInt(m[1]);
+        }
+        if (dbId) {
+          dbIdsToDelete.push(dbId);
+          window.recentlyDeletedSubIds.add(Number(dbId));
+        }
+        if (item.id) window.recentlyDeletedSubIds.add(String(item.id));
+      });
+
+      // 云端批量物理删除
+      if (_tok && dbIdsToDelete.length > 0) {
+        try {
+          await fetch(apiUrl('/api/user/subscriptions/batch-delete'), {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + _tok, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids: dbIdsToDelete })
+          });
+        } catch(e) {
+          console.warn('Batch delete error:', e);
+        }
+      }
+
+      // 本地列表彻底剔除
+      indices.forEach(idx => {
+        historyList.splice(idx, 1);
+      });
+      window.historyList = historyList;
+      try { localStorage.setItem('subflow_history', JSON.stringify(historyList)); } catch(e) {}
+
+      window.selectedSubIndices.clear();
+      renderHistoryList();
+      updateBatchBar();
+      showSonnerToast(`🎉 成功批量彻底销毁 ${indices.length} 条订阅！`);
+    }
+    window.batchDeleteSelectedCards = batchDeleteSelectedCards;
 
     // 👑 从聚合卡片中精准移出单个子源
     async function removeMergedSubSource(cardIdOrIdx, sIdx) {
@@ -4665,7 +4811,12 @@ function switchTab(tab) {
                 <button class="action-btn" onclick="previewHistoryItem('${item.url}')" title="${dict.btnPreviewPlain}">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg> <span>${dict.btnPreviewPlain}</span>
                 </button>
-                <button class="action-btn danger" onclick="deleteHistoryItem(${idx})" title="${dict.btnDissolve}">
+                <button class="action-btn" onclick="deleteHistoryItem(${idx}, false)" title="${dict.btnDissolve}">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg> <span>${dict.btnDissolve}</span>
+                </button>
+                <button class="action-btn danger" onclick="deleteHistoryItem(${idx}, true)" title="彻底删除此聚合总流">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg> <span>彻底删除</span>
+                </button>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg> <span>${dict.btnDissolve}</span>
                 </button>
               </div>
@@ -4745,7 +4896,7 @@ function switchTab(tab) {
                 <button class="action-btn" onclick="previewHistoryItem('${item.url}')" title="${dict.btnPreviewCard}">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg> <span>${dict.btnPreviewCard}</span>
                 </button>
-                <button class="action-btn danger" onclick="deleteHistoryItem(${idx})" title="${dict.btnDelete}">
+                <button class="action-btn danger" onclick="deleteHistoryItem(${idx}, true)" title="${dict.btnDelete}">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; flex-shrink:0;"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg> <span>${dict.btnDelete}</span>
                 </button>
               </div>

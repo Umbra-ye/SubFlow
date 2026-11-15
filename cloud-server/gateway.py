@@ -2975,22 +2975,32 @@ class SubFlowGatewayHandler(BaseHTTPRequestHandler):
                         return
                     user_id = user_row["id"]
                 else:
-                    # 查访客 token
-                    c.execute("SELECT id, user_id, max_uses, used_count, expires_at FROM guest_tokens WHERE token = ?;", (token,))
-                    g_row = c.fetchone()
-                    if g_row:
-                        now = int(time.time())
-                        if g_row["expires_at"] < now or g_row["used_count"] >= g_row["max_uses"]:
+                    # 🌟 查单订阅专属独立 sub_token (单订阅短链免登录高安全鉴权)
+                    sub_id_param = params.get("id", [""])[0].strip()
+                    if sub_id_param and sub_id_param.isdigit():
+                        c.execute("SELECT user_id, sub_token FROM subscriptions WHERE id = ?;", (int(sub_id_param),))
+                    else:
+                        c.execute("SELECT user_id, sub_token FROM subscriptions WHERE sub_token = ? LIMIT 1;", (token,))
+                    s_match = c.fetchone()
+                    if s_match and s_match["sub_token"] and s_match["sub_token"] == token:
+                        user_id = s_match["user_id"]
+                    else:
+                        # 查访客 token
+                        c.execute("SELECT id, user_id, max_uses, used_count, expires_at FROM guest_tokens WHERE token = ?;", (token,))
+                        g_row = c.fetchone()
+                        if g_row:
+                            now = int(time.time())
+                            if g_row["expires_at"] < now or g_row["used_count"] >= g_row["max_uses"]:
+                                conn.close()
+                                self.send_error(410, "Gone: Disposable guest token expired or exceeded max uses")
+                                return
+                            user_id = g_row["user_id"]
+                            is_guest = True
+                            guest_id = g_row["id"]
+                        elif not has_direct_url:
                             conn.close()
-                            self.send_error(410, "Gone: Disposable guest token expired or exceeded max uses")
+                            self.send_error(403, "Forbidden: Invalid token")
                             return
-                        user_id = g_row["user_id"]
-                        is_guest = True
-                        guest_id = g_row["id"]
-                    elif not has_direct_url:
-                        conn.close()
-                        self.send_error(403, "Forbidden: Invalid token")
-                        return
                 conn.close()
         else:
             user_id = 1
